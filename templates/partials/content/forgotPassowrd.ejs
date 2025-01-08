@@ -1,0 +1,40 @@
+
+<div class="container mt-4 px-4">
+    <div class="row gx-5">
+      <div class="col text-start">
+          <img src="cid:the_a_team_logo" alt="The A Team">
+      </div>
+    </div>
+    <div class="row gx-5 text-center">
+      <div class="col">
+        <div class="p-3">
+          <!-- Content here -->
+          <div class="card mt-5 p-5" style="width: 100%">
+            <div class="card-body">
+              <h3 class="card-title">Reset Your Password - OTP for Authentication</h3>
+              <p class="card-text">
+                  We received a request to reset your password for your <%=user_name%> account. 
+                  To proceed, please use the following One-Time Password (OTP):
+              </p>
+              <div class="card text-bg-primary mb-3 justify-content-center">
+                  <div class="card-body">
+                      <h1 class="text-center"><%=otp%></h1>
+                  </div>
+              </div>
+              <p class="card-text">
+                  This OTP is valid for the next <span class="text-danger"><%=expire_minute%></span> minutes and will expire at <span class="text-danger"><%=expire_time%></span>
+              </p>
+              <p class="card-text">
+                  If you did not request a password reset, please disregard this email or contact our support team immediately.
+              </p>
+              <p class="card-text">
+                  To reset your password, please follow the instructions on the <a href="<%=reset_url%>">reset passowrd</a>.
+                  If you need any assistance, feel free to reach out to us at <a href="<%=support_details%>">contact us</a>. 
+              </p>
+              <a href="<%=reset_url%>" class="btn btn-primary">Reset Password</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+</div>
