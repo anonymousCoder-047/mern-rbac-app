@@ -1,32 +1,32 @@
 
 const mongoose = require('mongoose')
-const ObjectId = mongoose.Types.ObjectId;
+const ObjectId = mongoose.Types.ObjectId
 
-const userSchema = mongoose.Schema({
+const permissionsSchema = mongoose.Schema({
     id: {
         type: Number,
         required: true,
         default: 0
     },
-    username: {
+    sections: [{
         type: String,
         required: true,
         default: ""
-    },
-    email: {
+    }],
+    fields: [{
         type: String,
         required: true,
         default: ""
-    },
-    password: {
+    }],
+    attributes: [{
         type: String,
         required: true,
         default: ""
-    },
-    profileId: {
+    }],
+    groupId: {
         type: ObjectId,
-        required: false,
-    }
+        required: true,
+    },
 });
 
-module.exports.Users = new mongoose.model('users', userSchema, 'users');
+module.exports.Permissions = new mongoose.model('permissions', permissionsSchema, 'permissions');

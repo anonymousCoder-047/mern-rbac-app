@@ -3,21 +3,24 @@
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const _ = require('lodash');
+const jwt = require('jsonwebtoken');
 
 // load validator middleware
-const validateuser = require('../middlewares/signupMiddleware');
-const validatelogin = require('../middlewares/loginMiddleware');
 const { userLogin } = require('../middlewares/authMiddleware');
+const { generateAccessToken, generateRefreshToken } = require('../helpers/generateToken');
 const { 
     resetPasswordValidator, 
     forgotPasswordValidator,
     validateEmailLink,
-    validateOTPData
-} = require('../middlewares/resetPasswordValidator');
+    validateOTPData,
+    validateSignup,
+    validateLogin
+} = require('../middlewares/validatorMiddleware');
 
 // loading database service
 const { getNextSequence } = require('../helpers/incrementCount');
-const { create, get_users } = require('../services/userServices');
+const { create, get_users, get_user_by_id } = require('../services/userServices');
+const { create:createProfile } = require('../services/profileServices');
 
 const apiResponse = require('../helpers/apiResponse');
 const expressRouter = require('express');
@@ -33,10 +36,12 @@ const { send_mail } = require("../helpers/mail");
 const {
     domain,
     mail_username,
-    otp_expiry_time
+    otp_expiry_time,
+    access_token_secret,
+    refresh_token_secret,
 } = require("../config/config");
 
-app.post('/signup', validateuser, async (req, res) => {
+app.post('/signup', validateSignup, async (req, res) => {
     try {
         let user_data = req.body;
         const _existing_usr = user_data?.username ? await get_users({ username: user_data.username }) : await get_users({ email: user_data.email });;
@@ -47,10 +52,22 @@ app.post('/signup', validateuser, async (req, res) => {
         
         if(!_.isEmpty(_existing_usr)) return apiResponse.ErrorResponse(res, "Sorry! user already exist! please login.");  
         
-        const _new_usr = await create(user_data);
-        req.session.user = _new_usr;
+        let _profileData = {
+            username: user_data?.username ?? "",
+            email: user_data?.email ?? "",
+        }
+        _profileData['id'] = await getNextSequence('profile');
+        const _profile = await createProfile(_profileData);
 
-        return apiResponse.successResponseWithData(res, "User signed up successfully.", _new_usr);
+        user_data['profileId'] = _profile?._id;
+
+        const _accessToken = generateAccessToken(user_data);
+        const _refreshToken = generateRefreshToken(user_data);
+        let _new_usr = await create(user_data);
+        const _usrData = { ..._new_usr?._doc, 'token': _accessToken };
+
+        res.cookie('refresh_token', _refreshToken, { httpOnly: true, secure: true, sameSite: 'none' });
+        return apiResponse.successResponseWithData(res, "User signed up successfully.", _usrData);
     } catch(error) {
         return apiResponse.ErrorResponse(res, "Sorry! something went wrong while process signup E: " + error);
     }
@@ -85,7 +102,7 @@ app.post('/forgot-password', forgotPasswordValidator, async (req, res) => {
                 }
             ]
 
-            const _mail_info = await send_mail("forgot_password", emailData, mail_username, "anonymouscoder047@gmail.com", "Reset Password", _attachments)
+            const _mail_info = await send_mail("forgot_password", emailData, mail_username, _existing_usr[0]?.email, "Reset Password", _attachments)
 
             if(_mail_info.status == 200) return apiResponse.successResponseWithData(res, "OTP sent successfully.", _mail_info.messageId)
             else apiResponse.ErrorResponse(res, "Sorry! couldnt send OTP E: "+ _mail_info.status);
@@ -129,34 +146,76 @@ app.post('/reset-password', resetPasswordValidator, async (req, res) => {
         
         if(_.isEmpty(_existing_usr)) return apiResponse.ErrorResponse(res, "Sorry! user doesnt exist! please signup.");  
         
-        const _updated_usr = await update(user_data);
-        req.session.user = _new_usr;
+        const _accessToken = generateAccessToken(user_data);
+        const _refreshtoken = generateRefreshToken(user_data);
+        let _updated_usr = await update(user_data);
+        const _usrData = { ..._updated_usr?._doc, 'token': _accessToken };
 
-        return apiResponse.successResponseWithData(res, "User signed up successfully.", _updated_usr);
+        res.cookie('refresh_token', _refreshtoken, { httpOnly: true, secure: true, sameSite: 'none' });
+        return apiResponse.successResponseWithData(res, "User signed up successfully.", _usrData);
     } catch(error) {
         return apiResponse.ErrorResponse(res, "Sorry! something went wrong while process signup E: " + error);
     }
 })
 
-app.post('/login', validatelogin, userLogin, async (req, res) => {
+app.post('/login', validateLogin, userLogin, async (req, res) => {
     try {
         const { username } = req.body;
         let _query_field_name = username.includes('@') ? 'email' : 'username';
         const [ _existing_usr ] = await get_users({ [_query_field_name]: username })
 
         if(_.isEmpty(_existing_usr)) return apiResponse.ErrorResponse(res, "Sorry! user does not exist! please signup.");
-        req.session.user = _existing_usr;
-        
-        return apiResponse.successResponseWithData(res, "User logged in successfully!", _existing_usr);
+        const _accessToken = generateAccessToken(_existing_usr);
+        const _refreshToken = generateRefreshToken(_existing_usr);
+        const _usrData = { ..._existing_usr?._doc, 'token': _accessToken };
+
+        res.cookie('refresh_token', _refreshToken, { httpOnly: true, secure: true, sameSite: 'none' });
+        return apiResponse.successResponseWithData(res, "User logged in successfully!", _usrData);
     } catch(e) {
         return apiResponse.ErrorResponse(res, "Sorry! something went wrong while logging in E: "+ e);
     }
 })
 
-app.post('/logout', (req, res) => {
-    if(req.session.user) req.session.destroy();
+app.post('/refresh-token', async (req, res) => {
+    const { refresh_token } = req.cookies;
+    if(!refresh_token) return apiResponse.unauthorizedResponse(res, "Unauthorized! please login.");
+    else {
+        try {
+            const { exp } = jwt.decode(refresh_token);
 
+            if(exp < Date.now().valueOf() / 1000) return apiResponse.unauthorizedResponse(res, "Token expired");
+            else {
+                const payload = jwt.verify(refresh_token, refresh_token_secret);
+                console.log("Payload -- ", payload);
+                const _accessToken = generateAccessToken(payload);
+              
+                return apiResponse.successResponseWithData(res, "Token refreshed successfully", { "accessToken": _accessToken });
+            }
+        } catch(e) {
+            return apiResponse.ErrorResponse(res, "Sorry! something went wrong while refreshing token E: "+ e);
+        }
+    }
+})
+
+app.post('/logout', (req, res) => {
     return apiResponse.successResponse(res, "Logout successful.");
 })
 
-module.exports.signupRouter = app;
+app.get('/session-active', async (req, res) => {
+    try {
+        const { authorization } = req.headers;
+        const _token = authorization?.split(' ')[1]; 
+        const payload = jwt.verify(_token, access_token_secret);
+        
+        if(payload) {
+            const _existing_user = await get_user_by_id(payload?._id);
+            
+            if(_.isEmpty(_existing_user)) return apiResponse.ErrorResponse(res, "Incorrect Token!");
+            else return apiResponse.successResponse(res, _token);
+        } else return apiResponse.ErrorResponse(res, "Please login.");
+    } catch (err) {
+        return apiResponse.ErrorResponse(res, "Invalid token");
+    }
+});
+
+module.exports.authController = app;

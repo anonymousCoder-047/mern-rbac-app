@@ -8,8 +8,7 @@ const mongoose = require("mongoose");
 const cors = require('cors');
 const morgan = require('morgan');
 const helmet = require('helmet');
-const { v4: uuid } = require('uuid');
-const session = require('express-session');
+// const { v4: uuid } = require('uuid');
 const MongoStoreRateLimit = require('rate-limit-mongo');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
@@ -28,7 +27,6 @@ app.set('trust proxy', 1); // Trust first proxy
 const { 
     env, 
     db_url, 
-    session_secret,
     rate_limit_time_in_sec,
     max_rate_limit,
 } = require('./config/config')
@@ -62,17 +60,6 @@ app.use(cors(corsConfig))
 app.options("*", cors(corsConfig))
 app.use(limiter)
 app.use(cookieParser())
-app.use(session({
-    genid: function(req) {
-        return uuid();
-    },
-    secret: session_secret,
-    resave: false,
-    saveUninitialized: true,
-    cookie: {
-        secure: true
-    },
-}))
 
 // Serve static files (CSS, images)
 app.use(express.static(path.join(__dirname, 'public')));

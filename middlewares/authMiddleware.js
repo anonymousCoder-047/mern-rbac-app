@@ -2,11 +2,13 @@
 // load dependencies
 const _ = require('lodash');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 // load configurations 
+const { access_token_secret } = require('../config/config');
 
 // load sub modules
-const { get_users } = require('../services/userServices');
+const { get_users, get_user_by_id } = require('../services/userServices');
 const apiResponse = require('../helpers/apiResponse');
 
 async function userLogin(req, res, next) {
@@ -27,39 +29,59 @@ async function userLogin(req, res, next) {
 }
 
 const checkLoggedIn = async (req, res, next) => {
-  console.log("session --> ", req.session);
-  if (!req.session.user) return apiResponse.ErrorResponse(res, "Please login.");
-  else {
-    const _session = req.session?.user;
-    if(!_.isEmpty(_session)) {
-      const [ _existing_user ] = await get_users({ 'username': _session?.username });
-      if(_.isEmpty(_existing_user)) return apiResponse.ErrorResponse(res, "User doesnt esxist.");
-      else return next(); 
-    } else return apiResponse.ErrorResponse(res, "Sorry! invalid token.");
+  try {
+    if (req.headers) {
+      // Check if the token is valid
+      const { authorization } = req.headers;
+      const _token = authorization?.split(' ')[1]; 
+      const accessToken = jwt.verify(_token, access_token_secret);
+
+      if(accessToken && !_.isEmpty(accessToken)) {
+        const _existing_user = await get_user_by_id(accessToken?._id);
+        if(_.isEmpty(_existing_user)) return apiResponse.ErrorResponse(res, "Invalid Token");
+        else return next(); 
+      } else return apiResponse.ErrorResponse(res, "Sorry! invalid token.");
+    }
+  } catch (err) {
+    return apiResponse.ErrorResponse(res, "Please provide Token E:" + err);
   }
 }
 
-// Middleware to check if session has expired
-const activeSession = ((req, res, next) => {
-    if (req.session) {
-      // Check if session has expired
-      if (!req.session.cookie.expires || new Date() > req.session.cookie.expires) {
-        req.session.destroy((err) => {
-          if (err) {
-            return apiResponse.ErrorResponse(res, "Error in destroying session");
-          }
-          return apiResponse.successResponse(res, "Sorry! session timedout, please login.");
-        });
-      } else {
-        next();
-      }
-    } else {
-      next();
+const extractToken = (_token) => {
+  try {
+    return jwt.verify(_token, access_token_secret);
+  } catch (err) { 
+    return err;
+  }
+} 
+
+// Middleware to check if bearer token is correct
+const validateToken = ((req, res, next) => {
+  try {
+    if (req.header) {
+      // Check if the token is valid
+      const { authorization } = req.headers;
+      const _token = authorization?.split(' ')[1]; 
+      const accessToken = jwt.verify(_token, access_token_secret);
+      
+      if(accessToken && !_.isEmpty(accessToken)) {
+        const { exp } = jwt.decode(_token);
+
+        if(exp < Date.now().valueOf() / 1000) {
+          return apiResponse.unauthorizedResponse(res, "Token expired");
+        } else {
+          return next();  
+        }
+      } else return apiResponse.badRequestResponse(res, "Invalid Token");
     }
+  } catch (err) {
+    return apiResponse.unauthorizedResponse(res, "Token Expired E:" + err);
+  }
 });
 
 module.exports = {
     userLogin,
+    validateToken,
     checkLoggedIn,
-    activeSession
+    extractToken,
 };
