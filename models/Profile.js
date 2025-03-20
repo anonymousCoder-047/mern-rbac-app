@@ -26,12 +26,12 @@ const profileSchema = mongoose.Schema({
     },
     date_created: {
         type: Date,
-        default: moment(new Date()).format('YYYY-m-d H:m:s'),
+        default: moment(new Date()).format(),
         required: true
     },
     last_login: {
         type: Date,
-        default: moment(new Date()).format('YYYY-m-d H:m:s'),
+        default: moment(new Date()).format(),
         required: true
     },
     roleId: {

@@ -8,22 +8,12 @@ const permissionsSchema = mongoose.Schema({
         required: true,
         default: 0
     },
-    sections: [{
+    action: [{
         type: String,
         required: true,
-        default: ""
+        default: 0
     }],
-    fields: [{
-        type: String,
-        required: true,
-        default: ""
-    }],
-    attributes: [{
-        type: String,
-        required: true,
-        default: ""
-    }],
-    groupId: {
+    profileId: {
         type: ObjectId,
         required: true,
     },

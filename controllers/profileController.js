@@ -15,18 +15,19 @@ const { create, get_profile, get_profile_by_id, update_profile, delete_profile }
 
 const apiResponse = require('../helpers/apiResponse');
 const expressRouter = require('express');
+const { canCreate, canRead, canUpdate, canDelete } = require('../middlewares/permissionMiddleware');
 const app = expressRouter.Router();
 
 // load configuration variables
 
-app.get('/view', async (req, res) => {
+app.get('/view', canRead('read'), async (req, res) => {
     const profile_data = await get_profile({});
 
     if(!_.isEmpty(profile_data)) return apiResponse.successResponseWithData(res, "Profile information", profile_data);
     else return apiResponse.notFoundResponse(res, "Sorry, no profile data exists");
 });
 
-app.post('/create', validateCreateProfile, async (req, res) => {
+app.post('/create', validateCreateProfile, canCreate('create'), async (req, res) => {
     let profile_data = req.body;
 
     if(!_.isEmpty(profile_data)) {
@@ -41,7 +42,7 @@ app.post('/create', validateCreateProfile, async (req, res) => {
     } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", profile_data);
 });
 
-app.post('/update', validateUpdateProfile, async (req, res) => {
+app.post('/update', validateUpdateProfile, canUpdate('update'), async (req, res) => {
     const profile_data = req.body;
 
     if(!_.isEmpty(profile_data)) {
@@ -55,7 +56,7 @@ app.post('/update', validateUpdateProfile, async (req, res) => {
     } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", profile_data);
 });
 
-app.patch('/update/:id', async (req, res) => {
+app.patch('/update/:id', canUpdate('update'), async (req, res) => {
     try {
         const profile_id = req.params.id;
         const profile_data = req.body;
@@ -74,7 +75,7 @@ app.patch('/update/:id', async (req, res) => {
     }
 });
 
-app.post('/delete', validateDeleteProfile, async (req, res) => {
+app.post('/delete', validateDeleteProfile, canDelete('delete'), async (req, res) => {
     const profile_data = req.body;
 
     if(!_.isEmpty(profile_data)) {

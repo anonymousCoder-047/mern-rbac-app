@@ -11,7 +11,7 @@ const { access_token_secret, refresh_token_secret } = require('../config/config'
 
 const generateAccessToken = (usr) => {
     try {
-        if(!_.isEmpty(usr)) return jwt.sign(_.pick(usr, ['_id', 'username', 'email']), access_token_secret, { expiresIn: '15m' });
+        if(!_.isEmpty(usr)) return jwt.sign(_.pick(usr, ['_id', 'username', 'email', 'profileId']), access_token_secret, { expiresIn: '15m' });
 
         else return "";
     } catch (err) {
@@ -21,7 +21,7 @@ const generateAccessToken = (usr) => {
 
 const generateRefreshToken = (usr) => {
     try {
-        if(!_.isEmpty(usr)) return jwt.sign(_.pick(usr, ['_id', 'username', 'email']), refresh_token_secret, { expiresIn: '7d' });
+        if(!_.isEmpty(usr)) return jwt.sign(_.pick(usr, ['_id', 'username', 'email', 'profileId']), refresh_token_secret, { expiresIn: '7d' });
 
         else return "";
     } catch (err) {

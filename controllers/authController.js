@@ -40,6 +40,7 @@ const {
     access_token_secret,
     refresh_token_secret,
 } = require("../config/config");
+const { get_permissions } = require('../services/permissionsServices');
 
 app.post('/signup', validateSignup, async (req, res) => {
     try {
@@ -61,9 +62,9 @@ app.post('/signup', validateSignup, async (req, res) => {
 
         user_data['profileId'] = _profile?._id;
 
-        const _accessToken = generateAccessToken(user_data);
-        const _refreshToken = generateRefreshToken(user_data);
         let _new_usr = await create(user_data);
+        const _accessToken = generateAccessToken(_new_usr);
+        const _refreshToken = generateRefreshToken(_new_usr);
         const _usrData = { ..._new_usr?._doc, 'token': _accessToken };
 
         res.cookie('refresh_token', _refreshToken, { httpOnly: true, secure: true, sameSite: 'none' });
@@ -167,7 +168,8 @@ app.post('/login', validateLogin, userLogin, async (req, res) => {
         if(_.isEmpty(_existing_usr)) return apiResponse.ErrorResponse(res, "Sorry! user does not exist! please signup.");
         const _accessToken = generateAccessToken(_existing_usr);
         const _refreshToken = generateRefreshToken(_existing_usr);
-        const _usrData = { ..._existing_usr?._doc, 'token': _accessToken };
+        const [_permissions] = await get_permissions({ profileId: _existing_usr?.profileId })
+        const _usrData = { ..._existing_usr?._doc, 'token': _accessToken, permissions: _permissions?.action ?? [] };
 
         res.cookie('refresh_token', _refreshToken, { httpOnly: true, secure: true, sameSite: 'none' });
         return apiResponse.successResponseWithData(res, "User logged in successfully!", _usrData);
@@ -186,10 +188,11 @@ app.post('/refresh-token', async (req, res) => {
             if(exp < Date.now().valueOf() / 1000) return apiResponse.unauthorizedResponse(res, "Token expired");
             else {
                 const payload = jwt.verify(refresh_token, refresh_token_secret);
-                console.log("Payload -- ", payload);
                 const _accessToken = generateAccessToken(payload);
+                const [_permissions] = await get_permissions({ profileId: payload?.profileId })
+                const _usrData = { ...payload, accessToken: _accessToken, permissions: _permissions?.action ?? [] };
               
-                return apiResponse.successResponseWithData(res, "Token refreshed successfully", { "accessToken": _accessToken });
+                return apiResponse.successResponseWithData(res, "Token refreshed successfully", _usrData);
             }
         } catch(e) {
             return apiResponse.ErrorResponse(res, "Sorry! something went wrong while refreshing token E: "+ e);
@@ -198,6 +201,8 @@ app.post('/refresh-token', async (req, res) => {
 })
 
 app.post('/logout', (req, res) => {
+    res.clearCookie('refresh_token', { httpOnly: true, secure: true, sameSite: 'none' })
+
     return apiResponse.successResponse(res, "Logout successful.");
 })
 

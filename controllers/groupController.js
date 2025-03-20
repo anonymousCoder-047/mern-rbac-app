@@ -9,7 +9,7 @@ const {
     validateDeleteGroup,
 } = require('../middlewares/validatorMiddleware');
 
-const { checkPermission } = require("../middlewares/permissionMiddleware");
+const { canCreate, canRead, canUpdate, canDelete } = require("../middlewares/permissionMiddleware");
 
 // loading database service
 const { getNextSequence } = require('../helpers/incrementCount');
@@ -21,14 +21,14 @@ const app = expressRouter.Router();
 
 // load configuration variables
 
-app.get('/view', async (req, res) => {
+app.get('/view', canRead('read'), async (req, res) => {
     const group_data = await get_group({});
 
     if(!_.isEmpty(group_data)) return apiResponse.successResponseWithData(res, "Groups information", group_data);
     else return apiResponse.ErrorResponse(res, "Sorry, no group data exists");
 });
 
-app.post('/create', validateCreateGroup, checkPermission, async (req, res) => {
+app.post('/create', validateCreateGroup, canCreate('create'), async (req, res) => {
     let group_data = req.body;
 
     if(!_.isEmpty(group_data)) {
@@ -43,7 +43,7 @@ app.post('/create', validateCreateGroup, checkPermission, async (req, res) => {
     } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", group_data);
 });
 
-app.post('/update', validateUpdateGroup, async (req, res) => {
+app.post('/update', validateUpdateGroup, canUpdate('update'), async (req, res) => {
     const group_data = req.body;
 
     if(!_.isEmpty(group_data)) {
@@ -57,7 +57,7 @@ app.post('/update', validateUpdateGroup, async (req, res) => {
     } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", group_data);
 });
 
-app.patch('/update/:id', async (req, res) => {
+app.patch('/update/:id', canUpdate('update'), async (req, res) => {
     const group_id = req.params.id;
     const group_data = req.body;
 
@@ -72,7 +72,7 @@ app.patch('/update/:id', async (req, res) => {
     } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", group_data);
 });
 
-app.post('/delete', validateDeleteGroup, async (req, res) => {
+app.post('/delete', validateDeleteGroup, canDelete('delete'), async (req, res) => {
     const group_data = req.body;
 
     if(!_.isEmpty(group_data)) {

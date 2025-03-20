@@ -23,10 +23,6 @@ class PermissionsServices {
     async get_permissions(_filters={}) {
         return await Permissions.find({..._filters});
     }
-    
-    async get_permissions_by_group_id(_filters={}) {
-        return await Permissions.find({..._filters}).populate({ path: "groupId", model: 'group' });
-    }
 }
 
 module.exports = new PermissionsServices();

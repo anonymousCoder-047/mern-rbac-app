@@ -17,7 +17,7 @@ class ProfileServices {
     }
 
     async get_profile_by_id(_profile_id) {
-        return await Profile.findById({ _id: typeof _profile_id == 'object' ? _profile_id : ObjectId.createFromHexString(_profile_id) });
+        return await Profile.findById({ _id: typeof _profile_id == 'object' ? _profile_id : ObjectId.createFromHexString(_profile_id) }).populate({ path: 'roleId', model: 'role' }).populate({ path: 'groupId', model: 'group' });
     }
 
     async get_profile(_filters={}) {
