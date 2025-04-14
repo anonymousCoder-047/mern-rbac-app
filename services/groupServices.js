@@ -17,11 +17,11 @@ class GroupServices {
     }
 
     async get_group_by_id(_group_id) {
-        return await Group.findOne({ _id: typeof _group_id == 'object' ? _group_id : ObjectId.createFromHexString(_group_id) });
+        return await Group.findOne({ _id: typeof _group_id == 'object' ? _group_id : ObjectId.createFromHexString(_group_id) }).populate({ path: "group_manager", model: "profile" }).populate({ path: "group_members", model: "profile" });
     }
 
     async get_group(_filters={}) {
-        return await Group.find({..._filters});
+        return await Group.find({..._filters}).populate({ path: "group_manager", model: "profile" }).populate({ path: "group_members", model: "profile" });
     }
 }
 

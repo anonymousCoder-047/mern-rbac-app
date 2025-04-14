@@ -19,7 +19,7 @@ const {
 
 // loading database service
 const { getNextSequence } = require('../helpers/incrementCount');
-const { create, get_users, get_user_by_id } = require('../services/userServices');
+const { create, get_users, get_user_by_id, update_user } = require('../services/userServices');
 const { create:createProfile } = require('../services/profileServices');
 
 const apiResponse = require('../helpers/apiResponse');
@@ -39,6 +39,7 @@ const {
     otp_expiry_time,
     access_token_secret,
     refresh_token_secret,
+    front_end_domain,
 } = require("../config/config");
 const { get_permissions } = require('../services/permissionsServices');
 
@@ -91,7 +92,7 @@ app.post('/forgot-password', forgotPasswordValidator, async (req, res) => {
                 otp: _otp?.mail_otp,
                 expire_minute: otp_expiry_time,
                 expire_time: _otp?.expiry,
-                reset_url: domain + "/forgot-password",
+                reset_url: front_end_domain + "otp",
                 support_details: "https://wa.me/971505658506?text=Hello! i need your assistance to reset password for my account."
             };
 
@@ -119,7 +120,7 @@ app.post('/forgot-password', forgotPasswordValidator, async (req, res) => {
 app.post('/verify-otp', validateOTPData, async (req, res) => {
     try {
         const _otp_data = req.body;
-        const _otp_validation = await validateOTP(_otp_data.type, req.session.user?._id || _otp_data.user_id, _otp_data.otp);
+        const _otp_validation = req.session ? await validateOTP(_otp_data.type, req.session.user?._id || _otp_data.user_id, _otp_data.otp) : await validateOTP(_otp_data.type, "", _otp_data.otp);
     
         if(_.isEmpty(_otp_validation)) return apiResponse.ErrorResponse(res, "Sorry! incorrect OTP.");
     
@@ -140,7 +141,7 @@ app.post('/email_verification', validateEmailLink, async (req, res) => {
 app.post('/reset-password', resetPasswordValidator, async (req, res) => {
     try {
         let user_data = req.body;
-        const _existing_usr = user_data?.username ? await get_users({ username: user_data.username }) : await get_users({ email: user_data.email });
+        const _existing_usr = user_data?.user_id ? await get_user_by_id(user_data?.user_id) : {};
         const hashedPassword = await bcrypt.hash(user_data.password, 10);
         
         user_data.password = hashedPassword;
@@ -149,21 +150,21 @@ app.post('/reset-password', resetPasswordValidator, async (req, res) => {
         
         const _accessToken = generateAccessToken(user_data);
         const _refreshtoken = generateRefreshToken(user_data);
-        let _updated_usr = await update(user_data);
+        let _updated_usr = await update_user(user_data?.user_id, { ...user_data, password: hashedPassword, username: _existing_usr?.username, email: _existing_usr?.email });
         const _usrData = { ..._updated_usr?._doc, 'token': _accessToken };
 
         res.cookie('refresh_token', _refreshtoken, { httpOnly: true, secure: true, sameSite: 'none' });
-        return apiResponse.successResponseWithData(res, "User signed up successfully.", _usrData);
+        return apiResponse.successResponseWithData(res, "Password reset successfull.", _usrData);
     } catch(error) {
-        return apiResponse.ErrorResponse(res, "Sorry! something went wrong while process signup E: " + error);
+        return apiResponse.ErrorResponse(res, "Sorry! something went wrong while resetting password E: " + error);
     }
 })
 
 app.post('/login', validateLogin, userLogin, async (req, res) => {
     try {
-        const { username } = req.body;
-        let _query_field_name = username.includes('@') ? 'email' : 'username';
-        const [ _existing_usr ] = await get_users({ [_query_field_name]: username })
+        const { email } = req.body;
+        let _query_field_name = email.includes('@') ? 'email' : 'username';
+        const [ _existing_usr ] = await get_users({ [_query_field_name]: email })
 
         if(_.isEmpty(_existing_usr)) return apiResponse.ErrorResponse(res, "Sorry! user does not exist! please signup.");
         const _accessToken = generateAccessToken(_existing_usr);

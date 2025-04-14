@@ -9,7 +9,7 @@ const resetPasswordValidator = validator.object().shape({
 });
 
 const forgotPasswordValidator = validator.object().shape({
-    username: validator.string().required(),
+    username: validator.string().optional(),
     email: validator.string().email()
 });
 
@@ -19,8 +19,8 @@ const emailValidator = validator.object().shape({
 
 const OTPValidator = validator.object().shape({
     type: validator.string().required(),
-    code: validator.string().required(),
-    user_id: validator.string().required()
+    otp: validator.string().required(),
+    user_id: validator.string().optional()
 });
 
 module.exports = {

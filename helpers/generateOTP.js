@@ -66,7 +66,7 @@ const generateOTP = async (_usr_id) => {
 
 const validateOTP = async (_type, _usr_id, _otp) => {
     try {
-        const _usr = await get_user_by_id(_usr_id);
+        // const _usr = _usr_id != "" ? await get_user_by_id(_usr_id) : {};
         const _otp_type = {
             mail: "mail_otp",
             sms: "sms_otp",
@@ -75,13 +75,13 @@ const validateOTP = async (_type, _usr_id, _otp) => {
     
         const _otp_key = _type ? _otp_type[_type] : _otp_type[0];
         
-        if(_.isEmpty(_usr)) return { "status": 400, "message": "User doesnt exist! please signup." };
+        // if(_.isEmpty(_usr)) return { "status": 400, "message": "User doesnt exist! please signup." };
         
-        const _otp_detials = await get_OTP({ user_id: _usr._id });
+        const _otp_detials = await get_OTP({ [_otp_key]: _otp });
     
         if(_.isEmpty(_otp_detials?.[0])) return { "status": 400, "message": "Sorry! unable to verify OTP." };
         
-        if(_otp === _otp_detials[0]?.[_otp_key] && moment(_otp_detials[0]?.expiry, 'YYYY/MM/DD h:mm:ss a').isAfter(moment().subtract(otp_expiry_time, 'minutes'))) return { "status": 200, "message": "OTP verified successfully." }
+        if(_otp === _otp_detials[0]?.[_otp_key] && moment(_otp_detials[0]?.expiry, 'YYYY/MM/DD h:mm:ss a').isAfter(moment().subtract(otp_expiry_time, 'minutes'))) return { "status": 200, "message": "OTP verified successfully.", "data": { ..._otp_detials?.[0]?._doc } }
         return { "status": 400, "message": "Sorry! incorrect OTP/Expired." };
     } catch(ex) {
         console.log("Sorry! something went wrong while validating OTP E: ", ex);

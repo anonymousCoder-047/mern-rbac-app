@@ -3,6 +3,7 @@ require('dotenv').config()
 
 const { 
     DOMAIN: domain, 
+    FRONT_END_DOMAIN: front_end_domain, 
     NODE_ENV: node_env, 
     PORT: env_port, 
     MONGODB_URL: db_url, 
@@ -47,6 +48,7 @@ const {
 
 module.exports = {
     'domain': domain,
+    'front_end_domain': front_end_domain,
     'env': node_env,
     'port': env_port,
     'db_url': db_url,

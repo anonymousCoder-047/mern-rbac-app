@@ -13,9 +13,9 @@ const apiResponse = require('../helpers/apiResponse');
 
 async function userLogin(req, res, next) {
     try {
-        const { username, password } = req.body;
-        let _query_field_name = username.includes('@') ? 'email' : 'username';
-        const [ _existing_usr ] = await get_users({ [_query_field_name]: username })
+        const { email, password } = req.body;
+        let _query_field_name = email.includes('@') ? 'email' : 'username';
+        const [ _existing_usr ] = await get_users({ [_query_field_name]: email })
 
         if(_.isEmpty(_existing_usr)) return apiResponse.ErrorResponse(res, "Sorry! user does not exist! please signup.");  
             

@@ -1,6 +1,7 @@
 
 // load dependencies
 const _ = require('lodash');
+const bcrypt = require('bcryptjs');
 
 // loading validators
 const {
@@ -12,6 +13,8 @@ const {
 // loading database service
 const { getNextSequence } = require('../helpers/incrementCount');
 const { create, get_profile, get_profile_by_id, update_profile, delete_profile } = require('../services/profileServices');
+const { create: createUser } = require("../services/userServices");
+const { create: createPermissions } = require("../services/permissionsServices");
 
 const apiResponse = require('../helpers/apiResponse');
 const expressRouter = require('express');
@@ -35,9 +38,25 @@ app.post('/create', validateCreateProfile, canCreate('create'), async (req, res)
         if(_.isEmpty(_existing_profile)) { 
             profile_data['id'] = await getNextSequence('profile');
             const _new_profile = await create(profile_data);
+            const hashedPassword = await bcrypt.hash(profile_data.password, 10);
+            let _user_data = {
+                username: profile_data?.email?.split("@")?.[0] ?? "",
+                email: profile_data?.email,
+                password: hashedPassword,
+                profileId: _new_profile?._id
+            }
+
+            let _permissions_data = {
+                action: profile_data?.action,
+                profileId: _new_profile?._id
+            }
     
-            if(!_.isEmpty(_new_profile)) return apiResponse.successResponseWithData(res, "New profile Created Successfully.", _new_profile);
-            else apiResponse.badRequestResponse(res, "Unable to create new profile.");
+            if(!_.isEmpty(_new_profile)) {
+                const _new_usr = await createUser(_user_data);
+                const _new_perm = await createPermissions(_permissions_data);
+
+                return apiResponse.successResponseWithData(res, "New profile Created Successfully.", _new_profile)
+            } else apiResponse.badRequestResponse(res, "Unable to create new profile.");
         } else apiResponse.forbiddenResponse(res, "profile already exists.");
     } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", profile_data);
 });

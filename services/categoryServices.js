@@ -21,11 +21,11 @@ class CategoryServices {
     }
 
     async get_category_by_id(_category_id) {
-        return await Category.findById({ _id: typeof _category_id == 'object' ? _category_id : ObjectId.createFromHexString(_category_id) });
+        return await Category.findById({ _id: typeof _category_id == 'object' ? _category_id : ObjectId.createFromHexString(_category_id) }).populate({ path: 'sub_category', model: 'sub_category' });
     }
 
     async get_category(_filters={}) {
-        return await Category.find({..._filters});
+        return await Category.find({..._filters}).populate({ path: 'sub_category', model: 'sub_category' });
     }
 }
 
