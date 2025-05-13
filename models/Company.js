@@ -13,7 +13,17 @@ const companySchema = mongoose.Schema({
         default: "",
         required: false
     },
-    phone: {
+    email: {
+        type: String,
+        default: "",
+        required: false
+    },
+    primary_phone: {
+        type: String,
+        default: "",
+        required: false
+    },
+    secondary_phone: {
         type: String,
         default: "",
         required: false
@@ -23,27 +33,32 @@ const companySchema = mongoose.Schema({
         default: "",
         required: false
     },
-    billing_street: {
+    description: {
+        type: String,
+        default: "",
+        required: false
+    },
+    street: {
         type: String,
         required: false,
         default: ""
     },
-    billing_city: {
+    city: {
         type: String,
         required: false,
         default: ""
     },
-    billing_state: {
+    state: {
         type: String,
         required: false,
         default: ""
     },
-    billing_country: {
+    country: {
         type: String,
         required: false,
         default: ""
     },
-    billing_code: {
+    code: {
         type: String,
         required: false,
         default: ""

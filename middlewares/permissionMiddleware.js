@@ -74,6 +74,7 @@ const canUpdate = (action) => {
                 const { profileId } = await get_user_by_id(_id);
                 const _profile = await get_profile_by_id(profileId);
                 
+                console.log("update -- ", _id, profileId, _profile);
                 const [role] = await get_role({ role_id: _profile?.roleId?.role_id });
                 const [permissions] = await get_permissions({ profileId: profileId });
                 

@@ -54,7 +54,7 @@ const limiter = rateLimit({
 // linking all middlewares
 app.use(helmet())
 app.use(express.json())
-app.use(express.urlencoded({ extended: false }))
+app.use(express.urlencoded({ extended: true }))
 app.use(morgan('tiny'))
 app.use(cors(corsConfig))
 app.options("*", cors(corsConfig))
@@ -62,7 +62,8 @@ app.use(limiter)
 app.use(cookieParser())
 
 // Serve static files (CSS, images)
-app.use(express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
 // Set EJS as the view engine
 app.set('view engine', 'ejs');

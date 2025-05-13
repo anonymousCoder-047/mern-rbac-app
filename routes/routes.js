@@ -18,7 +18,9 @@ const categoryRouter = require('../controllers/categoryController').categoryCont
 const typeRouter = require('../controllers/typeController').typeController;
 const subTypeRouter = require('../controllers/subTypeController').subTypeController;
 const pipelineRouter = require('../controllers/pipelineController').pipelineController;
+const dealsRouter = require('../controllers/dealsController').dealsController;
 const companyRouter = require('../controllers/companyController').companyController;
+const sourceRouter = require('../controllers/sourceController').sourceController;
 const contactsRouter = require('../controllers/contactsController').contactsController;
 const taxRouter = require('../controllers/taxController').taxController;
 
@@ -41,7 +43,9 @@ app.use('/sub-category', validateToken, checkLoggedIn, subCategoryRouter);
 app.use('/type', validateToken, checkLoggedIn, typeRouter);
 app.use('/sub-type', validateToken, checkLoggedIn, subTypeRouter);
 app.use('/pipeline', validateToken, checkLoggedIn, pipelineRouter);
+app.use('/deals', validateToken, checkLoggedIn, dealsRouter);
 app.use('/company', validateToken, checkLoggedIn, companyRouter);
+app.use('/source', validateToken, checkLoggedIn, sourceRouter);
 app.use('/contact', validateToken, checkLoggedIn, contactsRouter);
 app.use('/tax', validateToken, checkLoggedIn, taxRouter);
 

@@ -27,7 +27,7 @@ app.post('/create', canCreate('create'), async (req, res) => {
     let pipeline_data = req.body;
 
     if(!_.isEmpty(pipeline_data)) {
-        const [_existing_pipeline] = await get_pipeline({ order_number: pipeline_data?.order_number });
+        const [_existing_pipeline] = await get_pipeline({ pipeline_name: pipeline_data?.pipeline_name });
         if(_.isEmpty(_existing_pipeline)) { 
             pipeline_data['id'] = await getNextSequence('pipeline');
             const _new_pipeline = await create(pipeline_data);

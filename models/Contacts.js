@@ -8,6 +8,11 @@ const contactsSchema = mongoose.Schema({
         required: true,
         default: 0
     },
+    profile_picture: {
+        type: String,
+        default: "",
+        required: false
+    },
     first_name: {
         type: String,
         default: "",
@@ -18,12 +23,7 @@ const contactsSchema = mongoose.Schema({
         default: "",
         required: false
     },
-    email: {
-        type: String,
-        default: "",
-        required: false
-    },
-    secondary_email: {
+    job_title: {
         type: String,
         default: "",
         required: false
@@ -32,37 +32,56 @@ const contactsSchema = mongoose.Schema({
         type: ObjectId,
         required: false
     },
-    mobile: {
+    email: {
         type: String,
         default: "",
         required: false
     },
-    phone: {
+    primary_phone: {
         type: String,
         default: "",
         required: false
     },
-    mailing_street: {
+    secondary_phone: {
+        type: String,
+        default: "",
+        required: false
+    },
+    dob: {
+        type: String,
+        default: "",
+        required: false
+    },
+    source: {
+        type: ObjectId,
+        required: false
+    },
+    description: {
+        type: String,
+        default: "",
+        required: false
+    },
+    street: {
         type: String,
         required: false,
         default: ""
     },
-    mailing_city: {
+    city: {
         type: String,
         required: false,
         default: ""
     },
-    mailing_state: {
+    state: {
         type: String,
         required: false,
         default: ""
     },
-    mailing_country: {
+    country: {
         type: String,
         required: false,
         default: ""
     },
-    mailing_code: {
+    code: {
         type: String,
         required: false,
         default: ""

@@ -21,15 +21,11 @@ class PipelineServices {
     }
 
     async get_pipeline_by_id(_pipeline_id) {
-        return await Pipeline.findById({ _id: typeof _pipeline_id == 'object' ? _pipeline_id : ObjectId.createFromHexString(_pipeline_id) })
-        .populate({ path: 'product_category', model: 'category' })
-        .populate({ path: 'team_leader', model: 'profile' });
+        return await Pipeline.findById({ _id: typeof _pipeline_id == 'object' ? _pipeline_id : ObjectId.createFromHexString(_pipeline_id) });
     }
 
     async get_pipeline(_filters={}) {
-        return await Pipeline.find({..._filters})
-        .populate({ path: 'product_category', model: 'category' })
-        .populate({ path: 'team_leader', model: 'profile' });
+        return await Pipeline.find({..._filters});
     }
 }
 

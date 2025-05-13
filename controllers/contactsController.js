@@ -44,7 +44,7 @@ app.post('/update', canUpdate('update'), async (req, res) => {
     if(!_.isEmpty(contacts_data)) {
         const _existing_contacts = await get_contacts_by_id(contacts_data?.id);
         if(!_.isEmpty(_existing_contacts)) {
-            const _updated_contacts = await updat(contacts_data?.id, _.omit(contacts_data, ['id']));
+            const _updated_contacts = await update_contacts(contacts_data?.id, _.omit(contacts_data, ['id']));
     
             if(!_.isEmpty(_updated_contacts)) return apiResponse.successResponseWithData(res, "Contacts Updated Successfully.", _updated_contacts);
             else apiResponse.ErrorResponse(res, "Unable to update contacts.");
@@ -58,7 +58,7 @@ app.patch('/update/:id', canUpdate('update'), async (req, res) => {
 
     if(!_.isEmpty(contacts_data) && contacts_id != "") {
         const _existing_contacts = await get_contacts_by_id(contacts_id);
-        if(!_.isEmpty(_existing_contacts)) {
+        if(!_.isEmpty(_existing_contacts)) {            
             const _updated_contacts = await update_contacts(contacts_id, _.omit(contacts_data, ['id']));
     
             if(!_.isEmpty(_updated_contacts)) return apiResponse.successResponseWithData(res, "Contacts Updated Successfully.", _updated_contacts);

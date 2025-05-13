@@ -1,7 +1,6 @@
 
-const moment = require('moment')
 const mongoose = require('mongoose')
-const ObjectId = mongoose.Types.ObjectId;
+const ObjectId = mongoose.Types.ObjectId
 
 const pipelineSchema = mongoose.Schema({
     id: {
@@ -9,83 +8,25 @@ const pipelineSchema = mongoose.Schema({
         required: true,
         default: 0
     },
-    opportunity_name: {
+    pipeline_name: {
         type: String,
-        required: true,
-        default: ""
+        default: "",
+        required: false
     },
-    start_date: {
-        type: Date,
-        required: false,
-        default: moment(new Date()).format()
-    },
-    updated_date: {
-        type: Date,
-        required: false,
-        default: moment(new Date()).add(14, 'days').format()
-    },
-    contact_name: {
+    stage_name: [{
         type: String,
-        required: false,
-        default: ""
-    },
-    company_name: {
+        default: "",
+        required: false
+    }],
+    stage_percentage: [{
         type: String,
-        required: false,
-        default: ""
-    },
-    sr_type: {
+        default: "",
+        required: false
+    }],
+    created_date: {
         type: String,
-        required: false,
-        default: ""
-    },
-    product_category: {
-        type: ObjectId,
-        required: false,
-    },
-    closing_date: {
-        type: Date,
-        required: false,
-        default: moment(new Date()).add(14, 'days').format()
-    },
-    stage: {
-        type: String,
-        required: false,
-        default: ""
-    },
-    amount: {
-        type: mongoose.Schema.Types.Double,
-        required: false,
-        default: 0.0
-    },
-    team_leader: {
-        type: ObjectId,
-        required: false,
-    },
-    comments: {
-        type: String,
-        required: false,
-        default: ""
-    },
-    last_contact_date: {
-        type: Date,
-        required: false,
-        default: moment(new Date()).add(7, 'days').format()
-    },
-    order_number: {
-        type: String,
-        required: false,
-        default: ""
-    },
-    pid: {
-        type: Number,
-        required: false,
-        default: ""
-    },
-    custom_fields: {
-        type: Object,
-        required: false,
-        default: {}
+        default: "",
+        required: false
     },
 });
 
