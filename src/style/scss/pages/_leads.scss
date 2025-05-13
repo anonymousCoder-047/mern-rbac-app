@@ -1,0 +1,324 @@
+@use "../utils/mixins";
+@use "../utils/variables";
+
+.kanban-list-items {
+    border: 1px solid variables.$light-900;
+    box-shadow: 0px 4px 4px 0px #DBDBDB40;
+    border-radius: 5px;
+    @include mixins.margin-padding(0 20px 20px 0, 15px);
+    width: 100%;
+    min-width: 315px;
+    &:last-child {
+        margin-right: 0;
+    }
+}
+.icons-social {
+    a {
+        width: 30px;
+        height: 30px;
+        background: variables.$light-500;
+        border-radius: 50%;
+        color: variables.$title-color;
+        &:hover {
+            background: variables.$danger-100;
+            color: variables.$primary;
+        }
+    }
+}
+.kanban-drag-wrap {
+    > div {
+        &:last-child {
+            .kanban-card {
+                margin-bottom: 0;
+            }
+        }
+       
+    }
+}
+.pipeline-progress {
+    .progress {
+        background: transparent;
+        width: 70px;
+        height: 5px;
+        .progress-bar {
+            width: 70px;
+            height: 5px;
+            border-radius: 5px;
+            &.progress-bar-success {
+                background: variables.$success;
+            }
+            &.progress-bar-violet {
+                background: variables.$purple;
+            }
+            &.progress-bar-info {
+                background: variables.$info;
+            }
+            &.progress-bar-warning {
+                background: variables.$warning;
+            }
+            &.progress-bar-green {
+                background: variables.$green;
+            }
+            &.progress-bar-danger {
+                background: variables.$danger;
+            }
+        }
+    }
+    span {
+        margin-left: 10px;
+        color: variables.$gray-900;
+        font-weight: variables.$font-weight-medium;
+    }
+}
+.pipe-title {
+    .add-stage {
+        color: variables.$primary;
+        font-weight: variables.$font-weight-medium;
+        margin-bottom: 15px;
+        display: inline-block;
+        i {
+            margin-right: 8px;
+        }
+    }
+}
+.priority-info {
+    .dropdown {
+        .dropdown-toggle {
+            display: -webkit-box;
+            display: -ms-flexbox;
+            display: flex;
+            align-items: center;
+            -webkit-box-align: center;
+            -ms-flex-align: center;
+            justify-content: space-between;
+            -webkit-justify-content: space-between;
+            -ms-flex-pack: space-between;
+            border: 1px solid variables.$light-900;
+            box-shadow: 0px 4px 4px 0px #DBDBDB40;
+            border-radius: 5px;
+            @include mixins.margin-padding(null, 5px 10px);
+            font-weight: variables.$font-weight-medium;
+            &[aria-expanded=true] {
+                & > i {
+                    @include mixins.transition(all 0.2s ease);
+                    @include mixins.transform(rotate(180deg));
+                }
+            }
+            &::after {
+                content: none;
+            }
+            span{
+                display: -webkit-inline-box;
+                display: -ms-inline-flexbox;
+                display: inline-flex;
+                align-items: center;
+                -webkit-box-align: center;
+                -ms-flex-align: center;
+                i {
+                    font-size: variables.$font-size-10;
+                }                
+            }
+        }
+        a {
+            font-size: variables.$font-size-14;
+            color: variables.$gray-900;
+            span{
+               display: -webkit-inline-box;
+               display: -ms-inline-flexbox;
+               display: inline-flex;
+               align-items: center;
+               -webkit-box-align: center;
+               -ms-flex-align: center;
+               i {
+                   font-size: 10px;
+               }                
+            }
+        }
+        .dropdown-menu {
+            width: 100%;
+        }
+    }
+}
+.select-pipeline {
+    position: relative;
+    margin-right: 8px;
+    .pipe-icon {
+        @include mixins.position(absolute, 50%, null, null, 10px);
+        z-index: 99999;
+        transform: translateY(-50%);
+        color: variables.$gray-900;
+    }
+    .select2-container {
+        .select2-selection {
+            &.select2-selection--single {
+                height: 40px;
+                border-radius: 5px;
+                color: variables.$gray-900;
+                font-weight: variables.$font-weight-medium;
+                .select2-selection__rendered {
+                    padding-left: 30px;
+                    line-height: 40px;
+                    color: variables.$gray-900;
+                    font-weight: variables.$font-weight-medium;
+                    padding-right: 30px;
+                }
+                .select2-selection__arrow {
+                    height: 40px;
+                }
+            }
+        }
+    }
+}
+.pipeline-list {
+    border-bottom: 1px solid variables.$light-900;
+    margin-bottom: 15px;
+    ul {
+        margin-bottom: 15px;
+        li {
+            display: inline-block;
+            &:first-child {
+                a {
+                    border-radius: 10px 0 0 10px;
+                }
+            }
+            &:last-child {
+                a {
+                    border-radius: 0;
+                }
+            }
+            a {
+                @include mixins.margin-padding(0 0 3px, 12px 25px 12px 50px);
+                font-size: variables.$font-size-14;
+                font-weight: variables.$font-weight-medium;
+                display: inline-block;
+                text-align: center;
+                background: variables.$light-300;
+                color: variables.$title-color;
+                position: relative;
+                min-width: 185px;
+                &::after {
+                    content: '';
+                    @include mixins.position(absolute, 0,-23px, null, null);
+                    width: 45px;
+                    height: 45px;
+                    -webkit-transform: scale(.707) rotate(45deg);
+                    -ms-transform: scale(.707) rotate(45deg);
+                    -moz-transform: scale(.707) rotate(45deg);
+                    -transform: scale(.707) rotate(45deg);
+                    z-index: 1;
+                    background: variables.$light-300;
+                    -webkit-box-shadow: 2px -2px 0 1px #fff,3px -3px 0 2px rgba(255,255,255,.1);
+                    box-shadow: 2px -2px 0 1px #fff,3px -3px 0 2px rgba(255,255,255,.1);
+                    border-radius: 0 5px 0 50px;
+                } 
+                &.bg-info {
+                    color: variables.$white;
+                    &::after {
+                        background: variables.$info;
+                    }
+                    &:hover {
+                        background: variables.$info !important;
+                    }
+                }    
+                &.bg-warning {
+                    color: variables.$white;
+                    &::after {
+                        background: variables.$warning;
+                    }
+                    &:hover {
+                        background: variables.$warning !important;
+                    }
+                }     
+                &.bg-pending {
+                    color: variables.$white;
+                    background: variables.$purple !important;
+                    &::after {
+                        background: variables.$purple;
+                    }
+                    &:hover {
+                        background: variables.$purple !important;
+                    }
+                }      
+                &.bg-pink {
+                    color: variables.$white;
+                    &::after {
+                        background: variables.$pink;
+                    }
+                    &:hover {
+                        background: variables.$pink !important;
+                    }
+                }        
+                &.bg-success {
+                    color: variables.$white;
+                    &::after {
+                        background: variables.$success;
+                    }
+                    &:hover {
+                        background: variables.$success !important;
+                    }
+                }         
+                &.bg-danger {
+                    color: variables.$white;
+                    &::after {
+                        background: variables.$danger;
+                    }
+                    &:hover {
+                        background: variables.$danger !important;
+                    }
+                }          
+                &.bg-gray {
+                    color: variables.$white;
+                    background: variables.$background-3;
+                    &::after {
+                        background: variables.$background-3;
+                    }
+                    &:hover {
+                        background: variables.$background-3 !important;
+                    }
+                }   
+                @include mixins.respond-below(custom575) {  
+                    width: calc(100% - 25px);
+                }       
+            }               
+            @include mixins.respond-below(custom575) {  
+                display: block;
+            }  
+        }
+    }
+}
+.kanban-card {
+    .card-topbar {
+        width: 100%;
+        height: 4px;
+    }
+}
+.kanban-warning {
+    .card-topbar {
+        background: variables.$warning;
+    }
+}
+.kanban-purle {
+    .card-topbar {
+        background: variables.$purple;
+    }
+}
+.kanban-success {
+    .card-topbar {
+        background: variables.$success;
+    }
+}
+.kanban-danger {
+    .card-topbar {
+        background: variables.$danger;
+    }
+}
+.kanban-info {
+    .card-topbar {
+        background: variables.$info;
+    }
+}
+.kanban-pink {
+    .card-topbar {
+        background: variables.$pink;
+    }
+}

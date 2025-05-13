@@ -1,0 +1,27 @@
+@use "sass:color";
+@use "../utils/variables";
+
+.bootstrap-datetimepicker-widget table td.active,
+.bootstrap-datetimepicker-widget table td.active:hover {
+	background-color: variables.$warning;
+	text-shadow: unset;
+}
+.bootstrap-datetimepicker-widget table td.today:before {
+	border-bottom-color: variables.$warning;
+}
+.bootstrap-datetimepicker-widget table thead tr:first-child th:hover {
+    background: transparent;
+}
+.bor-b1{
+    border-bottom: 1px solid variables.$gray-300;
+}
+
+.link-purple {
+	color: variables.$purple;
+	&:hover {
+	  color: color.adjust(variables.$purple, $lightness: -2%);
+	}
+}
+hr {
+	border-color: variables.$light-900;
+}

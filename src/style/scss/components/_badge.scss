@@ -1,0 +1,128 @@
+@use "../utils/variables";
+
+.badge {
+    &.badge-primary {
+        background: rgba(variables.$primary, 0.1);
+        box-shadow: 0 1px 1px rgba(variables.$primary, 0.5);
+        color: variables.$primary;
+        
+    }
+}
+@each $color, $value in variables.$theme-colors {
+    .badge {
+        &.badge-#{$color} {
+            background: #{$value};
+            box-shadow: 0 1px 1px rgba($value, 0.5);
+            color: variables.$white;
+        }
+        &.badge-soft-#{$color} {
+            background: rgba($value, 0.1);
+            box-shadow: 0 1px 1px rgba($value, 0.5);
+            color: $value;
+        }
+    }
+}
+.badge{
+    padding: .25rem .45rem;
+    text-transform:capitalize;
+    font-weight: variables.$font-weight-semibold;
+    letter-spacing: 0.5px;
+    border-radius: variables.$border-radius;
+    color: variables.$gray-900;
+    &.badge-xs {
+        font-size: 10px;
+        padding: 0px 5px;
+        line-height: 18px;
+    }
+    &.badge-sm {
+        font-size: 11px;
+        padding: 5px 8px;
+        line-height: 11px;
+    }
+    &.badge-md {
+        font-size: 12px;
+        padding: 5px 12px;
+        line-height: 1.5;
+    }
+    &.badge-lg {
+        font-size: variables.$font-size-14;
+        padding: 0px 10px;
+        line-height: 30px;
+    }
+    &.badge-xl {
+        font-size: variables.$font-size-16;
+        padding: 0px 15px;
+        line-height: 35px;
+    }
+}
+
+.badge-soft-purple {
+    background: variables.$purple-100;
+    color: variables.$purple;
+    
+}
+.bg-light-danger {
+    background-color: variables.$danger-100 !important;
+    .badge-dots{
+        background-color: variables.$danger-900;
+    }
+}
+.bg-light-success {
+    background-color: variables.$success-100 !important;
+    .badge-dots{
+        background-color: variables.$success-900;
+    }
+}
+.bg-light-info {
+    background-color:variables.$info-100 !important;
+    .badge-dots{
+        background-color: variables.$info-900;
+    }
+}
+.bg-light-warning {
+    background-color: variables.$warning-100 !important;
+    .badge-dots{
+        background-color: variables.$warning-900;
+    }
+}
+.badge-danger-light{
+    background-color: variables.$danger-100 !important;
+    color: variables.$danger-900;
+}
+.badge-pending{
+	background: #676DFF !important;
+    color: variables.$white !important;
+}
+.badge-tertiary {
+    background: variables.$tertiary;
+    color: variables.$white;
+}
+.badge-status {
+    border-radius: 5px;
+    font-size: variables.$font-size-12;
+    padding: 4px 8px;
+    min-width: 64px;
+    color: variables.$white;
+}
+.badge-tag {
+    border-radius: 5px;
+    font-size: variables.$font-size-12;
+    padding: 4px 4px;    
+    font-weight: variables.$font-weight-normal;
+    &.badge-success-light {
+        background: variables.$success-200;
+        color: variables.$success;
+    }
+    &.badge-warning-light {
+        background: variables.$warning-100;
+        color: variables.$warning;
+    }
+    &.badge-purple-light {
+        background: variables.$purple-100;
+        color: variables.$purple;
+    }
+    &.badge-danger-light {
+        background: variables.$danger-100;
+        color: variables.$danger;
+    }
+}

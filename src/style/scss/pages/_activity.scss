@@ -1,0 +1,184 @@
+@use "../utils/mixins";
+@use "../utils/variables";
+
+.time-text {
+	p {
+		font-weight: variables.$font-weight-medium;
+		white-space: nowrap;
+		margin-left: 15px;
+	}
+}
+.activity-title {
+	margin-bottom: 10px;
+	display: -webkit-inline-box;
+	display: -ms-inline-flexbox;
+	display: inline-flex;
+	-webkit-box-align: center;
+	-ms-flex-align: center;
+	align-items: center;
+	h4 {
+		font-weight: variables.$font-weight-semibold;
+		@include mixins.margin-padding(0 15px 10px 0, 0 15px 0 0);
+		position: relative;
+		&::after {
+			content: "";
+			background-color: variables.$light-900;
+			width: 1px;
+			height: 24px;
+			@include mixins.position(absolute, 0, 0, null, null);
+			@include mixins.respond-below(custom767) {
+				content: none;
+			}
+		}
+	}
+	@include mixins.respond-below(custom767) {
+		display: block;
+	}
+}
+.active-list {
+	ul {
+		margin-bottom: 10px;
+		li {
+			display: inline-block;
+			margin-right: 10px;
+			a {
+				width: 34px;
+				height: 34px;
+				@include mixins.rounded(5px);
+				border: 1px solid variables.$light-900;
+	            display: -webkit-inline-box;
+	            display: -ms-inline-flexbox;
+	            display: inline-flex;
+	            -webkit-box-align: center;
+	            -ms-flex-align: center;
+	            align-items: center;
+	            justify-content: center;
+	            -webkit-justify-content: center;
+	            -ms-flex-pack: center;
+	            color: variables.$gray-900;
+	            &:hover, &.active {
+	            	background-color: variables.$green;
+	            	border-color: variables.$green;
+	            	color: variables.$white;
+	            }
+			}
+			&:last-child {
+				margin-right: 0;
+			}
+		}
+	}
+}
+.radio-activity {
+	 li {
+	 	display: inline-block;
+	 	.active-type {
+	 		input[type="radio"] {
+	 			display: none;
+	 			~ label {
+	 				border: 1px solid variables.$light-900;
+	 				box-shadow: 0px 4px 4px 0px #DBDBDB40;
+	 				@include mixins.margin-padding(0 10px 5px 0, 8px 20px);
+	 				@include mixins.rounded(5px);
+	 				color: variables.$gray-900;
+	 				cursor: pointer;
+	 				i {
+	 					margin-right: 5px;
+	 				}
+	 			}
+	 			&:checked {
+	 				~ label {
+	 					border-color: variables.$green;
+	 					color: variables.$green;
+	 				}
+	 			}
+	 		}
+	 	}
+	 	&:last-child {
+	 		margin-right: 0;
+	 	}
+	 }
+}
+.label-add {
+	color: variables.$primary;
+	margin-bottom: 5px;
+	font-weight: variables.$font-weight-medium;
+	i {
+		margin-right: 8px;
+	}
+	&:hover {
+		color: variables.$primary-hover;
+	}
+}
+.tab-activity {
+	@include mixins.rounded(5px);
+	@include mixins.margin-padding(0 0 20px, 15px 15px 0);
+	box-shadow: 0px 4px 74px 0px #D0D0D040;	
+	ul {
+		li {
+			display: inline-block;
+			margin-right: 20px;
+			a {
+				@include mixins.margin-padding(null, 10px 5px 10px);
+				font-weight: variables.$font-weight-medium;
+				border-bottom: 4px solid variables.$white;
+				display: inline-block;
+				span {
+					width: 20px;
+					height: 20px;
+					@include mixins.rounded(50%);
+	 				border: 1px solid variables.$light-900;
+		            display: -webkit-inline-box;
+		            display: -ms-inline-flexbox;
+		            display: inline-flex;
+		            -webkit-box-align: center;
+		            -ms-flex-align: center;
+		            align-items: center;
+		            justify-content: center;
+		            -webkit-justify-content: center;
+		            -ms-flex-pack: center;
+		            margin-left: 10px;
+		            color: variables.$gray-900;
+		            font-weight: variables.$font-weight-semibold;
+		            font-size: variables.$font-size-10;
+				}
+				&.active {
+					color: variables.$primary;
+					border-color: variables.$primary;
+				}
+			}
+		}
+	}
+}
+.comment-wrap {
+	@include mixins.margin-padding(0 0 15px, 15px);
+	box-shadow: 0px 4px 74px 0px #D0D0D040;
+	border: 1px solid variables.$light-900;
+	@include mixins.rounded(5px);
+	h6 {
+		font-size: variables.$font-size-16;
+		font-weight: variables.$font-weight-normal;
+		margin-bottom: 10px;
+		color: variables.$gray-400;
+	}
+	p {
+		span {
+			color: variables.$purple;
+		}
+	}
+	&:last-child {
+		margin-bottom: 0;
+	}
+}
+.activity-badge {
+	color: variables.$white;
+	@include mixins.margin-padding(null, 5px 7px);
+	font-size: variables.$font-size-12;
+	@include mixins.rounded(5px);
+	i {
+		margin-right: 5px;
+	}
+}
+.title-head {
+	font-weight: variables.$font-weight-medium;
+	color: variables.$gray-900;
+}

@@ -1,0 +1,59 @@
+@use "../utils/mixins";
+@use "../utils/variables";
+
+.source-report {
+    color: #00918E;
+    font-weight: 500;
+}
+.dropdown {
+    &.table-action {
+        .dropdown-toggle {
+            &::after {
+                display: none;
+            }
+        }
+    }
+    .dropdown-toggle {
+        color: variables.$gray-900;
+        border: 1px solid variables.$light-900;
+        padding: 9px 15px;
+        border-radius: variables.$border-radius-lg;
+        display: flex;
+        align-items: center;
+        box-shadow: 0px 4px 4px 0px #DBDBDB40;
+        &:after {
+            border-top: 0;
+            border-left: 0;
+            border-bottom: 2px solid variables.$gray-900;
+            border-right: 2px solid variables.$gray-900;
+            content: '';
+            display: inline-block;
+            pointer-events: none;
+            width: 8px;
+            height: 8px;
+            vertical-align: 2px;
+            @include mixins.transform-origin(66% 66%);
+            @include mixins.transition(all 0.2s ease);
+            @include mixins.transform(rotate(45deg));
+        }
+        &[aria-expanded="true"]:after {
+            @include mixins.transform(rotate(-135deg));
+        }
+    }
+    .dropdown-menu {
+        padding: 10px;
+        background: variables.$white;
+        box-shadow: variables.$box-shadow-lg;
+        border: 1px solid variables.$light-900;
+        .dropdown-item {
+            padding: 5px 10px;
+            color: variables.$gray-800;
+            background: variables.$white;
+            border-radius: variables.$border-radius-lg;
+            &:hover {
+                color: variables.$gray-900;
+                background: variables.$light-300;
+            }
+        }
+    }
+}
