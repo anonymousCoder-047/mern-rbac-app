@@ -11,7 +11,7 @@ const route = all_routes;
 
 const Sources = () => {
   const [sourceData, setSourceData] = useState([]);
-    const [sourceId, setSourceId] = useState("");
+  const [sourceId, setSourceId] = useState("");
   const [formData, setFormData] = useState({
     source_name: "",
     created_date: "",
@@ -335,7 +335,7 @@ const Sources = () => {
                 >
                   Cancel
                 </Link>
-                <Link to="#" data-bs-dismiss="modal" className="btn btn-danger">
+                <Link to="#" data-bs-dismiss="modal" className="btn btn-danger" onClick={handleDeleteSource}>
                   Yes, Delete it
                 </Link>
               </div>

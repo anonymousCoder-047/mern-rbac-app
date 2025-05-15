@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { Outlet, useLocation } from "react-router";
 import Header from "../core/common/header";
 import Sidebar from "../core/common/sidebar";
-import ThemeSettings from "../core/common/theme-settings/themeSettings";
 import HorizontalSidebar from "../core/common/horizontal-sidebar";
 
 const Feature = () => {
@@ -79,7 +78,6 @@ const Feature = () => {
         <Sidebar />
         <HorizontalSidebar />
         <Outlet />
-        <ThemeSettings />
       </div>
       <div className="sidebar-overlay"></div>
       {/* <div

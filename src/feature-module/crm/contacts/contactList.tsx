@@ -1062,6 +1062,7 @@ const ContactList = () => {
                             </div>
                           </div>
                         </div>
+                        
                         <div className="col-md-6">
                           <div className="mb-3">
                             <label className="col-form-label">
@@ -1070,10 +1071,10 @@ const ContactList = () => {
                             <Select
                                 name="source"
                                 onChange={(value) => handleChange(value, "select", "source")}
-                                // value={formData?.source}
+                                value={{ label: sources?.find((x: any) => x?.value == formData?.source)?.label, value: formData?.source }}
                                 className="select2" 
                                 classNamePrefix="react-select"
-                                options={activities}
+                                options={sources}
                                 placeholder="Select an option"
                               />
                           </div>

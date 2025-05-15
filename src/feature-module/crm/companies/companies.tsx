@@ -284,7 +284,7 @@ const Companies = () => {
                 <div className="row align-items-center">
                   <div className="col-8">
                     <h4 className="page-title">
-                      Companies<span className="count-title">123</span>
+                      Companies<span className="count-title">{companyData?.length}</span>
                     </h4>
                   </div>
                   <div className="col-4 text-end">

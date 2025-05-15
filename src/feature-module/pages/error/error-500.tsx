@@ -21,7 +21,7 @@ const Error500 = () => {
         Error 500 Page not found. Sorry the page you looking for <br /> doesn’t
         exist or has been moved
       </p>
-      <Link to={route.dealsDashboard}className="btn btn-primary">
+      <Link to={route.leadsDashboard}className="btn btn-primary">
         <i className="ti ti-arrow-narrow-left me-1" /> Back to Dashboard
       </Link>
     </div>

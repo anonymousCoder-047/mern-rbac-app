@@ -6,11 +6,17 @@ import ImageWithBasePath from "../imageWithBasePath";
 import { useDispatch, useSelector } from "react-redux";
 import { setExpandMenu } from "../../data/redux/commonSlice";
 import { all_routes } from "../../../feature-module/router/all_routes";
+import PrivateServer from "../../../helper/PrivateServer";
+import { endpoints } from "../../../helper/endpoints";
 
 const Sidebar = () => {
   const Location = useLocation();
   const expandMenu = useSelector((state: any) => state.expandMenu);
   const dispatch = useDispatch();
+  const [profileData, setProfileData] = useState({
+    username: "CRM Admin",
+    email: "admin@mustandlinksmb.com"
+  })
 
   const [subOpen, setSubopen] = useState<any>('');
   const [subsidebar, setSubsidebar] = useState("");
@@ -38,6 +44,17 @@ const Sidebar = () => {
     dispatch(setExpandMenu(false));
   };
 
+  const getProfileData = async () => {
+    try {
+      const { Profile } = endpoints;
+      const response = await PrivateServer.getData(Profile.me);
+
+      if(response?.data) setProfileData(response?.data);
+    } catch(err) {
+      console.log("Error while getting profile data E: ", err?.message);
+    }
+  }
+
   useEffect(() => {
     setSubopen(localStorage.getItem('menuOpened'))
     // Select all 'submenu' elements
@@ -56,6 +73,7 @@ const Sidebar = () => {
         }
       })
     })
+    getProfileData();
 
   }, [Location.pathname])
 
@@ -82,48 +100,7 @@ const Sidebar = () => {
                         Menu
                       </Link>
                     </li>
-                    <li className="nav-item">
-                      <Link className="nav-link border-0" to={all_routes.chat}>
-                        Chats
-                      </Link>
-                    </li>
-                    <li className="nav-item">
-                      <Link className="nav-link border-0" to={all_routes.email}>
-                        Inbox
-                      </Link>
-                    </li>
                   </ul>
-                </div>
-              </div>
-              <div className="sidebar-header p-3 pb-0 pt-2">
-                <div className="d-flex align-items-center justify-content-between menu-item mb-3">
-                  <div className="me-3">
-                    <Link to={all_routes.calendar} className="btn btn-icon border btn-menubar">
-                      <i className="ti ti-layout-grid-remove" />
-                    </Link>
-                  </div>
-                  <div className="me-3">
-                    <Link
-                      to={all_routes.chat}
-                      className="btn btn-icon border btn-menubar position-relative"
-                    >
-                      <i className="ti ti-brand-hipchat" />
-                    </Link>
-                  </div>
-                  <div className="me-3 notification-item">
-                    <Link
-                      to={all_routes.activities}
-                      className="btn btn-icon border btn-menubar position-relative me-1"
-                    >
-                      <i className="ti ti-bell" />
-                      <span className="notification-status-dot" />
-                    </Link>
-                  </div>
-                  <div className="me-0">
-                    <Link to={all_routes.email} className="btn btn-icon border btn-menubar">
-                      <i className="ti ti-message" />
-                    </Link>
-                  </div>
                 </div>
               </div>
             </>
@@ -131,14 +108,14 @@ const Sidebar = () => {
               <ul>
                 <li className="clinicdropdown theme">
                   <Link to="/profile">
-                    <ImageWithBasePath
+                    {/* <ImageWithBasePath
                       src="assets/img/profiles/avatar-14.jpg"
                       className="img-fluid"
                       alt="Profile"
-                    />
+                    /> */}
                     <div className="user-names">
-                      <h5>Adrian Davies</h5>
-                      <h6>Tech Lead</h6>
+                      <h5>{profileData?.username}</h5>
+                      <h6>{profileData?.email}</h6>
                     </div>
                   </Link>
                 </li>

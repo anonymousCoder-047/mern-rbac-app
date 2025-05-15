@@ -99,7 +99,7 @@ const Header = () => {
       <div className="header">
         {/* Logo */}
         <div className="header-left active" onMouseEnter={toggleExpandMenu} onMouseLeave={toggleExpandMenu2}>
-          <Link to={route.dealsDashboard} className="logo logo-normal">
+          <Link to={route.leadsDashboard} className="logo logo-normal">
             {/* {layoutBs === "dark" ? (
               <>
                 <ImageWithBasePath
@@ -111,11 +111,13 @@ const Header = () => {
             ) : (
               <ImageWithBasePath src="assets/img/logo.svg" alt="Logo" />
             )} */}
-            <ImageWithBasePath src="assets/img/logo.svg" alt="Logo" />
-            <ImageWithBasePath src="assets/img/white-logo.svg" className="white-logo" alt="Logo" />
+            {/* <ImageWithBasePath src="assets/img/logo.svg" alt="Logo" />
+            <ImageWithBasePath src="assets/img/white-logo.svg" className="white-logo" alt="Logo" /> */}
+            <b>MUSTANGLINKSMB</b>
           </Link>
-          <Link to={route.dealsDashboard} className="logo-small">
-            <ImageWithBasePath src="assets/img/logo-small.svg" alt="Logo" />
+          <Link to={route.leadsDashboard} className="logo-small">
+            {/* <ImageWithBasePath src="assets/img/logo-small.svg" alt="Logo" /> */}
+            <b>MLSMB</b>
           </Link>
           <Link id="toggle_btn" to="#" onClick={toggleMiniSidebar}>
             <i className="ti ti-arrow-bar-to-left" />
@@ -333,20 +335,20 @@ const Header = () => {
               >
                 <span className="user-info">
                   <span className="user-letter">
-                    <ImageWithBasePath
+                    {/* <ImageWithBasePath
                       src="assets/img/profiles/avatar-20.jpg"
                       alt="Profile"
-                    />
+                    /> */}
                   </span>
                   <span className="badge badge-success rounded-pill" />
                 </span>
               </Link>
               <div className={` dropdown-menu  menu-drop-user `}>
                 <div className="profilename">
-                  <Link className="dropdown-item" to={route.dealsDashboard}>
+                  <Link className="dropdown-item" to={route.leadsDashboard}>
                     <i className="ti ti-layout-2" /> Dashboard
                   </Link>
-                  <Link className="dropdown-item" to={route.profile}>
+                  <Link className="dropdown-item" to={route.manageusers}>
                     <i className="ti ti-user-pin" /> My Profile
                   </Link>
                   <button className="dropdown-item" onClick={handleLogout}>
@@ -369,10 +371,10 @@ const Header = () => {
             <i className="fa fa-ellipsis-v" />
           </Link>
           <div className={` dropdown-menu `}>
-            <Link className="dropdown-item" to={route.dealsDashboard}>
+            <Link className="dropdown-item" to={route.leadsDashboard}>
               <i className="ti ti-layout-2" /> Dashboard
             </Link>
-            <Link className="dropdown-item" to={route.profile}>
+            <Link className="dropdown-item" to={route.manageusers}>
               <i className="ti ti-user-pin" /> My Profile
             </Link>
             <Link className="dropdown-item" to={route.login}>

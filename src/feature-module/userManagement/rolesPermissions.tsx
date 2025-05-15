@@ -212,7 +212,7 @@ const RolesPermissions = () => {
           <div className="page-header">
             <div className="row align-items-center">
               <div className="col-8">
-                <h4 className="page-title">Roles</h4>
+                <h4 className="page-title">Roles <span className="count-title">{roles?.length}</span></h4>
               </div>
               <div className="col-4 text-end">
                 <div className="head-icons">
