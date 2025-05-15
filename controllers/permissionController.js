@@ -47,7 +47,15 @@ app.post('/create', validateCreatePermissions, canCreate('create'), async (req, 
     
             if(!_.isEmpty(_new_permission)) return apiResponse.successResponseWithData(res, "New Permissions Created Successfully.", _new_permission);
             else apiResponse.ErrorResponse(res, "Unable to create new permissions.");
-        } else apiResponse.ErrorResponse(res, "Permissions already exists.");
+        } else {
+            const _deleted_permission = await delete_permissions(_existing_permission?._id);
+            if(_deleted_permission) {
+                permission_data['id'] = await getNextSequence('permissions');
+                const _new_permission = await create(permission_data);
+                if(!_.isEmpty(_new_permission)) return apiResponse.successResponseWithData(res, "New Permissions Created Successfully.", _new_permission);
+                else apiResponse.ErrorResponse(res, "Unable to create new permissions.");
+            } else apiResponse.ErrorResponse(res, "Error while re-creating the permissions...");
+        }
     } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", permission_data);
 });
 

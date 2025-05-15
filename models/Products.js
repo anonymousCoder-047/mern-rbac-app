@@ -49,11 +49,6 @@ const productsSchema = mongoose.Schema({
         type: ObjectId,
         required: false,
     },
-    custom_fields: {
-        type: Object,
-        required: false,
-        default: {}
-    },
 });
 
 module.exports.Products = new mongoose.model('products', productsSchema, 'products');

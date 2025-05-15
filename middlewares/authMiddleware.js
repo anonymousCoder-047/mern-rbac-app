@@ -63,6 +63,7 @@ const validateToken = ((req, res, next) => {
       const { authorization } = req.headers;
       const _token = authorization?.split(' ')[1]; 
       const accessToken = jwt.verify(_token, access_token_secret);
+      console.log(accessToken)
       
       if(accessToken && !_.isEmpty(accessToken)) {
         const { exp } = jwt.decode(_token);
@@ -75,7 +76,7 @@ const validateToken = ((req, res, next) => {
       } else return apiResponse.badRequestResponse(res, "Invalid Token");
     }
   } catch (err) {
-    return apiResponse.unauthorizedResponse(res, "Token Expired E:" + err);
+    return apiResponse.unauthorizedResponse(res, "Token Expired E:" + err?.message);
   }
 });
 

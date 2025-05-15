@@ -13,18 +13,27 @@ const {
 // loading database service
 const { getNextSequence } = require('../helpers/incrementCount');
 const { create, get_profile, get_profile_by_id, update_profile, delete_profile } = require('../services/profileServices');
-const { create: createUser } = require("../services/userServices");
+const { create: createUser, get_user_by_id } = require("../services/userServices");
 const { create: createPermissions } = require("../services/permissionsServices");
 
 const apiResponse = require('../helpers/apiResponse');
 const expressRouter = require('express');
 const { canCreate, canRead, canUpdate, canDelete } = require('../middlewares/permissionMiddleware');
+const { extractToken } = require('../middlewares/authMiddleware');
 const app = expressRouter.Router();
 
 // load configuration variables
 
 app.get('/view', canRead('read'), async (req, res) => {
     const profile_data = await get_profile({});
+
+    if(!_.isEmpty(profile_data)) return apiResponse.successResponseWithData(res, "Profile information", profile_data);
+    else return apiResponse.notFoundResponse(res, "Sorry, no profile data exists");
+});
+
+app.get('/me', canRead('read'), async (req, res) => {
+    const { _id } = extractToken(req?.headers?.authorization?.split('Bearer ')[1]);
+    const profile_data = await get_user_by_id(_id);
 
     if(!_.isEmpty(profile_data)) return apiResponse.successResponseWithData(res, "Profile information", profile_data);
     else return apiResponse.notFoundResponse(res, "Sorry, no profile data exists");

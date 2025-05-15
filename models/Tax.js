@@ -12,11 +12,6 @@ const taxSchema = mongoose.Schema({
         required: false,
         default: ""
     },
-    tax_amount: {
-        type: mongoose.Schema.Types.Double,
-        required: false,
-        default: ""
-    },
     tax_percentage: {
         type: String,
         required: false,
