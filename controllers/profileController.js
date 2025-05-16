@@ -14,7 +14,7 @@ const {
 const { getNextSequence } = require('../helpers/incrementCount');
 const { create, get_profile, get_profile_by_id, update_profile, delete_profile } = require('../services/profileServices');
 const { create: createUser, get_user_by_id } = require("../services/userServices");
-const { create: createPermissions } = require("../services/permissionsServices");
+const { create: createPermissions, get_permissions } = require("../services/permissionsServices");
 
 const apiResponse = require('../helpers/apiResponse');
 const expressRouter = require('express');
@@ -34,8 +34,9 @@ app.get('/view', canRead('read'), async (req, res) => {
 app.get('/me', canRead('read'), async (req, res) => {
     const { _id } = extractToken(req?.headers?.authorization?.split('Bearer ')[1]);
     const profile_data = await get_user_by_id(_id);
+    const [_permissions] = await get_permissions({ profileId: profile_data?.profileId })
 
-    if(!_.isEmpty(profile_data)) return apiResponse.successResponseWithData(res, "Profile information", profile_data);
+    if(!_.isEmpty(profile_data)) return apiResponse.successResponseWithData(res, "Profile information", { ..._.pick(profile_data, ['username', 'email', 'profileId', '_id']), permissions: _permissions?.action });
     else return apiResponse.notFoundResponse(res, "Sorry, no profile data exists");
 });
 
