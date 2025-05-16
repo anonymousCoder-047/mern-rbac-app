@@ -16,9 +16,11 @@ import { endpoints } from "../../../helper/endpoints";
 import _ from "lodash";
 import moment from "moment";
 import { DatePicker } from "antd";
+import useAuth from "../../../hooks/useAuth";
 
 const route = all_routes;
 const Pipeline = () => {
+  const { values } = useAuth();
   const [pipelineData, setPipelineData] = useState([]);
   const [stageData, setStageData] = useState({
     name: "",
@@ -189,8 +191,8 @@ const Pipeline = () => {
             data-popper-placement="bottom-start"
             onClick={() => handleEditPipeline(record)}
           >
-           <Link className="dropdown-item" data-bs-toggle="offcanvas" data-bs-target="#offcanvas_edit" to="#"><i className="ti ti-edit text-blue"></i> Edit</Link>
-            <Link
+           {values?.permissions?.includes('update') && (<Link className="dropdown-item" data-bs-toggle="offcanvas" data-bs-target="#offcanvas_edit" to="#"><i className="ti ti-edit text-blue"></i> Edit</Link>)}
+            {values?.permissions?.includes('delete') && (<Link
               className="dropdown-item"
               to="#"
               data-bs-toggle="modal"
@@ -198,7 +200,7 @@ const Pipeline = () => {
               onClick={() => setPipelineId(record?._id)}
             >
               <i className="ti ti-trash text-danger"></i> Delete
-            </Link>
+            </Link>)}
           </div>
         </div>
       ),
@@ -433,7 +435,7 @@ const Pipeline = () => {
           </div>
         </div>
       </div>
-      <Link
+      {values?.permissions?.includes('create') && (<Link
         to="#"
         className="btn btn-primary"
         data-bs-toggle="offcanvas"
@@ -441,7 +443,7 @@ const Pipeline = () => {
       >
         <i className="ti ti-square-rounded-plus me-2" />
         Add Pipeline
-      </Link>
+      </Link>)}
     </div>
   </div>
   {/* /Filter */}

@@ -18,8 +18,10 @@ import PrivateServer from "../../helper/PrivateServer";
 import { endpoints } from "../../helper/endpoints";
 import _ from "lodash";
 import moment from "moment";
+import useAuth from "../../hooks/useAuth";
 
 const Products = () => {
+  const { values } = useAuth();
   const route = all_routes;
   const [sources, setSources] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -329,15 +331,15 @@ const Products = () => {
             }}
             data-popper-placement="bottom-start"
           >
-            <Link
+            {values?.permissions?.includes('update') && (<Link
               className="dropdown-item edit-popup"
               to="#"
               onClick={() => handleEditProducts(record)}
               data-bs-toggle="offcanvas" data-bs-target="#offcanvas_edit"
             >
               <i className="ti ti-edit text-blue"></i> Edit
-            </Link>
-            <Link
+            </Link>)}
+            {values?.permissions?.includes('delete') && (<Link
               className="dropdown-item"
               to="#"
               data-bs-toggle="modal"
@@ -345,7 +347,7 @@ const Products = () => {
               onClick={() => setProductId(record?._id)}
             >
               <i className="ti ti-trash text-danger"></i> Delete
-            </Link>
+            </Link>)}
             <Link className="dropdown-item" to={route.contactDetails}><i className="ti ti-eye text-blue-light"></i> Preview</Link>
           </div>
         </div>
@@ -419,7 +421,7 @@ const Products = () => {
                             </ul>
                           </div>
                         </div>
-                        <Link
+                        {values?.permissions?.includes('create') && (<Link
                           to="#"
                           className="btn btn-primary"
                           data-bs-toggle="offcanvas"
@@ -427,7 +429,7 @@ const Products = () => {
                         >
                           <i className="ti ti-square-rounded-plus me-2" />
                           Add Product
-                        </Link>
+                        </Link>)}
                       </div>
                     </div>
                   </div>

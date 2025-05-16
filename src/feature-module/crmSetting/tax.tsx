@@ -7,10 +7,12 @@ import CollapseHeader from "../../core/common/collapse-header";
 import PrivateServer from "../../helper/PrivateServer";
 import { endpoints } from "../../helper/endpoints";
 import _ from "lodash";
+import useAuth from "../../hooks/useAuth";
 
 const route = all_routes;
 
 const Tax = () => {
+  const { values } = useAuth()
   const [taxData, setTaxData] = useState([]);
   const [taxId, setTaxId] = useState("");
   const [formData, setFormData] = useState({
@@ -115,7 +117,7 @@ const Tax = () => {
             <i className="fa fa-ellipsis-v" />
           </Link>
           <div className="dropdown-menu dropdown-menu-right">
-            <Link
+            {values?.permissions?.includes('update') && (<Link
               className="dropdown-item"
               to="#"
               data-bs-toggle="modal"
@@ -123,8 +125,8 @@ const Tax = () => {
               onClick={() => handleEditTax(record)}
             >
               <i className="ti ti-edit text-blue" /> Edit
-            </Link>
-            <Link
+            </Link>)}
+            {values?.permissions?.includes('delete') && (<Link
               className="dropdown-item"
               to="#"
               data-bs-toggle="modal"
@@ -132,7 +134,7 @@ const Tax = () => {
               onClick={() => setTaxId(record?._id)}
             >
               <i className="ti ti-trash text-danger" /> Delete
-            </Link>
+            </Link>)}
           </div>
         </div>
       ),
@@ -184,7 +186,7 @@ const Tax = () => {
                   </div>
                   <div className="col-sm-8">
                     <div className="text-sm-end">
-                      <Link
+                      {values?.permissions?.includes('create') && (<Link
                         to="#"
                         className="btn btn-primary "
                         data-bs-toggle="modal"
@@ -192,7 +194,7 @@ const Tax = () => {
                       >
                         <i className="ti ti-square-rounded-plus me-2" />
                         Add New Tax
-                      </Link>
+                      </Link>)}
                     </div>
                   </div>
                 </div>

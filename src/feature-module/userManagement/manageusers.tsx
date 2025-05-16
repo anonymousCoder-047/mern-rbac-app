@@ -8,8 +8,10 @@ import CollapseHeader from "../../core/common/collapse-header";
 import PrivateServer from "../../helper/PrivateServer";
 import { endpoints } from "../../helper/endpoints";
 import moment from "moment";
+import useAuth from "../../hooks/useAuth";
 
 const Manageusers = () => {
+  const { values } = useAuth();
   const [passwords, setPasswords] = useState([false, false]);
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
@@ -221,7 +223,7 @@ const Manageusers = () => {
             <i className="fa fa-ellipsis-v" />
           </Link>
           <div className="dropdown-menu dropdown-menu-right">
-            <Link
+            {values?.permissions?.includes('update') && (<Link
               className="dropdown-item"
               to="#"
               data-bs-target="#offcanvas_edit"
@@ -229,9 +231,9 @@ const Manageusers = () => {
               onClick={() => handleEditUser(record)}
             >
               <i className="ti ti-edit text-blue" /> Edit
-            </Link>
+            </Link>)}
 
-            <Link
+            {values?.permissions?.includes('delete') && (<Link
               className="dropdown-item"
               to="#"
               data-bs-toggle="modal"
@@ -239,7 +241,7 @@ const Manageusers = () => {
               onClick={() => setUserId(record?._id)}
             >
               <i className="ti ti-trash text-danger"></i> Delete
-            </Link>
+            </Link>)}
           </div>
         </div>
       ),
@@ -343,7 +345,7 @@ const Manageusers = () => {
                             </ul>
                           </div>
                         </div>
-                        <Link
+                        {values?.permissions?.includes('create') && (<Link
                           to="#"
                           className="btn btn-primary"
                           data-bs-toggle="offcanvas"
@@ -351,7 +353,7 @@ const Manageusers = () => {
                         >
                           <i className="ti ti-square-rounded-plus me-2" />
                           Add user
-                        </Link>
+                        </Link>)}
                       </div>
                     </div>
                   </div>

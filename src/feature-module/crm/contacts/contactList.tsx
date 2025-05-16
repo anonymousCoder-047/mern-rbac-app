@@ -21,9 +21,11 @@ import PrivateServer from "../../../helper/PrivateServer";
 import { endpoints } from "../../../helper/endpoints";
 import _ from "lodash";
 import moment from "moment";
+import useAuth from "../../../hooks/useAuth";
 
 const ContactList = () => {
   const route = all_routes;
+  const { values } = useAuth();
   const [sources, setSources] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [openModal2, setOpenModal2] = useState(false);
@@ -273,15 +275,15 @@ const ContactList = () => {
             }}
             data-popper-placement="bottom-start"
           >
-            <Link
+            {values?.permissions?.includes('update') && (<Link
               className="dropdown-item edit-popup"
               to="#"
               onClick={() => handleEditContact(record)}
               data-bs-toggle="offcanvas" data-bs-target="#offcanvas_edit"
             >
               <i className="ti ti-edit text-blue"></i> Edit
-            </Link>
-            <Link
+            </Link>)}
+            {values?.permissions?.includes('delete') && (<Link
               className="dropdown-item"
               to="#"
               data-bs-toggle="modal"
@@ -289,7 +291,7 @@ const ContactList = () => {
               onClick={() => setContactId(record?._id)}
             >
               <i className="ti ti-trash text-danger"></i> Delete
-            </Link>
+            </Link>)}
             <Link className="dropdown-item" to={route.contactDetails}><i className="ti ti-eye text-blue-light"></i> Preview</Link>
           </div>
         </div>
@@ -363,7 +365,7 @@ const ContactList = () => {
                             </ul>
                           </div>
                         </div>
-                        <Link
+                        {values?.permissions?.includes('create') && (<Link
                           to="#"
                           className="btn btn-primary"
                           data-bs-toggle="offcanvas"
@@ -371,7 +373,7 @@ const ContactList = () => {
                         >
                           <i className="ti ti-square-rounded-plus me-2" />
                           Add Contacts
-                        </Link>
+                        </Link>)}
                       </div>
                     </div>
                   </div>

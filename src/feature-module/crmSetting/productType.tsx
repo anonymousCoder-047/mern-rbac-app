@@ -7,10 +7,12 @@ import CollapseHeader from "../../core/common/collapse-header";
 import PrivateServer from "../../helper/PrivateServer";
 import { endpoints } from "../../helper/endpoints";
 import _ from "lodash";
+import useAuth from "../../hooks/useAuth";
 
 const route = all_routes;
 
 const ProductType = () => {
+  const { values } = useAuth();
   const [typeData, setTypeData] = useState([]);
   const [subTypes, setSubTypes] = useState([]);
   const [typeId, setTypeId] = useState("");
@@ -133,7 +135,7 @@ const getSubTypes = async () => {
             <i className="fa fa-ellipsis-v" />
           </Link>
           <div className="dropdown-menu dropdown-menu-right">
-            <Link
+            {values?.permissions?.includes('update') && (<Link
               className="dropdown-item"
               to="#"
               data-bs-toggle="modal"
@@ -141,8 +143,8 @@ const getSubTypes = async () => {
               onClick={() => handleEditType(record)}
             >
               <i className="ti ti-edit text-blue" /> Edit
-            </Link>
-            <Link
+            </Link>)}
+            {values?.permissions?.includes('delete') && (<Link
               className="dropdown-item"
               to="#"
               data-bs-toggle="modal"
@@ -150,7 +152,7 @@ const getSubTypes = async () => {
               onClick={() => setTypeId(record?._id)}
             >
               <i className="ti ti-trash text-danger" /> Delete
-            </Link>
+            </Link>)}
           </div>
         </div>
       ),
@@ -203,7 +205,7 @@ const getSubTypes = async () => {
                   </div>
                   <div className="col-sm-8">
                     <div className="text-sm-end">
-                      <Link
+                      {values?.permissions?.includes('create') && (<Link
                         to="#"
                         className="btn btn-primary "
                         data-bs-toggle="modal"
@@ -211,7 +213,7 @@ const getSubTypes = async () => {
                       >
                         <i className="ti ti-square-rounded-plus me-2" />
                         Add New Type
-                      </Link>
+                      </Link>)}
                     </div>
                   </div>
                 </div>

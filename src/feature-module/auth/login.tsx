@@ -4,9 +4,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { all_routes } from "../router/all_routes";
 import Server from "../../helper/Server";
 import { endpoints } from "../../helper/endpoints";
+import useAuth from "../../hooks/useAuth";
 
 const Login = () => {
   const route = all_routes;
+  const { values, setValues } = useAuth();
   const navigate = useNavigate();
   const { postData } = Server;
   const [error, setError] = useState("");
@@ -35,6 +37,7 @@ const Login = () => {
   
       if(data && data?.token) {
         localStorage.setItem("token", data?.token);
+        setValues({ ...values, permissions: data?.permissions, profileId: data?.profileId, currentUserId: data?._id });
         navigate(route.leadsDashboard);
       } else {
         console.log("something went wrong!!!", status);

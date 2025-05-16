@@ -10,10 +10,12 @@ import { endpoints } from "../../helper/endpoints";
 import PrivateServer from "../../helper/PrivateServer";
 import _ from "lodash";
 import moment from "moment";
+import useAuth from "../../hooks/useAuth";
 
 const route = all_routes;
 
 const RolesPermissions = () => {
+  const { values } = useAuth()
   const [roles, setRoles] = useState([]);
   const [users, setUsers] = useState([]);
   const [roleId, setRoleId] = useState("");
@@ -177,7 +179,7 @@ const RolesPermissions = () => {
             <i className="fa fa-ellipsis-v" />
           </Link>
           <div className="dropdown-menu dropdown-menu-right">
-            <Link
+            {values?.permissions?.includes('update') && (<Link
               className="dropdown-item edit-popup"
               to="#"
               data-bs-toggle="modal"
@@ -185,9 +187,9 @@ const RolesPermissions = () => {
               onClick={() => handleEditUser(record)}
             >
               <i className="ti ti-edit text-blue" /> Edit
-            </Link>
+            </Link>)}
             
-            <Link
+            {values?.permissions?.includes('delete') && (<Link
               className="dropdown-item"
               to="#"
               data-bs-toggle="modal"
@@ -195,7 +197,7 @@ const RolesPermissions = () => {
               onClick={() => setRoleId(record?._id)}
             >
               <i className="ti ti-trash text-danger"></i> Delete
-            </Link>
+            </Link>)}
           </div>
         </div>
       ),
@@ -240,7 +242,7 @@ const RolesPermissions = () => {
                 </div>
                 <div className="col-sm-8">
                   <div className="text-sm-end">
-                    <Link
+                    {values?.permissions?.includes('create') && (<Link
                       to="#"
                       className="btn btn-primary"
                       data-bs-toggle="modal"
@@ -248,7 +250,7 @@ const RolesPermissions = () => {
                     >
                       <i className="ti ti-square-rounded-plus me-2" />
                       Add New Roles
-                    </Link>
+                    </Link>)}
                   </div>
                 </div>
               </div>

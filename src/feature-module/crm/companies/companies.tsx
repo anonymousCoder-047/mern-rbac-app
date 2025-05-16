@@ -10,9 +10,11 @@ import Table from "../../../core/common/dataTable/index";
 import { Modal } from "react-bootstrap";
 import PrivateServer from "../../../helper/PrivateServer";
 import { endpoints } from "../../../helper/endpoints";
+import useAuth from "../../../hooks/useAuth";
 import _ from "lodash";
 
 const Companies = () => {
+  const { values } = useAuth();
   const [openModal, setOpenModal] = useState(false);
   const [openModal2, setOpenModal2] = useState(false);
   const [companyData, setCompanyData] = useState([]);
@@ -216,7 +218,7 @@ const Companies = () => {
             <i className="fa fa-ellipsis-v" />
           </Link>
           <div className="dropdown-menu dropdown-menu-right">
-            <Link
+            {values?.permissions?.includes('update') && (<Link
               className="dropdown-item"
               to="#"
               data-bs-toggle="offcanvas"
@@ -224,8 +226,8 @@ const Companies = () => {
               onClick={() => handleEditContact(record)}
             >
               <i className="ti ti-edit text-blue" /> Edit
-            </Link>
-            <Link
+            </Link>)}
+            {values?.permissions?.includes('delete') && (<Link
               className="dropdown-item"
               to="#"
               data-bs-toggle="modal"
@@ -233,7 +235,7 @@ const Companies = () => {
               onClick={() => setCompanyId(record?._id)}
             >
               <i className="ti ti-trash text-danger" /> Delete
-            </Link>
+            </Link>)}
             <Link className="dropdown-item" to={route.companyDetails}><i className="ti ti-eye text-blue-light"></i> Preview</Link>
           </div>
         </div>
@@ -339,7 +341,7 @@ const Companies = () => {
                             </ul>
                           </div>
                         </div>
-                        <Link
+                        {values?.permissions?.includes('create') && (<Link
                           to="#"
                           className="btn btn-primary"
                           data-bs-toggle="offcanvas"
@@ -347,7 +349,7 @@ const Companies = () => {
                         >
                           <i className="ti ti-square-rounded-plus me-2" />
                           Add Company
-                        </Link>
+                        </Link>)}
                       </div>
                     </div>
                   </div>
