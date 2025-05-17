@@ -62,7 +62,7 @@ async function fetchCSSANDApplyInline(url, _content_type, htmlContent) {
   }
 }
 
-let send_mail = (async (_template_name, _template_data, _from, _to, _subject, _attachments=[]) => {
+let send_mail = (async (_template_name, _template_data, _from, _to, _subject, _attachments=[], _cc=[], _bcc=[]) => {
   try {
     // Path to the EJS template file
     // Render the EJS template to HTML
@@ -73,6 +73,8 @@ let send_mail = (async (_template_name, _template_data, _from, _to, _subject, _a
     const mail_options = {
         from: _from,
         to: _to,
+        cc: _cc,
+        bcc: _bcc,
         subject: _subject,
         html: inline_html_content,
         attachments: _attachments

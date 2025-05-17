@@ -1,5 +1,6 @@
 
 // load dependencies
+const path = require('path');
 const _ = require('lodash');
 
 // loading validators
@@ -12,6 +13,8 @@ const { create, delete_contacts, get_contacts, get_contacts_by_id, update_contac
 
 const apiResponse = require('../helpers/apiResponse');
 const expressRouter = require('express');
+const { send_mail } = require('../helpers/mail');
+const { domain, mail_username } = require('../config/config');
 const app = expressRouter.Router();
 
 // load configuration variables
@@ -21,6 +24,30 @@ app.get('/view', canRead('read'), async (req, res) => {
 
     if(!_.isEmpty(contacts_data)) return apiResponse.successResponseWithData(res, "Contacts information", contacts_data);
     else return apiResponse.ErrorResponse(res, "Sorry, no Contacts data exists");
+});
+
+app.post('/send-mail', canCreate('create'), async (req, res) => {
+    let mail_data = req.body;
+
+    if(!_.isEmpty(mail_data)) {
+        const emailData = {
+            url: domain,
+            bodyData: mail_data?.emailBody,
+            support_details: "https://wa.me/971505658506?text=Hello! i need your assistance to reset password for my account."
+        };
+
+        const _attachments = [
+            {
+                filename: 'the_a_team.png',
+                path: path.join(__dirname, '../public/images/the_a_team.png'), // path to the image file
+                cid: 'the_a_team_logo' // same as the cid used in the HTML img src
+            }
+        ]
+
+        const _mail_info = await send_mail("contact_email", emailData, mail_username, mail_data?.toEmail, "Reset Password", _attachments, mail_data?.ccEmail ? mail_data?.ccEmail?.split(",") : [], mail_data?.bccEmail ? mail_data?.bccEmail?.split(",") : []);
+        if(_mail_info.status == 200) return apiResponse.successResponseWithData(res, "Mail sent successfully.", _mail_info.messageId)
+        else apiResponse.ErrorResponse(res, "Sorry! couldnt send Mail E: "+ _mail_info.status);
+    } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", contacts_data);
 });
 
 app.post('/create', canCreate('create'), async (req, res) => {
