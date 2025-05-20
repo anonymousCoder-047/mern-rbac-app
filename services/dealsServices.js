@@ -22,12 +22,18 @@ class DealsServices {
 
     async get_deals_by_id(_deals_id) {
         return await Deals.findById({ _id: typeof _deals_id == 'object' ? _deals_id : ObjectId.createFromHexString(_deals_id) })
+        .populate({ path: 'stage', model: 'pipeline' })
+        .populate({ path: 'contact_name', model: 'contacts' })
+        .populate({ path: 'company_name', model: 'company' })
         .populate({ path: 'product_category', model: 'category' })
         .populate({ path: 'team_leader', model: 'profile' });
     }
-
+    
     async get_deals(_filters={}) {
         return await Deals.find({..._filters})
+        .populate({ path: 'stage', model: 'pipeline' })
+        .populate({ path: 'contact_name', model: 'contacts' })
+        .populate({ path: 'company_name', model: 'company' })
         .populate({ path: 'product_category', model: 'category' })
         .populate({ path: 'team_leader', model: 'profile' });
     }
