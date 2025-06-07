@@ -7,6 +7,10 @@ class TypeServices {
     async create(_type) {
         return await Type.create(_type);
     }
+    
+    async createMany(_types) {
+        return await Type.insertMany(_types);
+    }
 
     async update_type(_type_id, _type) {
         return await Type.findOneAndUpdate({ _id: typeof _type_id == 'object' ? _type_id : ObjectId.createFromHexString(_type_id) }, { $set: _type });

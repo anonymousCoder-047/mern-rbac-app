@@ -7,6 +7,10 @@ class SubCategoryServices {
     async create(_sub_category) {
         return await SubCategory.create(_sub_category);
     }
+    
+    async createMany(_sub_categories) {
+        return await SubCategory.insertMany(_sub_categories);
+    }
 
     async update_sub_category(_sub_category_id, _sub_category) {
         return await SubCategory.findOneAndUpdate({ _id: typeof _sub_category_id == 'object' ? _sub_category_id : ObjectId.createFromHexString(_sub_category_id) }, { $set: _sub_category });

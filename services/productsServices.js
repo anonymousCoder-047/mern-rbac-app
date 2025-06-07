@@ -7,6 +7,10 @@ class ProductsServices {
     async create(_product) {
         return await Products.create(_product);
     }
+    
+    async createMany(_products) {
+        return await Products.insertMany(_products);
+    }
 
     async update_product(_product_id, _product) {
         return await Products.findOneAndUpdate({ _id: typeof _product_id == 'object' ? _product_id : ObjectId.createFromHexString(_product_id) }, { $set: _product });

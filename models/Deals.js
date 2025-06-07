@@ -65,6 +65,16 @@ const dealsSchema = mongoose.Schema({
         required: false,
         default: ""
     },
+    description: {
+        type: String,
+        required: false,
+        default: ""
+    },
+    qty: {
+        type: Number,
+        required: false,
+        default: 0
+    },
     last_contact_date: {
         type: Date,
         required: false,

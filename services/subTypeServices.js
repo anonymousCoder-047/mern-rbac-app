@@ -7,6 +7,10 @@ class SubTypeServices {
     async create(_sub_type) {
         return await SubType.create(_sub_type);
     }
+    
+    async createMany(_sub_types) {
+        return await SubType.insertMany(_sub_types);
+    }
 
     async update_sub_type(_sub_type_id, _sub_type) {
         return await SubType.findOneAndUpdate({ _id: typeof _sub_type_id == 'object' ? _sub_type_id : ObjectId.createFromHexString(_sub_type_id) }, { $set: _sub_type });

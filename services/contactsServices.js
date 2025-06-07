@@ -7,6 +7,10 @@ class ContactsServices {
     async create(_contacts) {
         return await Contacts.create(_contacts);
     }
+   
+    async createMany(_contacts) {
+        return await Contacts.insertMany(_contacts);
+    }
 
     async update_contacts(_contacts_id, _contacts) {
         return await Contacts.findOneAndUpdate({ _id: typeof _contacts_id == 'object' ? _contacts_id : ObjectId.createFromHexString(_contacts_id) }, { $set: _contacts });

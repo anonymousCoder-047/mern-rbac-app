@@ -7,6 +7,10 @@ class DealsServices {
     async create(_deals) {
         return await Deals.create(_deals);
     }
+    
+    async createMany(_deals) {
+        return await Deals.insertMany(_deals);
+    }
 
     async update_deals(_deals_id, _deals) {
         return await Deals.findOneAndUpdate({ _id: typeof _deals_id == 'object' ? _deals_id : ObjectId.createFromHexString(_deals_id) }, { $set: _deals });

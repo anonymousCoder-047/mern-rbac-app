@@ -28,6 +28,11 @@ const contactsSchema = mongoose.Schema({
         default: "",
         required: false
     },
+    team_leader: {
+        type: String,
+        default: "",
+        required: false
+    },
     company_name: {
         type: ObjectId,
         required: false

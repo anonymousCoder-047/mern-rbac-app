@@ -8,6 +8,10 @@ class CategoryServices {
         return await Category.create(_category);
     }
 
+    async createMany(_categories) {
+        return await Category.insertMany(_categories);
+    }
+
     async update_category(_category_id, _category) {
         return await Category.findOneAndUpdate({ _id: typeof _category_id == 'object' ? _category_id : ObjectId.createFromHexString(_category_id) }, { $set: _category });
     }
