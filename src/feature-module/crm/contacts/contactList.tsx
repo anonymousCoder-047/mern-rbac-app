@@ -242,6 +242,26 @@ const ContactList = () => {
       sorter: (a: { [key: string]: string }, b: { [key: string]: string }) => a?.first_name?.toLowerCase().localeCompare(b?.first_name?.toLowerCase()),
     },
     {
+      title: "Team Leader",
+      dataIndex: "team_leader",
+      render: (text: any, record: any, index: number) => (
+        <h2 className="d-flex align-items-center" key={index}>
+        {/* <Link to={route.contactDetails} className="avatar avatar-sm me-2">
+          <ImageWithBasePath
+            className="img-fluid"
+            src={env_data?.image_base_path + record?.profile_picture}
+            alt={"Customer profile picture"}
+          />
+        </Link> */}
+        <Link to={route.contactDetails} className="d-flex flex-column">
+        {record?.team_leader}
+          <span className="text-default">{record?.email}</span>
+        </Link>
+      </h2>
+      ),
+      sorter: (a: { [key: string]: string }, b: { [key: string]: string }) => a?.team_leader?.toLowerCase().localeCompare(b?.team_leader?.toLowerCase()),
+    },
+    {
       title: "Phone",
       dataIndex: "primary_phone",
       sorter: (a: { [key: string]: string }, b: { [key: string]: string }) => a.primary_phone.length - b.primary_phone.length,
@@ -292,7 +312,7 @@ const ContactList = () => {
             >
               <i className="ti ti-trash text-danger"></i> Delete
             </Link>)}
-            <Link className="dropdown-item" to={route.contactDetails}><i className="ti ti-eye text-blue-light"></i> Preview</Link>
+            <Link className="dropdown-item" to={route.contactDetails} state={{...record, totalData: contactData?.length}}><i className="ti ti-eye text-blue-light"></i> Preview</Link>
           </div>
         </div>
       ),

@@ -27,6 +27,7 @@ export const endpoints = {
     },
     Contact: {
         view: '/contact/view',
+        sendMail: '/contact/send-mail',
         create: '/contact/create',
         update: '/contact/update',
         patch: '/contact/update',
@@ -47,6 +48,7 @@ export const endpoints = {
         delete: '/deals/delete',
     },
     Products: {
+        import: '/products/import',
         view: '/products/view',
         create: '/products/create',
         update: '/products/update',

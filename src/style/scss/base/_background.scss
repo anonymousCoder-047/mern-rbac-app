@@ -3,6 +3,9 @@
 .bg-primary {
     background-color: variables.$primary !important;
 }
+.bg-primary-light {
+    background: variables.$primary-100;
+}
 .bg-secondary {
     background-color: variables.$secondary !important;
 }

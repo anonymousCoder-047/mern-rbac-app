@@ -19,6 +19,7 @@ import { endpoints } from "../../helper/endpoints";
 import _ from "lodash";
 import moment from "moment";
 import useAuth from "../../hooks/useAuth";
+import * as XLSX from "xlsx";
 
 const Products = () => {
   const { values } = useAuth();
@@ -31,6 +32,11 @@ const Products = () => {
   const [openModal2, setOpenModal2] = useState(false);
   const [productsData, setProductsData] = useState([]);
   const [productId, setProductId] = useState("");
+  const [fileImport, setFileImport] = useState({
+    file_key: "",
+    file: {},
+    fileName: "",
+  });
   const [formData, setFormData] = useState({
     product_name: "",
     product_code: "",
@@ -71,12 +77,59 @@ const Products = () => {
     setStars(starsState);
   };
 
+  const cleanData = (data, filterKeys) => {
+    return data.map(obj => {
+        // Remove filterKeys from object
+        const filteredObj = _.omit(obj, filterKeys);
+
+        // Convert keys to start case
+        return _.mapKeys(filteredObj, (value, key) => _.startCase(_.toLower(key.replace(/_/g, " "))));
+    });
+  };
+
+  const handleExport = () => {
+    try {
+      // Convert data to worksheet format
+      const worksheet = XLSX.utils.json_to_sheet(cleanData([...new Set(productsData?.map((x) => ({ ...x, product_type: x?.product_type?.type_name, product_category: x?.product_category?.category_name, product_sub_category: x?.product_sub_category?.sub_category_name, tax: _.map(x?.tax, 'tax_name').join(', ') })))], ["_id", "__v"]));
+
+      // Create a new workbook and append the worksheet
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Products");
+
+      // Write the file and trigger download
+      XLSX.writeFile(workbook, 'etisalat_products.xlsx');
+
+    } catch(err) {
+      console.log("Error == ", err);
+    }
+  }
+
+  // const handleImportFile = async (e) => {
+  //   console.log("file data -- ", e.target.files[0]);
+  //   setFileImport({ ...fileImport, file_key: e?.target?.name, file: e?.target?.files?.[0], fileName: e?.target?.files?.[0]?.filename ?? "" });
+  // }
+
+  // const handleImportData = async () => {
+  //   try {
+  //     const { Products } = endpoints;
+  //     const _formData = new FormData();
+  //     _formData.append(fileImport.file_key, fileImport.file);
+  //     const { data } = await PrivateServer.postData(Products.import, _formData, {
+  //           headers: { "Content-Type": "multipart/form-data" } // Ensure correct content type
+  //       });
+  //     console.log("data -- ", data);
+
+  //     if(data) await getProducts();
+  //   } catch(error) {
+  //     console.log("error -- ", error);
+  //   }
+  // }
+
   const getProducts = async () => {
     try {
       const { Products } = endpoints;
       const response = await PrivateServer.getData(Products?.view)
   
-      console.log("data -- ", response)
       if(response?.data) setProductsData(response?.data);
     } catch(error) {
       console.log("Error while getting products -- E:", error?.message);
@@ -87,8 +140,7 @@ const Products = () => {
     try {
       const { Categories } = endpoints;
       const response = await PrivateServer.getData(Categories?.view)
-  
-      console.log("data -- ", response)
+
       if(response?.data) {
         const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.category_name, value: x?._id })))]  
         setCategories(_data);
@@ -103,7 +155,6 @@ const Products = () => {
       const { SubCategory } = endpoints;
       const response = await PrivateServer.getData(SubCategory?.view)
   
-      console.log("data -- ", response)
       if(response?.data) {
         const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.sub_category_name, value: x?._id })))]  
         setSubCategories(_data);
@@ -118,7 +169,6 @@ const Products = () => {
       const { Types } = endpoints;
       const response = await PrivateServer.getData(Types?.view)
   
-      console.log("data -- ", response)
       if(response?.data) {
         const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.type_name, value: x?._id })))]  
         setTypes(_data);
@@ -133,7 +183,6 @@ const Products = () => {
       const { Tax } = endpoints;
       const response = await PrivateServer.getData(Tax?.view)
   
-      console.log("data -- ", response)
       if(response?.data) {
         const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.tax_name, value: x?._id })))]  
         setTaxes(_data);
@@ -206,7 +255,16 @@ const Products = () => {
 
   const handleEditProducts = (values) => {
     console.log("Edit product clicked -- ", values);
-    setFormData({ ...formData, ..._.omit(values, ["_id"]), productId: values?._id });
+    const _tax = [...new Set(values?.tax?.map((x) => x?._id))]
+    setFormData({ 
+      ...formData, 
+      ..._.omit(values, ["_id"]), 
+      productId: values?._id, 
+      product_category: values?.product_category?._id ?? values?.product_category, 
+      product_sub_category: values?.product_sub_category?._id ?? values?.product_sub_category, 
+      product_type: values?.product_type?._id ?? values?.product_type,
+      tax: _tax,
+    });
   }
 
   const handleAddOrUpdateProducts = async () => {
@@ -250,28 +308,68 @@ const Products = () => {
           />
         </Link> */}
         <Link to={route.contactDetails} className="d-flex flex-column">
-        {record?.product_name}
-          <span className="text-default">{record?.product_code}</span>
+        {record?.description}
+        <span className="text-default"></span>
         </Link>
       </h2>
       ),
-      sorter: (a: { [key: string]: string }, b: { [key: string]: string }) => a?.first_name?.toLowerCase().localeCompare(b?.first_name?.toLowerCase()),
+      sorter: (a: { [key: string]: string }, b: { [key: string]: string }) => a?.description?.toLowerCase().localeCompare(b?.description?.toLowerCase()),
+    },
+    {
+      title: "Product Category",
+      dataIndex: "product_category",
+      render: (text: any, record: any, index: number) => (
+        <h2 className="d-flex align-items-center" key={index}>
+        {/* <Link to={route.contactDetails} className="avatar avatar-sm me-2">
+          <ImageWithBasePath
+            className="img-fluid"
+            src={env_data?.image_base_path + record?.profile_picture}
+            alt={"Customer profile picture"}
+          />
+        </Link> */}
+        <Link to={route.contactDetails} className="d-flex flex-column">
+        {record?.product_category?.category_name}
+        <span className="text-default">{record?.product_sub_category?.sub_category_name}</span>
+        </Link>
+      </h2>
+      ),
+      sorter: (a: { [key: string]: string }, b: { [key: string]: string }) => a?.product_category?.category_name?.toLowerCase().localeCompare(b?.product_category?.category_name?.toLowerCase()),
+    },
+    {
+      title: "Product Type",
+      dataIndex: "product_type",
+      render: (text: any, record: any, index: number) => (
+        <h2 className="d-flex align-items-center" key={index}>
+        {/* <Link to={route.contactDetails} className="avatar avatar-sm me-2">
+          <ImageWithBasePath
+            className="img-fluid"
+            src={env_data?.image_base_path + record?.profile_picture}
+            alt={"Customer profile picture"}
+          />
+        </Link> */}
+        <Link to={route.contactDetails} className="d-flex flex-column">
+        {record?.product_type?.type_name}
+        <span className="text-default">{record?.product_type?.sub_type?.sub_type_name}</span>
+        </Link>
+      </h2>
+      ),
+      sorter: (a: { [key: string]: string }, b: { [key: string]: string }) => a?.product_type?.type_name?.toLowerCase().localeCompare(b?.product_type?.type_name?.toLowerCase()),
     },
     {
       title: "QTY Ordered",
       dataIndex: "qty_ordered",
-      sorter: (a: { [key: string]: string }, b: { [key: string]: string }) => a.primary_phone.length - b.primary_phone.length,
+      sorter: (a: { [key: string]: string }, b: { [key: string]: string }) => a.qty_ordered.length - b.qty_ordered.length,
     },
 
     {
       title: "Unit Price",
       dataIndex: "unit_price",
-      sorter: (a: TableData, b: TableData) => a.email.length - b.email.length,
+      sorter: (a: TableData, b: TableData) => a.unit_price.length - b.unit_price.length,
     },
     {
       title: "Total Amount",
       dataIndex: "unit_price",
-      sorter: (a: TableData, b: TableData) => a.email.length - b.email.length,
+      sorter: (a: TableData, b: TableData) => a.unit_price.length - b.unit_price.length,
       render: (text: string, record: any) => {
         const _qty = record?.qty_ordered?.toString();
         const _unitPrice = record?.unit_price?.toString();
@@ -283,7 +381,7 @@ const Products = () => {
     {
       title: "Total Vat",
       dataIndex: "tax",
-      sorter: (a: TableData, b: TableData) => a.email.length - b.email.length,
+      sorter: (a: TableData, b: TableData) => a.unit_price.length - b.unit_price.length,
       render: (text: string, record: any) => {
         const _ttl_tax = record?.tax ? _.sum(_.map(record?.tax, function(_item) { return parseFloat(_item?.tax_percentage) })) : 0;
         const _qty = record?.qty_ordered?.toString();
@@ -297,7 +395,7 @@ const Products = () => {
     {
       title: "Amount",
       dataIndex: "tax",
-      sorter: (a: TableData, b: TableData) => a.email.length - b.email.length,
+      sorter: (a: TableData, b: TableData) => a.unit_price.length - b.unit_price.length,
       render: (text: string, record: any) => {
         const _ttl_tax = record?.tax ? _.sum(_.map(record?.tax, function(_item) { return parseFloat(_item?.tax_percentage) })) : 0;
         const _qty = record?.qty_ordered?.toString();
@@ -348,7 +446,6 @@ const Products = () => {
             >
               <i className="ti ti-trash text-danger"></i> Delete
             </Link>)}
-            <Link className="dropdown-item" to={route.contactDetails}><i className="ti ti-eye text-blue-light"></i> Preview</Link>
           </div>
         </div>
       ),
@@ -395,6 +492,16 @@ const Products = () => {
                     </div>
                     <div className="col-sm-8">
                       <div className="d-flex align-items-center flex-wrap row-gap-2 justify-content-sm-end">
+                        {/* <div className="dropdown me-2">
+                          <Link
+                            to="#"
+                            data-bs-toggle="modal"
+                            data-bs-target="#import_data"
+                          >
+                            <i className="ti ti-file-import me-2" />
+                            Import
+                          </Link>
+                        </div> */}
                         <div className="dropdown me-2">
                           <Link
                             to="#"
@@ -407,13 +514,7 @@ const Products = () => {
                           <div className="dropdown-menu  dropdown-menu-end">
                             <ul>
                               <li>
-                                <Link to="#" className="dropdown-item">
-                                  <i className="ti ti-file-type-pdf text-danger me-1" />
-                                  Export as PDF
-                                </Link>
-                              </li>
-                              <li>
-                                <Link to="#" className="dropdown-item">
+                                <Link to="#" className="dropdown-item" onClick={handleExport}>
                                   <i className="ti ti-file-type-xls text-green me-1" />
                                   Export as Excel{" "}
                                 </Link>
@@ -786,7 +887,7 @@ const Products = () => {
                             <label className="col-form-label">
                               QTY Ordered
                             </label>
-                            <input type="text" name="qty_ordered" value={formData?.qty_ordered} onChange={handleChange} className="form-control" />
+                            <input type="number" name="qty_ordered" value={formData?.qty_ordered} onChange={handleChange} className="form-control" />
                           </div>
                         </div>
                         <div className="col-md-6">
@@ -878,7 +979,7 @@ const Products = () => {
           id="offcanvas_edit"
         >
           <div className="offcanvas-header border-bottom">
-            <h5 className="fw-semibold">Edit Contact</h5>
+            <h5 className="fw-semibold">Edit Product</h5>
             <button
               type="button"
               className="btn-close custom-btn-close border p-1 me-0 d-flex align-items-center justify-content-center rounded-circle"
@@ -989,9 +1090,9 @@ const Products = () => {
                               isMulti={true}
                               name="tax"
                               onChange={(value) => handleChange(value, "select", "tax", true)}
-                              value={_.map(formData?.tax, (value) => ({
-                                    label: taxes?.find((x: any) => x?.value == value )?.label, // Converts 'create' to 'Create'
-                                    value,
+                              value={_.map(formData?.tax, (_value) => ({
+                                    label: taxes?.find((x: any) => x?.value == _value )?.label, // Converts 'create' to 'Create'
+                                    _value,
                                 }))}
                               className="select2" 
                               classNamePrefix="react-select"
@@ -1006,7 +1107,7 @@ const Products = () => {
                             <label className="col-form-label">
                               QTY Ordered
                             </label>
-                            <input type="text" name="qty_ordered" value={formData?.qty_ordered} onChange={handleChange} className="form-control" />
+                            <input type="number" name="qty_ordered" value={formData?.qty_ordered} onChange={handleChange} className="form-control" />
                           </div>
                         </div>
                         <div className="col-md-6">
@@ -1084,6 +1185,40 @@ const Products = () => {
         </div>
         {/* /Edit Contact */}
         
+        {/* Import Data */}
+        {/* <div className="modal fade" id="import_data" role="dialog">
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-body">
+                <div className="text-center">
+                  <div className="avatar avatar-xl bg-primary-light rounded-circle mb-3">
+                    <i className="ti ti-database fs-36 text-primary" />
+                  </div>
+                  <h4 className="mb-2">Import Products</h4>
+                  <p className="mb-0">
+                    Upload the file to start the import.
+                  </p>
+                  <div className="p-3 m-2">
+                    <input type="file" name="file_import" onChange={handleImportFile} className="form-control" />
+                  </div>
+                  <div className="d-flex align-items-center justify-content-center mt-4">
+                    <Link
+                      to="#"
+                      className="btn btn-light me-2"
+                      data-bs-dismiss="modal"
+                    >
+                      Cancel
+                    </Link>
+                    <Link to="#" className="btn btn-success" onClick={handleImportData} data-bs-dismiss="modal">
+                      Import
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div> */}
+
         {/* Delete Contact */}
         <div className="modal fade" id="delete_contact" role="dialog">
           <div className="modal-dialog modal-dialog-centered">

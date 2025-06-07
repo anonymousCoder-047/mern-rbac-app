@@ -236,7 +236,7 @@ const Companies = () => {
             >
               <i className="ti ti-trash text-danger" /> Delete
             </Link>)}
-            <Link className="dropdown-item" to={route.companyDetails}><i className="ti ti-eye text-blue-light"></i> Preview</Link>
+            <Link className="dropdown-item" to={route.companyDetails} state={{ ...record, totalData: companyData?.length }}><i className="ti ti-eye text-blue-light"></i> Preview</Link>
           </div>
         </div>
       ),

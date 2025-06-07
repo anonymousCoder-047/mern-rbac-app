@@ -2,7 +2,7 @@ import { Navigate, Route } from "react-router";
 import { all_routes } from "./all_routes";
 import LeadsDashboard from "../mainMenu/leadsDashboard/index";
 import ContactDetails from "../crm/contacts";
-import LeadsDetails from "../crm/leads/leads";
+import LeadsDetails from "../crm/leads/index";
 import Leads from "../crm/leads/leads";
 import Companies from "../crm/companies/companies";
 import Sources from "../crmSetting/sources";
@@ -27,6 +27,7 @@ import Tax from "../crmSetting/tax";
 import ContactGrid from "../crm/contacts/contactGrid";
 import Pipeline from "../crm/pipeline";
 import Manageusers from "../userManagement/manageusers";
+import CompanyDetails from "../crm/companies";
 
 const route = all_routes;
 
@@ -55,6 +56,12 @@ export const publicRoutes = [
     element: <Companies />,
     route: Route,
     title: 'Companies'
+  },
+  {
+    path: route.companyDetails,
+    element: <CompanyDetails />,
+    route: Route,
+    title: 'Company Details'
   },
   {
     path: route.leadsDetails,
@@ -119,6 +126,12 @@ export const publicRoutes = [
   {
     path: route.contactList,
     element: <ContactList />,
+    route: Route,
+    title: 'Contact List'
+  },
+  {
+    path: route.contactDetails,
+    element: <ContactDetails />,
     route: Route,
     title: 'Contact List'
   },

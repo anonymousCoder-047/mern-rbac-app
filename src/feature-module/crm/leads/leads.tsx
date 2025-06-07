@@ -15,6 +15,7 @@ import _ from "lodash";
 import { DatePicker } from "antd";
 import moment from "moment";
 import useAuth from "../../../hooks/useAuth";
+import { leadsData } from "../../../core/data/json/leads";
 
 const Leads = () => {
   const { values } = useAuth();
@@ -95,23 +96,11 @@ const Leads = () => {
   
       console.log("data -- ", response)
       if(response?.data) {
-        const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.first_name + " " + x?.first_name, value: x?._id })))]  
+        const _data: any = [...new Set(response?.data?.map((x) => ({ label: `${x?.first_name} ${x?.last_name} (${x?.email})`, value: x?._id })))]  
         setContactData(_data);
-      }
-    } catch(error) {
-      console.log("Error while getting sources -- E:", error?.message);
-    }
-  }
-
-  const getTeams = async () => {
-    try {
-      const { Profile } = endpoints;
-      const response = await PrivateServer.getData(Profile?.view)
-  
-      console.log("data -- ", response)
-      if(response?.data) {
-        const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.email, value: x?._id })))]  
-        setTeamData(_data);
+        
+        const _teamsData: any = [...new Set(response?.data?.map((x) => ({ label: `${x?.team_leader} (${x?.email})`, value: x?._id })))]  
+        setTeamData(_teamsData);
       }
     } catch(error) {
       console.log("Error while getting sources -- E:", error?.message);
@@ -155,7 +144,7 @@ const Leads = () => {
   
       console.log("data -- ", response)
       if(response?.data) {
-        const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.product_name, value: x?._id })))]  
+        const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.description, value: x?._id })))]  
         setProductData(_data);
       }
     } catch(error) {
@@ -169,7 +158,6 @@ const Leads = () => {
 
     getDeals();
     getContacts();
-    getTeams();
     getStages();
     getComapnies();
     getProducts();
@@ -261,7 +249,7 @@ const Leads = () => {
 
     {
       title: "Name",
-      dataIndex: "opportunity_name",
+      dataIndex: "description",
       render: (text: any, record: any) => (
         <h2 className="d-flex align-items-center">
           {/* <Link to={route.companyDetails}
@@ -273,14 +261,37 @@ const Leads = () => {
               alt="User Image"
             />
           </Link> */}
-          <Link to={route.companyDetails}
+          <Link to={route.leads}
             className="d-flex flex-column fw-medium"
           >
-            {record.opportunity_name}
+            {record.description}
           </Link>
         </h2>
       ),
-      sorter: (a: any, b: any) => a.opportunity_name.length - b.opportunity_name.length,
+      sorter: (a: any, b: any) => a.description.length - b.description.length,
+    },
+    {
+      title: "Comments",
+      dataIndex: "comments",
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          {/* <Link to={route.companyDetails}
+            className="avatar avatar-sm border rounded p-1 me-2"
+          >
+            <img
+              className="w-auto h-auto"
+              src={record.image}
+              alt="User Image"
+            />
+          </Link> */}
+          <Link to={route.leads}
+            className="d-flex flex-column fw-medium"
+          >
+            {record.comments}
+          </Link>
+        </h2>
+      ),
+      sorter: (a: any, b: any) => a.comments.length - b.comments.length,
     },
     {
       title: "Start Date",
@@ -290,11 +301,39 @@ const Leads = () => {
     {
       title: "Updated Date",
       dataIndex: "updated_date",
-      sorter: (a: any, b: any) => a.updated_date.length - b.updated_date.length,
+      sorter: (a: any, b: any) => a?.updated_date?.length - b?.updated_date?.length,
     },
     {
-      title: "Amount",
+      title: "QTY",
+      dataIndex: "qty",
+      sorter: (a: any, b: any) => a.qty.length - b.qty.length,
+    },
+    {
+      title: "Amount (AED)",
       dataIndex: "amount",
+      sorter: (a: any, b: any) => a.amount.length - b.amount.length,
+    },
+    {
+      title: "Total (AED)",
+      dataIndex: "amount",
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          {/* <Link to={route.companyDetails}
+            className="avatar avatar-sm border rounded p-1 me-2"
+          >
+            <img
+              className="w-auto h-auto"
+              src={record.image}
+              alt="User Image"
+            />
+          </Link> */}
+          <Link to={route.leads}
+            className="d-flex flex-column fw-medium"
+          >
+            {(record.qty * record?.amount)}
+          </Link>
+        </h2>
+      ),
       sorter: (a: any, b: any) => a.amount.length - b.amount.length,
     },
     {
@@ -333,7 +372,7 @@ const Leads = () => {
             >
               <i className="ti ti-trash text-danger" /> Delete
             </Link>)}
-            <Link className="dropdown-item" to={route.companyDetails}><i className="ti ti-eye text-blue-light"></i> Preview</Link>
+            <Link className="dropdown-item" to={route.leadsDetails} state={{ ...record, totalData: dealsData?.length }}><i className="ti ti-eye text-blue-light"></i> Preview</Link>
           </div>
         </div>
       ),
@@ -765,8 +804,10 @@ const Leads = () => {
                            */}
                           <DatePicker
                             className="form-control datetimepicker deals-details"
-                            value={formData?.start_date ? moment(formData.start_date) : moment()}
-                            onChange={(date) => setFormData({ ...formData, start_date: date?.toDate() })}
+                            // value={moment(formData?.start_date) ?? moment(new Date())?.format("YYYY-MM-DD")}
+                            onChange={(date) => {
+                              setFormData({ ...formData, start_date: moment(date)?.format("YYYY-MM-DD") })
+                            }}
                             format="DD-MM-YYYY"
                           />
                         </div>
@@ -780,8 +821,8 @@ const Leads = () => {
                             
                           <DatePicker
                             className="form-control datetimepicker deals-details"
-                            value={formData?.updated_date ? moment(formData.updated_date) : moment()}
-                            onChange={(date) => setFormData({ ...formData, updated_date: date?.toDate() })}
+                            // value={formData?.updated_date ? moment(formData.updated_date) : moment()}
+                            onChange={(date) => setFormData({ ...formData, updated_date: moment(date)?.format("YYYY-MM-DD") })}
                             format="DD-MM-YYYY"
                           />
                         </div>
@@ -929,8 +970,8 @@ const Leads = () => {
                           {/* <input type="text" name="code" value={formData?.code} onChange={handleChange} className="form-control" /> */}
                           <DatePicker
                             className="form-control datetimepicker deals-details"
-                            value={formData?.closing_date ? moment(formData.closing_date) : moment()}
-                            onChange={(date) => setFormData({ ...formData, closing_date: date?.toDate() })}
+                            // value={formData?.closing_date ? moment(formData.closing_date) : moment()}
+                            onChange={(date) => setFormData({ ...formData, closing_date: moment(date)?.format("YYYY-MM-DD") })}
                             format="DD-MM-YYYY"
                           />
                         </div>
@@ -941,8 +982,8 @@ const Leads = () => {
                           {/* <input type="text" name="code" value={formData?.code} onChange={handleChange} className="form-control" /> */}
                           <DatePicker
                             className="form-control datetimepicker deals-details"
-                            value={formData?.last_contact_date ? moment(formData.last_contact_date) : moment()}
-                            onChange={(date) => setFormData({ ...formData, last_contact_date: date?.toDate() })}
+                            // value={formData?.last_contact_date ? moment(formData.last_contact_date) : moment()}
+                            onChange={(date) => setFormData({ ...formData, last_contact_date: moment(date)?.format("YYYY-MM-DD") })}
                             format="DD-MM-YYYY"
                           />
                         </div>
@@ -1045,7 +1086,7 @@ const Leads = () => {
                           <DatePicker
                             className="form-control datetimepicker deals-details"
                             value={formData?.start_date ? moment(formData.start_date) : moment()}
-                            onChange={(date) => setFormData({ ...formData, start_date: date?.toDate() })}
+                            onChange={(date) => setFormData({ ...formData, start_date: moment(date)?.format("YYYY-MM-DD") })}
                             format="DD-MM-YYYY"
                           />
                         </div>
