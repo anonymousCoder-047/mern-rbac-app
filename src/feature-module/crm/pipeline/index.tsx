@@ -17,11 +17,14 @@ import _ from "lodash";
 import moment from "moment";
 import { DatePicker } from "antd";
 import useAuth from "../../../hooks/useAuth";
+import * as XLSX from "xlsx";
 
 const route = all_routes;
 const Pipeline = () => {
   const { values } = useAuth();
   const [pipelineData, setPipelineData] = useState([]);
+  const [searchData, setFilteredSearchData] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [stageData, setStageData] = useState({
     name: "",
     percentage: ""
@@ -54,7 +57,10 @@ const Pipeline = () => {
       const response = await PrivateServer.getData(Pipeline?.view)
   
       console.log("data -- ", response)
-      if(response?.data) setPipelineData(response?.data);
+      if(response?.data) {
+        setPipelineData(response?.data);
+        setFilteredSearchData(response?.data);
+      }
     } catch(error) {
       console.log("Error while getting pipeline -- E:", error?.message);
     }
@@ -222,6 +228,48 @@ const Pipeline = () => {
     setFormData({ ...formData, stage_name: _stages, stage_percentage: _percentages });
   }
 
+  const cleanData = (data, filterKeys) => {
+    return data.map(obj => {
+        // Remove filterKeys from object
+        const filteredObj = _.omit(obj, filterKeys);
+
+        // Convert keys to start case
+        return _.mapKeys(filteredObj, (value, key) => _.startCase(_.toLower(key.replace(/_/g, " "))));
+    });
+  };
+
+  const handleExport = () => {
+    try {
+      // Convert data to worksheet format
+      const worksheet = XLSX.utils.json_to_sheet(cleanData(pipelineData, ["_id", "__v"]));
+
+      // Create a new workbook and append the worksheet
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Products");
+
+      // Write the file and trigger download
+      XLSX.writeFile(workbook, 'etisalat_leads_data.xlsx');
+
+    } catch(err) {
+      console.log("Error == ", err);
+    }
+  }
+
+  const handleSearch = (e) => {
+    const { value: _searchTerm } = e?.target;
+    setSearchTerm(_searchTerm);
+    const _searchData = [...searchData];
+
+    if(searchTerm != "") {
+      const searchResults = _.filter(_searchData, (obj) =>
+        _.some(obj, (value) =>
+          _.isString(value) && _.includes(value.toLowerCase(), searchTerm?.toLowerCase())
+        )
+      );
+      setFilteredSearchData(searchResults)
+    } else setFilteredSearchData(searchData);
+  }
+
   useEffect(() => {
     getPipelines()
   }, [])
@@ -238,7 +286,7 @@ const Pipeline = () => {
                 <div className="row align-items-center">
                   <div className="col-4">
                     <h4 className="page-title">
-                      Pipeline<span className="count-title">{pipelineData?.length}</span>
+                      Pipeline<span className="count-title">{searchTerm != "" ? searchData?.length : pipelineData?.length}</span>
                     </h4>
                   </div>
                   <div className="col-8 text-end">
@@ -262,6 +310,7 @@ const Pipeline = () => {
           type="text"
           className="form-control"
           placeholder="Search Pipeline"
+          onChange={handleSearch}
         />
       </div>
     </div>
@@ -325,13 +374,7 @@ const Pipeline = () => {
         <div className="dropdown-menu  dropdown-menu-end">
           <ul>
             <li>
-              <Link to="#" className="dropdown-item">
-                <i className="ti ti-file-type-pdf text-danger me-1" />
-                Export as PDF
-              </Link>
-            </li>
-            <li>
-              <Link to="#" className="dropdown-item">
+              <Link to="#" className="dropdown-item" onClick={handleExport}>
                 <i className="ti ti-file-type-xls text-green me-1" />
                 Export as Excel{" "}
               </Link>
@@ -451,7 +494,7 @@ const Pipeline = () => {
 
                   {/* Pipeline List */}
                   <div className="table-responsive custom-table">
-                    <Table dataSource={pipelineData} columns={columns} />
+                    <Table dataSource={searchTerm != "" ? searchData : pipelineData} columns={columns} />
                   </div>
                   <div className="row align-items-center">
                     <div className="col-md-6">

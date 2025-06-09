@@ -13,6 +13,8 @@ const route = all_routes;
 const Sources = () => {
   const { values } = useAuth();
   const [sourceData, setSourceData] = useState([]);
+  const [searchData, setFilteredSearchData] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [sourceId, setSourceId] = useState("");
   const [formData, setFormData] = useState({
     source_name: "",
@@ -26,7 +28,10 @@ const Sources = () => {
       const response = await PrivateServer.getData(Sources?.view)
   
       console.log("data -- ", response)
-      if(response?.data) setSourceData(response?.data);
+      if(response?.data) {
+        setSourceData(response?.data);
+        setFilteredSearchData(response?.data);
+      }
     } catch(error) {
       console.log("Error while getting contacts -- E:", error?.message);
     }
@@ -144,6 +149,21 @@ const Sources = () => {
     getSources();
   }, [])
 
+  const handleSearch = (e) => {
+    const { value: _searchTerm } = e?.target;
+    setSearchTerm(_searchTerm);
+    const _searchData = [...searchData];
+
+    if(searchTerm != "") {
+      const searchResults = _.filter(_searchData, (obj) =>
+        _.some(obj, (value) =>
+          _.isString(value) && _.includes(value.toLowerCase(), searchTerm?.toLowerCase())
+        )
+      );
+      setFilteredSearchData(searchResults)
+    } else setFilteredSearchData(searchData);
+  }
+
   return (
     <>
     {/* Page Wrapper */}
@@ -156,7 +176,7 @@ const Sources = () => {
               <div className="row align-items-center">
                 <div className="col-8">
                   <h4 className="page-title">
-                    Sources<span className="count-title">{sourceData?.length}</span>
+                    Sources<span className="count-title">{searchTerm != "" ? searchData?.length : sourceData?.length}</span>
                   </h4>
                 </div>
                 <div className="col-4 text-end">
@@ -180,6 +200,7 @@ const Sources = () => {
                         type="text"
                         className="form-control"
                         placeholder="Search Source"
+                        onChange={handleSearch}
                       />
                     </div>
                   </div>
@@ -202,7 +223,7 @@ const Sources = () => {
               <div className="card-body">
                 {/* Contact List */}
                 <div className="table-responsive custom-table">
-                <Table columns={columns} dataSource={sourceData} />
+                <Table columns={columns} dataSource={searchTerm != "" ? searchData : sourceData} />
                 </div>
                 <div className="row align-items-center">
                   <div className="col-md-6">

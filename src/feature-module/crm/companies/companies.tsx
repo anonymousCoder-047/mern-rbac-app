@@ -12,12 +12,15 @@ import PrivateServer from "../../../helper/PrivateServer";
 import { endpoints } from "../../../helper/endpoints";
 import useAuth from "../../../hooks/useAuth";
 import _ from "lodash";
+import * as XLSX from "xlsx";
 
 const Companies = () => {
   const { values } = useAuth();
   const [openModal, setOpenModal] = useState(false);
   const [openModal2, setOpenModal2] = useState(false);
   const [companyData, setCompanyData] = useState([]);
+  const [searchData, setFilteredSearchData] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [companyId, setCompanyId] = useState("");
   const [formData, setFormData] = useState({
     company_name: "",
@@ -72,7 +75,10 @@ const Companies = () => {
       const response = await PrivateServer.getData(Companies?.view)
   
       console.log("data -- ", response)
-      if(response?.data) setCompanyData(response?.data);
+      if(response?.data) {
+        setCompanyData(response?.data);
+        setFilteredSearchData(response?.data);
+      }
     } catch(error) {
       console.log("Error while getting companies -- E:", error?.message);
     }
@@ -150,6 +156,48 @@ const Companies = () => {
     } catch(err) {
       console.log("Error while saving contact -- E: ", err?.message);
     }
+  }
+  
+  const cleanData = (data, filterKeys) => {
+    return data.map(obj => {
+        // Remove filterKeys from object
+        const filteredObj = _.omit(obj, filterKeys);
+
+        // Convert keys to start case
+        return _.mapKeys(filteredObj, (value, key) => _.startCase(_.toLower(key.replace(/_/g, " "))));
+    });
+  };
+
+  const handleExport = () => {
+    try {
+      // Convert data to worksheet format
+      const worksheet = XLSX.utils.json_to_sheet(cleanData(companyData, ["_id", "__v"]));
+
+      // Create a new workbook and append the worksheet
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Products");
+
+      // Write the file and trigger download
+      XLSX.writeFile(workbook, 'etisalat_companies_data.xlsx');
+
+    } catch(err) {
+      console.log("Error == ", err);
+    }
+  }
+  
+  const handleSearch = (e) => {
+    const { value: _searchTerm } = e?.target;
+    setSearchTerm(_searchTerm);
+    const _searchData = [...searchData];
+
+    if(searchTerm != "") {
+      const searchResults = _.filter(_searchData, (obj) =>
+        _.some(obj, (value) =>
+          _.isString(value) && _.includes(value.toLowerCase(), searchTerm?.toLowerCase())
+        )
+      );
+      setFilteredSearchData(searchResults)
+    } else setFilteredSearchData(searchData);
   }
 
   const columns = [
@@ -286,7 +334,7 @@ const Companies = () => {
                 <div className="row align-items-center">
                   <div className="col-8">
                     <h4 className="page-title">
-                      Companies<span className="count-title">{companyData?.length}</span>
+                      Companies<span className="count-title">{searchTerm != "" ? searchData?.length : companyData?.length}</span>
                     </h4>
                   </div>
                   <div className="col-4 text-end">
@@ -310,6 +358,7 @@ const Companies = () => {
                           type="text"
                           className="form-control"
                           placeholder="Search Companies"
+                          onChange={handleSearch}
                         />
                       </div>
                     </div>
@@ -327,13 +376,7 @@ const Companies = () => {
                           <div className="dropdown-menu  dropdown-menu-end">
                             <ul>
                               <li>
-                                <Link to="#" className="dropdown-item">
-                                  <i className="ti ti-file-type-pdf text-danger me-1" />
-                                  Export as PDF
-                                </Link>
-                              </li>
-                              <li>
-                                <Link to="#" className="dropdown-item">
+                                <Link to="#" className="dropdown-item" onClick={handleExport}>
                                   <i className="ti ti-file-type-xls text-green me-1" />
                                   Export as Excel{" "}
                                 </Link>
@@ -553,7 +596,7 @@ const Companies = () => {
                   {/* /Filter */}
                   {/* Contact List */}
                   <div className="table-responsive custom-table">
-                    <Table dataSource={companyData} columns={columns} />
+                    <Table dataSource={searchTerm != "" ? searchData : companyData} columns={columns} />
                   </div>
                   <div className="row align-items-center">
                     <div className="col-md-6">

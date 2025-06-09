@@ -31,6 +31,8 @@ const Products = () => {
   const [taxes, setTaxes] = useState([]);
   const [openModal2, setOpenModal2] = useState(false);
   const [productsData, setProductsData] = useState([]);
+  const [searchData, setFilteredSearchData] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [productId, setProductId] = useState("");
   const [fileImport, setFileImport] = useState({
     file_key: "",
@@ -103,6 +105,21 @@ const Products = () => {
       console.log("Error == ", err);
     }
   }
+  
+  const handleSearch = (e) => {
+    const { value: _searchTerm } = e?.target;
+    setSearchTerm(_searchTerm);
+    const _searchData = [...searchData];
+
+    if(searchTerm != "") {
+      const searchResults = _.filter(_searchData, (obj) =>
+        _.some(obj, (value) =>
+          _.isString(value) && _.includes(value.toLowerCase(), searchTerm?.toLowerCase())
+        )
+      );
+      setFilteredSearchData(searchResults)
+    } else setFilteredSearchData(searchData);
+  }
 
   // const handleImportFile = async (e) => {
   //   console.log("file data -- ", e.target.files[0]);
@@ -130,7 +147,10 @@ const Products = () => {
       const { Products } = endpoints;
       const response = await PrivateServer.getData(Products?.view)
   
-      if(response?.data) setProductsData(response?.data);
+      if(response?.data) {
+        setProductsData(response?.data);
+        setFilteredSearchData(response?.data);
+      }
     } catch(error) {
       console.log("Error while getting products -- E:", error?.message);
     }
@@ -463,7 +483,7 @@ const Products = () => {
                 <div className="row align-items-center">
                   <div className="col-8">
                     <h4 className="page-title">
-                      Products<span className="count-title">{productsData?.length}</span>
+                      Products<span className="count-title">{searchTerm != "" ? searchData?.length : productsData?.length}</span>
                     </h4>
                   </div>
                   <div className="col-4 text-end">
@@ -733,7 +753,7 @@ const Products = () => {
                   {/* /Filter */}
                   {/* Contact List */}
                   <div className="table-responsive custom-table">
-                    <Table dataSource={productsData} columns={columns} />
+                    <Table dataSource={searchTerm != "" ? searchData : productsData} columns={columns} />
                   </div>
                   <div className="row align-items-center">
                     <div className="col-md-6">

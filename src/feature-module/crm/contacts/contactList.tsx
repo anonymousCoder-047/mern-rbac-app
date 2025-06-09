@@ -22,6 +22,7 @@ import { endpoints } from "../../../helper/endpoints";
 import _ from "lodash";
 import moment from "moment";
 import useAuth from "../../../hooks/useAuth";
+import * as XLSX from "xlsx";
 
 const ContactList = () => {
   const route = all_routes;
@@ -30,7 +31,9 @@ const ContactList = () => {
   const [companies, setCompanies] = useState([]);
   const [openModal2, setOpenModal2] = useState(false);
   const [contactData, setContactData] = useState([]);
+  const [filteredContactData, setFilteredContactData] = useState([]);
   const [contactId, setContactId] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
@@ -91,7 +94,10 @@ const ContactList = () => {
       const response = await PrivateServer.getData(Contact?.view)
   
       console.log("data -- ", response)
-      if(response?.data) setContactData(response?.data);
+      if(response?.data) {
+        setContactData(response?.data);
+        setFilteredContactData(response?.data);
+      }
     } catch(error) {
       console.log("Error while getting contacts -- E:", error?.message);
     }
@@ -207,6 +213,48 @@ const ContactList = () => {
     }
   }
 
+  const cleanData = (data, filterKeys) => {
+    return data.map(obj => {
+        // Remove filterKeys from object
+        const filteredObj = _.omit(obj, filterKeys);
+
+        // Convert keys to start case
+        return _.mapKeys(filteredObj, (value, key) => _.startCase(_.toLower(key.replace(/_/g, " "))));
+    });
+  };
+
+  const handleExport = () => {
+    try {
+      // Convert data to worksheet format
+      const worksheet = XLSX.utils.json_to_sheet(cleanData(contactData, ["_id", "__v"]));
+
+      // Create a new workbook and append the worksheet
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Products");
+
+      // Write the file and trigger download
+      XLSX.writeFile(workbook, 'etisalat_contacts_data.xlsx');
+
+    } catch(err) {
+      console.log("Error == ", err);
+    }
+  }
+  
+  const handleSearch = (e) => {
+    const { value: _searchTerm } = e?.target;
+    setSearchTerm(_searchTerm);
+    const _contactsData = [...contactData];
+
+    if(searchTerm != "") {
+      const searchResults = _.filter(_contactsData, (obj) =>
+        _.some(obj, (value) =>
+          _.isString(value) && _.includes(value.toLowerCase(), searchTerm?.toLowerCase())
+        )
+      );
+      setFilteredContactData(searchResults)
+    } else setFilteredContactData(contactData);
+  }
+
   const columns = [
     {
       title: "",
@@ -318,6 +366,7 @@ const ContactList = () => {
       ),
     },
   ];
+
   return (
     <div>
       {/* Page Wrapper */}
@@ -330,7 +379,7 @@ const ContactList = () => {
                 <div className="row align-items-center">
                   <div className="col-8">
                     <h4 className="page-title">
-                      Contacts<span className="count-title">{contactData?.length}</span>
+                      Contacts<span className="count-title">{searchTerm != "" ? filteredContactData?.length : contactData?.length}</span>
                     </h4>
                   </div>
                   <div className="col-4 text-end">
@@ -354,6 +403,7 @@ const ContactList = () => {
                           type="text"
                           className="form-control"
                           placeholder="Search Contacts"
+                          onChange={handleSearch}
                         />
                       </div>
                     </div>
@@ -371,13 +421,7 @@ const ContactList = () => {
                           <div className="dropdown-menu  dropdown-menu-end">
                             <ul>
                               <li>
-                                <Link to="#" className="dropdown-item">
-                                  <i className="ti ti-file-type-pdf text-danger me-1" />
-                                  Export as PDF
-                                </Link>
-                              </li>
-                              <li>
-                                <Link to="#" className="dropdown-item">
+                                <Link to="#" className="dropdown-item" onClick={handleExport}>
                                   <i className="ti ti-file-type-xls text-green me-1" />
                                   Export as Excel{" "}
                                 </Link>
@@ -596,7 +640,7 @@ const ContactList = () => {
                   {/* /Filter */}
                   {/* Contact List */}
                   <div className="table-responsive custom-table">
-                    <Table dataSource={contactData} columns={columns} />
+                    <Table dataSource={searchTerm != "" ? filteredContactData : contactData} columns={columns} />
                   </div>
                   <div className="row align-items-center">
                     <div className="col-md-6">

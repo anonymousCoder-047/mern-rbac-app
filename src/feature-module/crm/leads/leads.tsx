@@ -15,13 +15,15 @@ import _ from "lodash";
 import { DatePicker } from "antd";
 import moment from "moment";
 import useAuth from "../../../hooks/useAuth";
-import { leadsData } from "../../../core/data/json/leads";
+import * as XLSX from "xlsx";
 
 const Leads = () => {
   const { values } = useAuth();
   const [openModal, setOpenModal] = useState(false);
   const [openModal2, setOpenModal2] = useState(false);
   const [dealsData, setDealsData] = useState([]);
+  const [searchData, setFilteredSearchData] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [dealsId, setDealsId] = useState("");
   const [formData, setFormData] = useState({
     opportunity_name: "",
@@ -34,9 +36,11 @@ const Leads = () => {
     closing_date: new Date(),
     stage: "",
     amount: "",
+    qty: "",
     team_leader: "",
     last_contact_date: new Date(),
     order_number: "",
+    description: "",
     comments: "",
     dealsId: "",
   });
@@ -183,9 +187,11 @@ const Leads = () => {
       closing_date: new Date(),
       stage: "",
       amount: "",
+      qty: "",
       team_leader: "",
       last_contact_date: new Date(),
       order_number: "",
+      description: "",
       comments: "",
       dealsId: "",
     });
@@ -233,6 +239,48 @@ const Leads = () => {
     }
   }
 
+  const cleanData = (data, filterKeys) => {
+    return data.map(obj => {
+        // Remove filterKeys from object
+        const filteredObj = _.omit(obj, filterKeys);
+
+        // Convert keys to start case
+        return _.mapKeys(filteredObj, (value, key) => _.startCase(_.toLower(key.replace(/_/g, " "))));
+    });
+  };
+
+  const handleExport = () => {
+    try {
+      // Convert data to worksheet format
+      const worksheet = XLSX.utils.json_to_sheet(cleanData(dealsData, ["_id", "__v"]));
+
+      // Create a new workbook and append the worksheet
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Products");
+
+      // Write the file and trigger download
+      XLSX.writeFile(workbook, 'etisalat_pipeline_data.xlsx');
+
+    } catch(err) {
+      console.log("Error == ", err);
+    }
+  }
+
+  const handleSearch = (e) => {
+    const { value: _searchTerm } = e?.target;
+    setSearchTerm(_searchTerm);
+    const _searchData = [...searchData];
+
+    if(searchTerm != "") {
+      const searchResults = _.filter(_searchData, (obj) =>
+        _.some(obj, (value) =>
+          _.isString(value) && _.includes(value.toLowerCase(), searchTerm?.toLowerCase())
+        )
+      );
+      setFilteredSearchData(searchResults)
+    } else setFilteredSearchData(searchData);
+  }
+
   const columns = [
     {
       title: "",
@@ -252,15 +300,6 @@ const Leads = () => {
       dataIndex: "description",
       render: (text: any, record: any) => (
         <h2 className="d-flex align-items-center">
-          {/* <Link to={route.companyDetails}
-            className="avatar avatar-sm border rounded p-1 me-2"
-          >
-            <img
-              className="w-auto h-auto"
-              src={record.image}
-              alt="User Image"
-            />
-          </Link> */}
           <Link to={route.leads}
             className="d-flex flex-column fw-medium"
           >
@@ -269,29 +308,6 @@ const Leads = () => {
         </h2>
       ),
       sorter: (a: any, b: any) => a.description.length - b.description.length,
-    },
-    {
-      title: "Comments",
-      dataIndex: "comments",
-      render: (text: any, record: any) => (
-        <h2 className="d-flex align-items-center">
-          {/* <Link to={route.companyDetails}
-            className="avatar avatar-sm border rounded p-1 me-2"
-          >
-            <img
-              className="w-auto h-auto"
-              src={record.image}
-              alt="User Image"
-            />
-          </Link> */}
-          <Link to={route.leads}
-            className="d-flex flex-column fw-medium"
-          >
-            {record.comments}
-          </Link>
-        </h2>
-      ),
-      sorter: (a: any, b: any) => a.comments.length - b.comments.length,
     },
     {
       title: "Start Date",
@@ -318,15 +334,6 @@ const Leads = () => {
       dataIndex: "amount",
       render: (text: any, record: any) => (
         <h2 className="d-flex align-items-center">
-          {/* <Link to={route.companyDetails}
-            className="avatar avatar-sm border rounded p-1 me-2"
-          >
-            <img
-              className="w-auto h-auto"
-              src={record.image}
-              alt="User Image"
-            />
-          </Link> */}
           <Link to={route.leads}
             className="d-flex flex-column fw-medium"
           >
@@ -340,6 +347,20 @@ const Leads = () => {
       title: "SR Type",
       dataIndex: "sr_type",
       sorter: (a: any, b: any) => a.sr_type.length - b.sr_type.length,
+    },
+    {
+      title: "Comments",
+      dataIndex: "comments",
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          <Link to={route.leads}
+            className="d-flex flex-column fw-medium"
+          >
+            {record.comments}
+          </Link>
+        </h2>
+      ),
+      sorter: (a: any, b: any) => a.comments.length - b.comments.length,
     },
     {
       title: "Action",
@@ -422,7 +443,7 @@ const Leads = () => {
                 <div className="row align-items-center">
                   <div className="col-8">
                     <h4 className="page-title">
-                      Leads<span className="count-title">{dealsData?.length}</span>
+                      Leads<span className="count-title">{searchTerm != "" ? searchData?.length : dealsData?.length}</span>
                     </h4>
                   </div>
                   <div className="col-4 text-end">
@@ -445,7 +466,8 @@ const Leads = () => {
                         <input
                           type="text"
                           className="form-control"
-                          placeholder="Search Companies"
+                          placeholder="Search Leads"
+                          onChange={handleSearch}
                         />
                       </div>
                     </div>
@@ -463,13 +485,7 @@ const Leads = () => {
                           <div className="dropdown-menu  dropdown-menu-end">
                             <ul>
                               <li>
-                                <Link to="#" className="dropdown-item">
-                                  <i className="ti ti-file-type-pdf text-danger me-1" />
-                                  Export as PDF
-                                </Link>
-                              </li>
-                              <li>
-                                <Link to="#" className="dropdown-item">
+                                <Link to="#" className="dropdown-item" onClick={handleExport}>
                                   <i className="ti ti-file-type-xls text-green me-1" />
                                   Export as Excel{" "}
                                 </Link>
@@ -689,7 +705,7 @@ const Leads = () => {
                   {/* /Filter */}
                   {/* Contact List */}
                   <div className="table-responsive custom-table">
-                    <Table dataSource={dealsData} columns={columns} />
+                    <Table dataSource={searchTerm != "" ? searchData : dealsData} columns={columns} />
                   </div>
                   <div className="row align-items-center">
                     <div className="col-md-6">
@@ -787,13 +803,13 @@ const Leads = () => {
                           <input name="order_number" value={formData?.order_number} onChange={handleChange} type="text" className="form-control" />
                         </div>
                       </div>
-                      <div className="col-md-12">
+                      <div className="col-md-6">
                         <div className="mb-3">
-                          <label className="col-form-label">Lead Name</label>
+                          <label className="col-form-label">Opportunity Name</label>
                           <input name="opportunity_name" value={formData?.opportunity_name} onChange={handleChange} type="text" className="form-control" />
                         </div>
                       </div>
-                      <div className="col-md-12">
+                      <div className="col-md-6">
                         <div className="mb-3">
                           <div className="d-flex justify-content-between align-items-center">
                             <label className="col-form-label">
@@ -862,10 +878,23 @@ const Leads = () => {
                       <div className="col-md-12">
                         <div className="mb-0">
                           <label className="col-form-label">
+                            Description <span className="text-danger">*</span>
+                          </label>
+                          <textarea
+                            name="description" value={formData?.description} onChange={handleChange}
+                            className="form-control"
+                            rows={5}
+                            defaultValue={""}
+                          />
+                        </div>
+                      </div>
+                      <div className="col-md-12">
+                        <div className="mb-0">
+                          <label className="col-form-label">
                             Comments <span className="text-danger">*</span>
                           </label>
                           <textarea
-                            name="description" value={formData?.comments} onChange={handleChange}
+                            name="comments" value={formData?.comments} onChange={handleChange}
                             className="form-control"
                             rows={5}
                             defaultValue={""}
@@ -908,7 +937,12 @@ const Leads = () => {
                           <input type="text" name="sr_type" value={formData?.sr_type} onChange={handleChange} className="form-control" />
                         </div>
                       </div>
-
+                      <div className="col-md-6">
+                        <div className="mb-3">
+                          <label className="col-form-label">QTY</label>
+                          <input name="qty" value={formData?.qty} onChange={handleChange} type="number" className="form-control" />
+                        </div>
+                      </div>
                       <div className="col-md-6">
                         <div className="mb-3 mb-md-0">
                           <label className="col-form-label">Product Category</label>
@@ -1068,13 +1102,13 @@ const Leads = () => {
                           <input name="order_number" value={formData?.order_number} onChange={handleChange} type="text" className="form-control" />
                         </div>
                       </div>
-                      <div className="col-md-12">
+                      <div className="col-md-6">
                         <div className="mb-3">
                           <label className="col-form-label">Lead Name</label>
                           <input name="opportunity_name" value={formData?.opportunity_name} onChange={handleChange} type="text" className="form-control" />
                         </div>
                       </div>
-                      <div className="col-md-12">
+                      <div className="col-md-6">
                         <div className="mb-3">
                           <div className="d-flex justify-content-between align-items-center">
                             <label className="col-form-label">
@@ -1113,7 +1147,7 @@ const Leads = () => {
                           <Select
                             name="source"
                             onChange={(value) => handleChange(value, "select", "contact_name")}
-                            value={{ label: contactData?.find((x: any) => x?.value == formData?.contact_name)?.label, value: formData?.contact_name }}
+                            value={{ label: contactData?.find((x: any) => x?.value == formData?.contact_name?._id)?.label, value: formData?.contact_name }}
                             className="select2" 
                             classNamePrefix="react-select"
                             options={contactData}
@@ -1130,7 +1164,7 @@ const Leads = () => {
                           <Select
                             name="source"
                             onChange={(value) => handleChange(value, "select", "company_name")}
-                            value={{ label: companyData?.find((x: any) => x?.value == formData?.company_name)?.label, value: formData?.company_name }}
+                            value={{ label: companyData?.find((x: any) => x?.value == formData?.company_name?._id)?.label, value: formData?.company_name }}
                             className="select2" 
                             classNamePrefix="react-select"
                             options={companyData}
@@ -1141,10 +1175,23 @@ const Leads = () => {
                       <div className="col-md-12">
                         <div className="mb-0">
                           <label className="col-form-label">
+                            Description <span className="text-danger">*</span>
+                          </label>
+                          <textarea
+                            name="description" value={formData?.description} onChange={handleChange}
+                            className="form-control"
+                            rows={5}
+                            defaultValue={""}
+                          />
+                        </div>
+                      </div>
+                      <div className="col-md-12">
+                        <div className="mb-0">
+                          <label className="col-form-label">
                             Comments <span className="text-danger">*</span>
                           </label>
                           <textarea
-                            name="description" value={formData?.comments} onChange={handleChange}
+                            name="comments" value={formData?.comments} onChange={handleChange}
                             className="form-control"
                             rows={5}
                             defaultValue={""}
@@ -1187,7 +1234,12 @@ const Leads = () => {
                           <input type="text" name="sr_type" value={formData?.sr_type} onChange={handleChange} className="form-control" />
                         </div>
                       </div>
-
+                      <div className="col-md-6">
+                        <div className="mb-3">
+                          <label className="col-form-label">QTY</label>
+                          <input name="qty" value={formData?.qty} onChange={handleChange} type="number" className="form-control" />
+                        </div>
+                      </div>
                       <div className="col-md-6">
                         <div className="mb-3 mb-md-0">
                           <label className="col-form-label">Product Category</label>
@@ -1195,7 +1247,7 @@ const Leads = () => {
                           <Select
                             name="source"
                             onChange={(value) => handleChange(value, "select", "product_category")}
-                            value={{ label: productData?.find((x: any) => x?.value == formData?.product_category)?.label, value: formData?.product_category }}
+                            value={{ label: productData?.find((x: any) => x?.value == formData?.product_category?._id)?.label, value: formData?.product_category }}
                             className="select2" 
                             classNamePrefix="react-select"
                             options={productData}
@@ -1212,7 +1264,7 @@ const Leads = () => {
                           <Select
                             name="source"
                             onChange={(value) => handleChange(value, "select", "stage")}
-                            value={{ label: stageData?.find((x: any) => x?.value == formData?.stage)?.label, value: formData?.stage }}
+                            value={{ label: stageData?.find((x: any) => x?.value == formData?.stage?._id)?.label, value: formData?.stage }}
                             className="select2" 
                             classNamePrefix="react-select"
                             options={stageData}
@@ -1235,7 +1287,7 @@ const Leads = () => {
                           <Select
                             name="source"
                             onChange={(value) => handleChange(value, "select", "team_leader")}
-                            value={{ label: teamData?.find((x: any) => x?.value == formData?.team_leader)?.label, value: formData?.team_leader }}
+                            value={{ label: teamData?.find((x: any) => x?.value == formData?.team_leader?._id)?.label, value: formData?.team_leader }}
                             className="select2" 
                             classNamePrefix="react-select"
                             options={teamData}
