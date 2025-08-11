@@ -5,6 +5,7 @@ import ContactDetails from "../crm/contacts";
 import LeadsDetails from "../crm/leads/index";
 import Leads from "../crm/leads/leads";
 import Companies from "../crm/companies/companies";
+import BillSummary from "../crm/bill/billSummary";
 import Sources from "../crmSetting/sources";
 import Login from "../auth/login";
 import Register from "../auth/register";
@@ -17,7 +18,7 @@ import Error404 from "../pages/error/error-404";
 import Error500 from "../pages/error/error-500";
 import ContactList from "../crm/contacts/contactList";
 import LeadReport from "../reports/leadReport";
-import RolesPermissions from "../userManagement/rolesPermissions";
+import ManageRoles from "../userManagement/manageRoles";
 import Products from "../crmSetting/products";
 import Category from "../crmSetting/category";
 import SubCategory from "../crmSetting/subCategory";
@@ -27,7 +28,9 @@ import Tax from "../crmSetting/tax";
 import ContactGrid from "../crm/contacts/contactGrid";
 import Pipeline from "../crm/pipeline";
 import Manageusers from "../userManagement/manageusers";
+import Managegroups from "../userManagement/managegroups";
 import CompanyDetails from "../crm/companies";
+import ManagePermissions from "../userManagement/managePermissions";
 
 const route = all_routes;
 
@@ -148,10 +151,22 @@ export const publicRoutes = [
     title: 'Manage Users'
   },
   {
-    path: route.rolesPermissions,
-    element: <RolesPermissions />,
+    path: route.managegroups,
+    element: <Managegroups />,
     route: Route,
-    title: 'Roles Permissions'
+    title: 'Manage Groups'
+  },
+  {
+    path: route.roles,
+    element: <ManageRoles />,
+    route: Route,
+    title: 'Roles'
+  },
+  {
+    path: route.managePermissions,
+    element: <ManagePermissions />,
+    route: Route,
+    title: 'Manage Permissions'
   },
   {
     path: route.contactGrid,
@@ -164,6 +179,12 @@ export const publicRoutes = [
     element: <Pipeline />,
     route: Route,
     title: 'Pipeline'
+  },
+  {
+    path: route.bill_summary,
+    element: <BillSummary />,
+    route: Route,
+    title: 'Bill Summary'
   },
 ];
 

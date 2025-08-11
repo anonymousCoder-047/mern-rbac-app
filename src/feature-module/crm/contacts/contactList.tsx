@@ -27,6 +27,7 @@ import * as XLSX from "xlsx";
 const ContactList = () => {
   const route = all_routes;
   const { values } = useAuth();
+  const [users, setUsers] = useState([]);
   const [sources, setSources] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [openModal2, setOpenModal2] = useState(false);
@@ -34,10 +35,15 @@ const ContactList = () => {
   const [filteredContactData, setFilteredContactData] = useState([]);
   const [contactId, setContactId] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [showBulkActionButton, setShowBulkActionButton] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [selectedRows, setSelectedRows] = useState(0);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
     job_title: "",
+    team_leader: "",
     company_name: "",
     email: "",
     primary_phone: "",
@@ -58,45 +64,14 @@ const ContactList = () => {
     setFormData({ ...formData, dob: moment(date).format('YYYY-MM-DD') });
   };
 
-  const dispatch = useDispatch();
-  const activityToggle = useSelector(
-    (state: any) => state?.activityTogglePopup
-  );
-  const activityToggleTwo = useSelector(
-    (state: any) => state?.activityTogglePopupTwo
-  );
-  const addTogglePopupTwo = useSelector(
-    (state: any) => state?.addTogglePopupTwo
-  );
-
-  const activities = [
-    { value: "choose", label: "Choose" },
-    { value: "phoneCalls", label: "Phone Calls" },
-    { value: "socialMedia", label: "Social Media" },
-    { value: "referralSites", label: "Referral Sites" },
-    { value: "webAnalytics", label: "Web Analytics" },
-    { value: "previousPurchases", label: "Previous Purchases" },
-  ];
-
-  const [stars, setStars] = useState<{ [key: number]: boolean }>({});
-
-  const initializeStarsState = () => {
-    const starsState: { [key: number]: boolean } = {};
-    contactData.forEach((item, index) => {
-      starsState[index] = false;
-    });
-    setStars(starsState);
-  };
-
   const getContacts = async () => {
     try {
       const { Contact } = endpoints;
       const response = await PrivateServer.getData(Contact?.view)
   
-      console.log("data -- ", response)
       if(response?.data) {
-        setContactData(response?.data);
-        setFilteredContactData(response?.data);
+        setContactData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
+        setFilteredContactData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
       }
     } catch(error) {
       console.log("Error while getting contacts -- E:", error?.message);
@@ -108,9 +83,8 @@ const ContactList = () => {
       const { Sources } = endpoints;
       const response = await PrivateServer.getData(Sources?.view)
   
-      console.log("data -- ", response)
       if(response?.data) {
-        const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.source_name, value: x?._id })))]  
+        const _data: any = [...new Set(response?.data?.map((x: { source_name: any; _id: any; }) => ({ label: x?.source_name, value: x?._id })))]  
         setSources(_data);
       }
     } catch(error) {
@@ -123,10 +97,23 @@ const ContactList = () => {
       const { Companies } = endpoints;
       const response = await PrivateServer.getData(Companies?.view)
   
-      console.log("data -- ", response)
       if(response?.data) {
-        const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.company_name, value: x?._id })))]
+        const _data: any = [...new Set(response?.data?.map((x: { company_name: any; _id: any; }) => ({ label: x?.company_name, value: x?._id })))]
         setCompanies(_data);
+      }
+    } catch(error) {
+      console.log("Error while getting companies -- E:", error?.message);
+    }
+  }
+  
+  const getUsers = async () => {
+    try {
+      const { Profile } = endpoints;
+      const response = await PrivateServer.getData(Profile?.view)
+  
+      if(response?.data) {
+        const _data: any = [...new Set(response?.data?.map((x: { email: any; _id: any; }) => ({ label: x?.email, value: x?._id })))]
+        setUsers(_data);
       }
     } catch(error) {
       console.log("Error while getting companies -- E:", error?.message);
@@ -135,19 +122,11 @@ const ContactList = () => {
 
   // Call initializeStarsState once when the component mounts
   React.useEffect(() => {
-    initializeStarsState();
-
+    getUsers();
     getContacts();
     getSources();
     getCompanies();
   }, []);
-  
-  const handleStarToggle = (index: number) => {
-    setStars((prevStars) => ({
-      ...prevStars,
-      [index]: !prevStars[index],
-    }));
-  };
 
   const handleClose = () => {
     setContactId("");
@@ -155,6 +134,7 @@ const ContactList = () => {
       first_name: "",
       last_name: "",
       job_title: "",
+      team_leader: "",
       company_name: "",
       email: "",
       primary_phone: "",
@@ -171,13 +151,13 @@ const ContactList = () => {
     });
   }
 
-  const handleChange = (e, type="", _name="") => {    
+  const handleChange = (e: { label?: any; value: any; target?: any; }, type="", _name="") => {    
     if(type == "file") {
       const { name } = e.target;
       setFormData({ ...formData, [name]: e.target?.files[0] });
     }
     else if(type == "select") {
-      setFormData({ ...formData, [_name]: e?.value });
+      setFormData({ ...formData, [_name]: e?.label });
     } else {
       const { name, value } = e.target; 
       setFormData({ ...formData, [name]: value });
@@ -194,27 +174,27 @@ const ContactList = () => {
     }
   }
 
-  const handleEditContact = (values) => {
-    console.log("Edit contact clicked -- ", values);
+  const handleEditContact = (values: { _id: any; }) => {
     setFormData({ ...formData, ..._.omit(values, ["_id"]), contactId: values?._id });
   }
 
   const handleAddOrUpdateContact = async () => {
     try {
       const { Contact } = endpoints;
-      const { status, data } = formData?.contactId !== "" ? await PrivateServer?.patchData(Contact.patch, formData?.contactId, formData) : await PrivateServer.postData(Contact.create, formData);
+      const { data } = formData?.contactId !== "" ? await PrivateServer?.patchData(Contact.patch, formData?.contactId, formData) : await PrivateServer.postData(Contact.create, formData);
 
-      if(status == 200) {
+      if(data) {
         if(formData?.contactId == "") setFormData({ ...formData, contactId: data?.data?._id })
         getContacts();
+        handleClose();
       }
     } catch(err) {
       console.log("Error while saving contact -- E: ", err?.message);
     }
   }
 
-  const cleanData = (data, filterKeys) => {
-    return data.map(obj => {
+  const cleanData = (data: any[], filterKeys: string[]) => {
+    return data.map((obj: any) => {
         // Remove filterKeys from object
         const filteredObj = _.omit(obj, filterKeys);
 
@@ -240,7 +220,7 @@ const ContactList = () => {
     }
   }
   
-  const handleSearch = (e) => {
+  const handleSearch = (e: { target: { value: any; }; }) => {
     const { value: _searchTerm } = e?.target;
     setSearchTerm(_searchTerm);
     const _contactsData = [...contactData];
@@ -256,19 +236,6 @@ const ContactList = () => {
   }
 
   const columns = [
-    {
-      title: "",
-      dataIndex: "",
-      render: (text: any, record: any, index: number) => (
-        <div
-          className={`set-star rating-select ${stars[index] ? "filled" : ""}`}
-          onClick={() => handleStarToggle(index)}
-          key={index}
-        >
-          <i className="fa fa-star"></i>
-        </div>
-      ),
-    },
     {
       title: "Name",
       dataIndex: "first_name",
@@ -303,7 +270,6 @@ const ContactList = () => {
         </Link> */}
         <Link to={route.contactDetails} className="d-flex flex-column">
         {record?.team_leader}
-          <span className="text-default">{record?.email}</span>
         </Link>
       </h2>
       ),
@@ -366,6 +332,27 @@ const ContactList = () => {
       ),
     },
   ];
+
+  const handleBulkOperation = (selectedRows: string | any[]) => {
+    if(selectedRows?.length > 0) {
+      setShowBulkActionButton(true);
+      setSelectedRows(selectedRows?.length)
+      setSelectedIds(selectedRows)
+    } else {
+      setShowBulkActionButton(false);
+      setSelectedRows(0)
+      setSelectedIds([])
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    const { Contact } = endpoints;
+    const deleted = await PrivateServer.deleteBulkData(Contact?.delete_bulk, selectedIds)
+    if(deleted) {
+      setShowBulkActionButton(false);
+      setShowBulkDeleteModal(false);
+    }
+  }
 
   return (
     <div>
@@ -451,196 +438,26 @@ const ContactList = () => {
                   {/* Filter */}
                   <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2 mb-4">
                     <div className="d-flex align-items-center flex-wrap row-gap-2">
-                      <div className="dropdown me-2">
-                        <Link
-                          to="#"
-                          className="dropdown-toggle"
-                          data-bs-toggle="dropdown"
+                      {
+                        showBulkActionButton ? 
+                        <button
+                          className="btn btn-primary"
+                          onClick={() => setShowBulkDeleteModal(!showBulkDeleteModal)}
                         >
-                          <i className="ti ti-sort-ascending-2 me-2" />
-                          Sort{" "}
-                        </Link>
-                        <div className="dropdown-menu  dropdown-menu-start">
-                          <ul>
-                            <li>
-                              <Link to="#" className="dropdown-item">
-                                <i className="ti ti-circle-chevron-right me-1" />
-                                Ascending
-                              </Link>
-                            </li>
-                            <li>
-                              <Link to="#" className="dropdown-item">
-                                <i className="ti ti-circle-chevron-right me-1" />
-                                Descending
-                              </Link>
-                            </li>
-                            <li>
-                              <Link to="#" className="dropdown-item">
-                                <i className="ti ti-circle-chevron-right me-1" />
-                                Recently Viewed
-                              </Link>
-                            </li>
-                            <li>
-                              <Link to="#" className="dropdown-item">
-                                <i className="ti ti-circle-chevron-right me-1" />
-                                Recently Added
-                              </Link>
-                            </li>
-                          </ul>
-                        </div>
-                      </div>
-                      <div className="icon-form">
-                        <span className="form-icon">
-                          <i className="ti ti-calendar" />
-                        </span>
-                        <DateRangePicker initialSettings={initialSettings}>
-                          <input
-                            className="form-control bookingrange"
-                            type="text"
-                          />
-                        </DateRangePicker>
-                      </div>
+                          Delete {selectedRows} rows
+                        </button> 
+                        : ""
+                      }
                     </div>
                     <div className="d-flex align-items-center flex-wrap row-gap-2">
-                      <div className="dropdown me-2">
-                        <Link
-                          to="#"
-                          className="btn bg-soft-purple text-purple"
-                          data-bs-toggle="dropdown"
-                          data-bs-auto-close="outside"
-                        >
-                          <i className="ti ti-columns-3 me-2" />
-                          Manage Columns
-                        </Link>
-                        <div className="dropdown-menu  dropdown-menu-md-end dropdown-md p-3">
-                          <h4 className="mb-2 fw-semibold">
-                            Want to manage datatables?
-                          </h4>
-                          <p className="mb-3">
-                            Please drag and drop your column to reorder your
-                            table and enable see option as you want.
-                          </p>
-                          <div className="border-top pt-3">
-                            <div className="d-flex align-items-center justify-content-between mb-3">
-                              <p className="mb-0 d-flex align-items-center">
-                                <i className="ti ti-grip-vertical me-2" />
-                                Name
-                              </p>
-                              <div className="status-toggle">
-                                <input
-                                  type="checkbox"
-                                  id="col-name"
-                                  className="check"
-                                />
-                                <label
-                                  htmlFor="col-name"
-                                  className="checktoggle"
-                                />
-                              </div>
-                            </div>
-                            <div className="d-flex align-items-center justify-content-between mb-3">
-                              <p className="mb-0 d-flex align-items-center">
-                                <i className="ti ti-grip-vertical me-2" />
-                                Phone
-                              </p>
-                              <div className="status-toggle">
-                                <input
-                                  type="checkbox"
-                                  id="col-phone"
-                                  className="check"
-                                />
-                                <label
-                                  htmlFor="col-phone"
-                                  className="checktoggle"
-                                />
-                              </div>
-                            </div>
-                            <div className="d-flex align-items-center justify-content-between mb-3">
-                              <p className="mb-0 d-flex align-items-center">
-                                <i className="ti ti-grip-vertical me-2" />
-                                Email
-                              </p>
-                              <div className="status-toggle">
-                                <input
-                                  type="checkbox"
-                                  id="col-email"
-                                  className="check"
-                                />
-                                <label
-                                  htmlFor="col-email"
-                                  className="checktoggle"
-                                />
-                              </div>
-                            </div>
-                            <div className="d-flex align-items-center justify-content-between">
-                              <p className="mb-0 d-flex align-items-center">
-                                <i className="ti ti-grip-vertical me-2" />
-                                Action
-                              </p>
-                              <div className="status-toggle">
-                                <input
-                                  type="checkbox"
-                                  id="col-action"
-                                  className="check"
-                                />
-                                <label
-                                  htmlFor="col-action"
-                                  className="checktoggle"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      {/* <div className="form-sorts dropdown me-2">
-                        <Link
-                          to="#"
-                          data-bs-toggle="dropdown"
-                          data-bs-auto-close="outside"
-                        >
-                          <i className="ti ti-filter-share" />
-                          Filter
-                        </Link>
-                        <div className="filter-dropdown-menu dropdown-menu  dropdown-menu-md-end p-3">
-                          <div className="filter-set-view">
-                            <div className="filter-set-head">
-                              <h4>
-                                <i className="ti ti-filter-share" />
-                                Filter
-                              </h4>
-                            </div>
-                            <div className="filter-reset-btns">
-                              <div className="row">
-                                <div className="col-6">
-                                  <Link to="#" className="btn btn-light">
-                                    Reset
-                                  </Link>
-                                </div>
-                                <div className="col-6">
-                                  <Link to="#" className="btn btn-primary">
-                                    Filter
-                                  </Link>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div> */}
-                      <div className="view-icons">
-                        <Link to="#" className="active">
-                          <i className="ti ti-list-tree" />
-                        </Link>
-                        <Link to={route.contactGrid}>
-                          <i className="ti ti-grid-dots" />
-                        </Link>
-                      </div>
+                      
                     </div>
                   </div>
 
                   {/* /Filter */}
                   {/* Contact List */}
                   <div className="table-responsive custom-table">
-                    <Table dataSource={searchTerm != "" ? filteredContactData : contactData} columns={columns} />
+                    <Table dataSource={searchTerm != "" ? filteredContactData : contactData} columns={columns} handleBulkAction={handleBulkOperation} />
                   </div>
                   <div className="row align-items-center">
                     <div className="col-md-6">
@@ -756,12 +573,28 @@ const ContactList = () => {
                         <div className="col-md-6">
                           <div className="mb-3">
                             <label className="col-form-label">
+                              Team Leader <span className="text-danger">*</span>
+                            </label>
+                            <Select
+                              name="team_leader"
+                              onChange={(value) => handleChange(value, "select", "team_leader")}
+                              value={{ label: users?.find((x: any) => x?.label == formData?.team_leader)?.label, value: formData?.team_leader }}
+                              className="select2" 
+                              classNamePrefix="react-select"
+                              options={users}
+                              placeholder="Choose"
+                            />
+                          </div>
+                        </div>
+                        <div className="col-md-6">
+                          <div className="mb-3">
+                            <label className="col-form-label">
                               Company Name
                             </label>
                             <Select
                               name="company_name"
                               onChange={(value) => handleChange(value, "select", "company_name")}
-                              value={{ label: companies?.find((x: any) => x?.value == formData?.company_name)?.label, value: formData?.company_name }}
+                              value={{ label: companies?.find((x: any) => x?.label == formData?.company_name)?.label, value: formData?.company_name }}
                               className="select2" 
                               classNamePrefix="react-select"
                               options={companies}
@@ -819,7 +652,7 @@ const ContactList = () => {
                             <Select
                                 name="source"
                                 onChange={(value) => handleChange(value, "select", "source")}
-                                value={{ label: sources?.find((x: any) => x?.value == formData?.source)?.label, value: formData?.source }}
+                                value={{ label: sources?.find((x: any) => x?.label == formData?.source)?.label, value: formData?.source }}
                                 className="select2" 
                                 classNamePrefix="react-select"
                                 options={sources}
@@ -933,12 +766,13 @@ const ContactList = () => {
                   type="button"
                   data-bs-dismiss="offcanvas"
                   className="btn btn-light me-2"
-                >
+                  >
                   Cancel
                 </button>
                 <button
                   type="button"
                   className="btn btn-primary"
+                  data-bs-dismiss="offcanvas"
                   onClick={() => {
                     setOpenModal2(true)
                     handleAddOrUpdateContact()
@@ -995,36 +829,6 @@ const ContactList = () => {
                   >
                     <div className="accordion-body border-top">
                       <div className="row">
-                        <div className="col-md-12">
-                          <div className="mb-3">
-                            <div className="profile-upload">
-                              <div className="profile-upload-img">
-                                <span>
-                                  <i className="ti ti-photo" />
-                                </span>
-                                <img
-                                  src="assets/img/profiles/avatar-20.jpg"
-                                  alt="img"
-                                  className="preview1"
-                                />
-                                <button
-                                  type="button"
-                                  className="profile-remove"
-                                >
-                                  <i className="ti ti-x" />
-                                </button>
-                              </div>
-                              <div className="profile-upload-content">
-                                <label className="profile-upload-btn">
-                                  <i className="ti ti-file-broken" /> Upload
-                                  File
-                                  <input type="file" className="input-img" />
-                                </label>
-                                <p>JPG, GIF or PNG. Max size of 800K</p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
                         <div className="col-md-6">
                           <div className="mb-3">
                             <label className="col-form-label">
@@ -1058,16 +862,32 @@ const ContactList = () => {
                         <div className="col-md-6">
                           <div className="mb-3">
                             <label className="col-form-label">
+                              Team Leader <span className="text-danger">*</span>
+                            </label>
+                            <Select
+                              name="team_leader"
+                              onChange={(value) => handleChange(value, "select", "team_leader")}
+                              value={{ label: users?.find((x: any) => x?.label == formData?.team_leader)?.label, value: formData?.team_leader }}
+                              className="select2" 
+                              classNamePrefix="react-select"
+                              options={users}
+                              placeholder="Choose"
+                            />
+                          </div>
+                        </div>
+                        <div className="col-md-6">
+                          <div className="mb-3">
+                            <label className="col-form-label">
                               Company Name
                             </label>
                             <Select  
                                 // value={formData?.company_name}
                                 name="company_name"
                                 onChange={(value) => handleChange(value, "select", "company_name")}
+                                value={{ label: companies?.find((x: any) => x?.label == formData?.company_name)?.label, value: formData?.company_name }}
                                 className="select2" 
                                 classNamePrefix="react-select"
-                                options={companyName}
-                                defaultValue={companyName[1]}
+                                options={companies}
                                 placeholder="Choose"
                               />
                           </div>
@@ -1137,7 +957,7 @@ const ContactList = () => {
                             <Select
                                 name="source"
                                 onChange={(value) => handleChange(value, "select", "source")}
-                                value={{ label: sources?.find((x: any) => x?.value == formData?.source)?.label, value: formData?.source }}
+                                value={{ label: sources?.find((x: any) => x?.label == formData?.source)?.label, value: formData?.source }}
                                 className="select2" 
                                 classNamePrefix="react-select"
                                 options={sources}
@@ -1278,7 +1098,7 @@ const ContactList = () => {
                 >
                   Cancel
                 </button>
-                <button type="button" onClick={handleAddOrUpdateContact} className="btn btn-primary">
+                <button type="button" data-bs-dismiss="offcanvas" onClick={handleAddOrUpdateContact} className="btn btn-primary">
                   Save Changes
                 </button>
               </div>
@@ -1318,43 +1138,80 @@ const ContactList = () => {
           </div>
         </div>
         {/* /Delete Contact */}
+
+        {/** Bulk Delete Data */}
+        <Modal show={showBulkDeleteModal} onHide={() => setShowBulkDeleteModal(false)}>
+          <div className="modal-header border-0 m-0 justify-content-end">
+            <button
+              className="btn-close"
+              aria-label="Close"
+              onClick={() => {
+                setShowBulkDeleteModal(false)
+              }}
+            >
+              <i className="ti ti-x" />
+            </button>
+          </div>
+          <div className="modal-body">
+            <div className="success-message text-center">
+              <div className="success-popup-icon bg-light-blue">
+                <i className="ti ti-user-plus" />
+              </div>
+              <h3>Are you sure?</h3>
+              <p>delete ({selectedRows})selected rows</p>
+              <div className="col-lg-12 text-center modal-btn">
+                <Link
+                  to="#"
+                  className="btn btn-light"
+                  onClick={() => setShowBulkDeleteModal(false)}
+                >
+                  Cancel
+                </Link>
+                <Link to="#" className="btn btn-primary" onClick={handleBulkDelete}>
+                  Delete
+                </Link>
+              </div>
+            </div>
+          </div>
+        </Modal>
+        {/** Bulk Delete Data */}
         
         {/* Create Contact */}
         <Modal show={openModal2} onHide={() => setOpenModal2(false)}>
-              <div className="modal-header border-0 m-0 justify-content-end">
-                <button
-                  className="btn-close"
-                  aria-label="Close"
-                  onClick={() => {
-                    setOpenModal2(false)
-                    handleClose()
-                  }}
+          <div className="modal-header border-0 m-0 justify-content-end">
+            <button
+              className="btn-close"
+              aria-label="Close"
+              onClick={() => {
+                setOpenModal2(false)
+                handleClose()
+              }}
+            >
+              <i className="ti ti-x" />
+            </button>
+          </div>
+          <div className="modal-body">
+            <div className="success-message text-center">
+              <div className="success-popup-icon bg-light-blue">
+                <i className="ti ti-user-plus" />
+              </div>
+              <h3>Contact Created Successfully!!!</h3>
+              <p>View the details of contact, created</p>
+              <div className="col-lg-12 text-center modal-btn">
+                <Link
+                  to="#"
+                  className="btn btn-light"
+                  onClick={() => setOpenModal2(false)}
                 >
-                  <i className="ti ti-x" />
-                </button>
+                  Cancel
+                </Link>
+                <Link to={route.contactDetails} className="btn btn-primary">
+                  View Details
+                </Link>
               </div>
-              <div className="modal-body">
-                <div className="success-message text-center">
-                  <div className="success-popup-icon bg-light-blue">
-                    <i className="ti ti-user-plus" />
-                  </div>
-                  <h3>Contact Created Successfully!!!</h3>
-                  <p>View the details of contact, created</p>
-                  <div className="col-lg-12 text-center modal-btn">
-                    <Link
-                      to="#"
-                      className="btn btn-light"
-                      onClick={() => setOpenModal2(false)}
-                    >
-                      Cancel
-                    </Link>
-                    <Link to={route.contactDetails} className="btn btn-primary">
-                      View Details
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </Modal>
+            </div>
+          </div>
+        </Modal>
         {/* /Create Contact */}
 
         {/* Access */}

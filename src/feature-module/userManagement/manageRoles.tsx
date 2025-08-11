@@ -1,70 +1,50 @@
 import React, { useState } from "react";
 import Table from "../../core/common/dataTable/index";
-import Select from "react-select";
-import { rolesPermissionsData } from "../../core/data/json/rolesPermissions";
 import { Link } from "react-router-dom";
 import { all_routes } from "../router/all_routes";
-import { TableData } from "../../core/data/interface";
 import CollapseHeader from "../../core/common/collapse-header";
 import { endpoints } from "../../helper/endpoints";
 import PrivateServer from "../../helper/PrivateServer";
 import _ from "lodash";
 import moment from "moment";
 import useAuth from "../../hooks/useAuth";
+import { Modal } from "react-bootstrap";
 
 const route = all_routes;
 
-const RolesPermissions = () => {
+const ManageRoles = () => {
   const { values } = useAuth()
   const [roles, setRoles] = useState([]);
-  const [users, setUsers] = useState([]);
+  const [searchData, setFilteredSearchData] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showBulkActionButton, setShowBulkActionButton] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [selectedRows, setSelectedRows] = useState(0);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [roleId, setRoleId] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     role_id: 0,
     roleId: "",
-    action: [],
-    profileId: "",
     permissionId: "",
   });
-  
-  const permissions = [
-    { label: "Write", value: "create" },
-    { label: "Read", value: "read" },
-    { label: "Update", value: "update" },
-    { label: "Delete", value: "delete" },
-  ]
 
   const getRoles = async () => {
     try {
       const { Role } = endpoints;
       const response = await PrivateServer.getData(Role.view);
   
-      console.log("response data -- ", response);
-      if(response?.data) setRoles(response?.data);
+      if(response?.data) {
+        setRoles([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
+        setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))])
+      }
     } catch(error) {
       console.log("Error while getting roles -- E: ", error.message);
     }
   }
   
-  const getUsers = async () => {
-    try {
-      const { Profile } = endpoints;
-      const response = await PrivateServer.getData(Profile.view);
-  
-      console.log("response data -- ", response);
-      if(response?.data) {
-        const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.username, value: x?._id })))]
-        setUsers(_data);
-      }
-    } catch(error) {
-      console.log("Error while getting users -- E: ", error.message);
-    }
-  }
-  
   React.useEffect(() => {
     getRoles();
-    getUsers();
   }, []);
 
   const handleClose = () => {
@@ -73,8 +53,6 @@ const RolesPermissions = () => {
       name: "",
       role_id: 0,
       roleId: "",
-      action: [],
-      profileId: "",
       permissionId: "",
     });
   }
@@ -106,7 +84,6 @@ const RolesPermissions = () => {
   }
 
   const handleEditUser = (values) => {
-    console.log("Edit contact clicked -- ", values);
     setFormData({ ...formData, ..._.omit(values, ["_id"]), roleId: values?._id });
   }
 
@@ -116,22 +93,7 @@ const RolesPermissions = () => {
       const response = formData?.roleId !== "" ? await PrivateServer?.patchData(Role.patch, formData?.roleId, _.omit(formData, ['action', 'profileId'])) : await PrivateServer.postData(Role.create, _.omit(formData, ['action', 'profileId']));
 
       if(response?.data) {
-        handleAddOrUpdatePermissions();
         if(formData?.roleId == "") setFormData({ ...formData, roleId: response?.data?._id })
-        getRoles();
-      }
-    } catch(err) {
-      console.log("Error while saving role -- E: ", err?.message);
-    }
-  }
-  
-  const handleAddOrUpdatePermissions = async () => {
-    try {
-      const { Permissions } = endpoints;
-      const response = formData?.permissionId !== "" ? await PrivateServer?.patchData(Permissions.patch, formData?.roleId, _.pick(formData, ['action', 'profileId'])) : await PrivateServer.postData(Permissions.create, _.pick(formData, ['action', 'profileId']));
-
-      if(response?.data) {
-        if(formData?.roleId == "") setFormData({ ...formData, permissionId: response?.data?._id })
         getRoles();
       }
     } catch(err) {
@@ -203,6 +165,43 @@ const RolesPermissions = () => {
       ),
     },
   ];
+
+  const handleSearch = (e) => {
+    const { value: _searchTerm } = e?.target;
+    setSearchTerm(_searchTerm);
+    const _searchData = [...searchData];
+
+    if(searchTerm != "") {
+      const searchResults = _.filter(_searchData, (obj) =>
+        _.some(obj, (value) =>
+          _.isString(value) && _.includes(value.toLowerCase(), searchTerm?.toLowerCase())
+        )
+      );
+      setFilteredSearchData(searchResults)
+    } else setFilteredSearchData(searchData);
+  }
+
+  const handleBulkOperation = (selectedRows: string | any[]) => {
+    if(selectedRows?.length > 0) {
+      setShowBulkActionButton(true);
+      setSelectedRows(selectedRows?.length)
+      setSelectedIds(selectedRows)
+    } else {
+      setShowBulkActionButton(false);
+      setSelectedRows(0)
+      setSelectedIds([])
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    const { Role } = endpoints;
+    const deleted = await PrivateServer.deleteBulkData(Role?.delete_bulk, selectedIds)
+    if(deleted) {
+      setShowBulkActionButton(false);
+      setShowBulkDeleteModal(false);
+    }
+  }
+
   return (
     <>
   {/* Page Wrapper */}
@@ -237,6 +236,7 @@ const RolesPermissions = () => {
                       type="text"
                       className="form-control"
                       placeholder="Search Roles"
+                      onChange={handleSearch}
                     />
                   </div>
                 </div>
@@ -258,8 +258,25 @@ const RolesPermissions = () => {
             </div>
             <div className="card-body">
               {/* Roles List */}
+              <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2 mb-4">
+                  <div className="d-flex align-items-center flex-wrap row-gap-2">
+                    {
+                      showBulkActionButton ? 
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => setShowBulkDeleteModal(!showBulkDeleteModal)}
+                      >
+                        Delete {selectedRows} rows
+                      </button> 
+                      : ""
+                    }
+                  </div>
+                  <div className="d-flex align-items-center flex-wrap row-gap-2">
+                    
+                  </div>
+                </div>
               <div className="table-responsive custom-table">
-              <Table columns={columns} dataSource={roles} />
+              <Table columns={columns} dataSource={searchTerm != "" ? searchData : roles} handleBulkAction={handleBulkOperation} />
               </div>
               <div className="row align-items-center">
                 <div className="col-md-6">
@@ -307,40 +324,6 @@ const RolesPermissions = () => {
                 Role Id <span className="text-danger">*</span>
               </label>
               <input type="number" name="role_id" value={formData?.role_id} onChange={handleChange} className="form-control" />
-            </div>
-          </div>
-          <div className="modal-body">
-            <div className="mb-0">
-              <label className="col-form-label">
-                User <span className="text-danger">*</span>
-              </label>
-              <Select
-                classNamePrefix="react-select"
-                className="select"
-                options={users}
-                name="profileId" 
-                value={{ label: users?.find((x: any) => x?.value == formData?.profileId)?.label, value: formData?.profileId }} 
-                onChange={(value) => handleChange(value, "select", "profileId")}
-              />
-            </div>
-          </div>
-          <div className="modal-body">
-            <div className="mb-0">
-              <label className="col-form-label">
-                Permissions <span className="text-danger">*</span>
-              </label>
-              <Select<{ label: string; value: string; }, true>
-                isMulti={true}
-                classNamePrefix="react-select"
-                className="select"
-                options={permissions}
-                name="roleId" 
-                value={_.map(formData?.action, (value) => ({
-                  label: _.startCase(value), // Converts 'create' to 'Create'
-                  value,
-                }))} 
-                onChange={(value) => handleChange(value, "select", "action", true)}
-              />
             </div>
           </div>
           <div className="modal-footer">
@@ -402,40 +385,6 @@ const RolesPermissions = () => {
               <input type="number" name="role_id" value={formData?.role_id} onChange={handleChange} className="form-control" />
             </div>
           </div>
-          <div className="modal-body">
-            <div className="mb-0">
-              <label className="col-form-label">
-                User <span className="text-danger">*</span>
-              </label>
-              <Select
-                classNamePrefix="react-select"
-                className="select"
-                options={users}
-                name="profileId" 
-                value={{ label: users?.find((x: any) => x?.value == formData?.profileId)?.label, value: formData?.profileId }} 
-                onChange={(value) => handleChange(value, "select", "profileId")}
-              />
-            </div>
-          </div>
-          <div className="modal-body">
-            <div className="mb-0">
-              <label className="col-form-label">
-                Permissions <span className="text-danger">*</span>
-              </label>
-              <Select<{ label: string; value: string; }, true>
-                isMulti={true}
-                classNamePrefix="react-select"
-                className="select"
-                options={permissions}
-                name="roleId" 
-                value={_.map(formData?.action, (value) => ({
-                  label: _.startCase(value), // Converts 'create' to 'Create'
-                  value,
-                }))} 
-                onChange={(value) => handleChange(value, "select", "action", true)}
-              />
-            </div>
-          </div>
           <div className="modal-footer">
             <div className="d-flex align-items-center justify-content-end m-0">
               <Link
@@ -474,7 +423,7 @@ const RolesPermissions = () => {
               >
                 Cancel
               </Link>
-              <Link to="#" className="btn btn-danger" onClick={handleDeleteRole}>
+              <Link to="#" className="btn btn-danger" data-bs-dismiss="modal" onClick={handleDeleteRole}>
                 Yes, Delete it
               </Link>
             </div>
@@ -483,9 +432,46 @@ const RolesPermissions = () => {
       </div>
     </div>
   </div>
+  
+  {/** Bulk Delete Data */}
+  <Modal show={showBulkDeleteModal} onHide={() => setShowBulkDeleteModal(false)}>
+    <div className="modal-header border-0 m-0 justify-content-end">
+      <button
+        className="btn-close"
+        aria-label="Close"
+        onClick={() => {
+          setShowBulkDeleteModal(false)
+        }}
+      >
+        <i className="ti ti-x" />
+      </button>
+    </div>
+    <div className="modal-body">
+      <div className="success-message text-center">
+        <div className="success-popup-icon bg-light-blue">
+          <i className="ti ti-user-plus" />
+        </div>
+        <h3>Are you sure?</h3>
+        <p>delete ({selectedRows})selected rows</p>
+        <div className="col-lg-12 text-center modal-btn">
+          <Link
+            to="#"
+            className="btn btn-light"
+            onClick={() => setShowBulkDeleteModal(false)}
+          >
+            Cancel
+          </Link>
+          <Link to="#" className="btn btn-primary" onClick={handleBulkDelete}>
+            Delete
+          </Link>
+        </div>
+      </div>
+    </div>
+  </Modal>
+  {/** Bulk Delete Data */}
 </>
 
   );
 };
 
-export default RolesPermissions;
+export default ManageRoles;

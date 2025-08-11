@@ -1,5 +1,3 @@
-
-
 {
   "compilerOptions": {
     "target": "es5",
@@ -12,6 +10,10 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
+    "compilerOptions": {
+      "noEmitOnError": false,
+      "skipLibCheck": true
+    },
     "strict": false,
     "noImplicitAny": false,
     "forceConsistentCasingInFileNames": true,
@@ -25,9 +27,8 @@
     "types": ["node", "react", "react-dom", "react-select", "react-router-dom"]
   },
   "include": [
-    "src"
-  ],
-  "exclude": ["src/*"],
+    "src/**/*"
+  ]
 }
 
 

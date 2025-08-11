@@ -24,6 +24,10 @@ const Leads = () => {
   const [dealsData, setDealsData] = useState([]);
   const [searchData, setFilteredSearchData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showBulkActionButton, setShowBulkActionButton] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [selectedRows, setSelectedRows] = useState(0);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [dealsId, setDealsId] = useState("");
   const [formData, setFormData] = useState({
     opportunity_name: "",
@@ -36,8 +40,8 @@ const Leads = () => {
     closing_date: new Date(),
     stage: "",
     amount: "",
-    qty: "",
     team_leader: "",
+    qty: "",
     last_contact_date: new Date(),
     order_number: "",
     description: "",
@@ -45,8 +49,8 @@ const Leads = () => {
     dealsId: "",
   });
   const [contactData, setContactData] = useState([]);
+  const [usersData, setUsersData] = useState([]);
   const [companyData, setCompanyData] = useState([]);
-  const [teamData, setTeamData] = useState([]);
   const [stageData, setStageData] = useState([]);
   const [productData, setProductData] = useState([]);
   const addTogglePopupTwo = useSelector(
@@ -71,23 +75,16 @@ const Leads = () => {
   );
 
   const route = all_routes;
-  const [stars, setStars] = useState<{ [key: number]: boolean }>({});
-
-  const initializeStarsState = () => {
-    const starsState: { [key: number]: boolean } = {};
-    dealsData.forEach((item, index) => {
-      starsState[index] = false;
-    });
-    setStars(starsState);
-  };
 
   const getDeals = async () => {
     try {
       const { Deals } = endpoints;
       const response = await PrivateServer.getData(Deals?.view)
   
-      console.log("data -- ", response)
-      if(response?.data) setDealsData(response?.data);
+      if(response?.data) {
+        setDealsData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
+        setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))])
+      }
     } catch(error) {
       console.log("Error while getting deals -- E:", error?.message);
     }
@@ -98,13 +95,23 @@ const Leads = () => {
       const { Contact } = endpoints;
       const response = await PrivateServer.getData(Contact?.view)
   
-      console.log("data -- ", response)
       if(response?.data) {
         const _data: any = [...new Set(response?.data?.map((x) => ({ label: `${x?.first_name} ${x?.last_name} (${x?.email})`, value: x?._id })))]  
         setContactData(_data);
-        
-        const _teamsData: any = [...new Set(response?.data?.map((x) => ({ label: `${x?.team_leader} (${x?.email})`, value: x?._id })))]  
-        setTeamData(_teamsData);
+      }
+    } catch(error) {
+      console.log("Error while getting sources -- E:", error?.message);
+    }
+  }
+  
+  const getUsersData = async () => {
+    try {
+      const { Profile } = endpoints;
+      const response = await PrivateServer.getData(Profile?.view)
+  
+      if(response?.data) {
+        const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.email, value: x?._id })))]  
+        setUsersData(_data);
       }
     } catch(error) {
       console.log("Error while getting sources -- E:", error?.message);
@@ -116,7 +123,6 @@ const Leads = () => {
       const { Companies } = endpoints;
       const response = await PrivateServer.getData(Companies?.view)
   
-      console.log("data -- ", response)
       if(response?.data) {
         const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.company_name, value: x?._id })))]  
         setCompanyData(_data);
@@ -131,7 +137,6 @@ const Leads = () => {
       const { Pipeline } = endpoints;
       const response = await PrivateServer.getData(Pipeline?.view)
   
-      console.log("data -- ", response)
       if(response?.data) {
         const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.pipeline_name, value: x?._id })))]  
         setStageData(_data);
@@ -146,7 +151,6 @@ const Leads = () => {
       const { Products } = endpoints;
       const response = await PrivateServer.getData(Products?.view)
   
-      console.log("data -- ", response)
       if(response?.data) {
         const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.description, value: x?._id })))]  
         setProductData(_data);
@@ -158,21 +162,13 @@ const Leads = () => {
 
   // Call initializeStarsState once when the component mounts
   React.useEffect(() => {
-    initializeStarsState();
-
     getDeals();
     getContacts();
+    getUsersData();
     getStages();
     getComapnies();
     getProducts();
   }, []);
-
-  const handleStarToggle = (index: number) => {
-    setStars((prevStars) => ({
-      ...prevStars,
-      [index]: !prevStars[index],
-    }));
-  };
 
   const handleClose = () => {
     setDealsId("")
@@ -203,7 +199,7 @@ const Leads = () => {
       setFormData({ ...formData, [name]: e.target?.files[0] });
     }
     else if(type == "select") {
-      setFormData({ ...formData, [_name]: e?.value });
+      setFormData({ ...formData, [_name]: e?.label });
     } else {
       const { name, value } = e.target; 
       setFormData({ ...formData, [name]: value });
@@ -221,18 +217,18 @@ const Leads = () => {
   }
 
   const handleEditDeals = (values) => {
-    console.log("Edit deal clicked -- ", values);
     setFormData({ ...formData, ..._.omit(values, ["_id"]), dealsId: values?._id });
   }
 
   const handleAddOrUpdateDeals = async () => {
     try {
       const { Deals } = endpoints;
-      const { status, data } = formData?.dealsId !== "" ? await PrivateServer?.patchData(Deals.patch, formData?.dealsId, formData) : await PrivateServer.postData(Deals.create, formData);
+      const { data } = formData?.dealsId !== "" ? await PrivateServer?.patchData(Deals.patch, formData?.dealsId, formData) : await PrivateServer.postData(Deals.create, formData);
 
-      if(status == 200) {
+      if(data) {
         if(formData?.dealsId == "") setFormData({ ...formData, dealsId: data?.data?._id })
         getDeals();
+        handleClose();
       }
     } catch(err) {
       console.log("Error while saving deals -- E: ", err?.message);
@@ -283,31 +279,32 @@ const Leads = () => {
 
   const columns = [
     {
-      title: "",
-      dataIndex: "",
-      render: (text: string, record: any, index: number) => (
-        <div
-          className={`set-star rating-select ${stars[index] ? "filled" : ""}`}
-          onClick={() => handleStarToggle(index)}
-        >
-          <i className="fa fa-star"></i>
-        </div>
-      ),
-    },
-
-    {
-      title: "Name",
+      title: "Lead Name",
       dataIndex: "description",
       render: (text: any, record: any) => (
         <h2 className="d-flex align-items-center">
           <Link to={route.leads}
             className="d-flex flex-column fw-medium"
           >
-            {record.description}
+            {record.opportunity_name}
           </Link>
         </h2>
       ),
-      sorter: (a: any, b: any) => a.description.length - b.description.length,
+      sorter: (a: any, b: any) => a.opportunity_name.length - b.opportunity_name.length,
+    },
+    {
+      title: "Team Lead",
+      dataIndex: "team_leader",
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          <Link to={route.leads}
+            className="d-flex flex-column fw-medium"
+          >
+            {record.team_leader}
+          </Link>
+        </h2>
+      ),
+      sorter: (a: any, b: any) => a.team_leader.length - b.team_leader.length,
     },
     {
       title: "Start Date",
@@ -432,6 +429,27 @@ const Leads = () => {
     timePicker: false,
   };
 
+  const handleBulkOperation = (selectedRows: string | any[]) => {
+    if(selectedRows?.length > 0) {
+      setShowBulkActionButton(true);
+      setSelectedRows(selectedRows?.length)
+      setSelectedIds(selectedRows)
+    } else {
+      setShowBulkActionButton(false);
+      setSelectedRows(0)
+      setSelectedIds([])
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    const { Deals } = endpoints;
+    const deleted = await PrivateServer.deleteBulkData(Deals?.delete_bulk, selectedIds)
+    if(deleted) {
+      setShowBulkActionButton(false);
+      setShowBulkDeleteModal(false);
+    }
+  }
+
   return (
     <>
       <div className="page-wrapper">
@@ -515,197 +533,26 @@ const Leads = () => {
                   {/* Filter */}
                   <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2 mb-4">
                     <div className="d-flex align-items-center flex-wrap row-gap-2">
-                      <div className="dropdown me-2">
-                        <Link
-                          to="#"
-                          className="dropdown-toggle"
-                          data-bs-toggle="dropdown"
+                      {
+                        showBulkActionButton ? 
+                        <button
+                          className="btn btn-primary"
+                          onClick={() => setShowBulkDeleteModal(!showBulkDeleteModal)}
                         >
-                          <i className="ti ti-sort-ascending-2 me-2" />
-                          Sort{" "}
-                        </Link>
-                        <div className="dropdown-menu  dropdown-menu-start">
-                          <ul>
-                            <li>
-                              <Link to="#" className="dropdown-item">
-                                <i className="ti ti-circle-chevron-right me-1" />
-                                Ascending
-                              </Link>
-                            </li>
-                            <li>
-                              <Link to="#" className="dropdown-item">
-                                <i className="ti ti-circle-chevron-right me-1" />
-                                Descending
-                              </Link>
-                            </li>
-                            <li>
-                              <Link to="#" className="dropdown-item">
-                                <i className="ti ti-circle-chevron-right me-1" />
-                                Recently Viewed
-                              </Link>
-                            </li>
-                            <li>
-                              <Link to="#" className="dropdown-item">
-                                <i className="ti ti-circle-chevron-right me-1" />
-                                Recently Added
-                              </Link>
-                            </li>
-                          </ul>
-                        </div>
-                      </div>
-                      <div className="icon-form">
-                        <span className="form-icon">
-                          <i className="ti ti-calendar" />
-                        </span>
-                        <DateRangePicker initialSettings={initialSettings}>
-                          <input
-                            className="form-control bookingrange"
-                            type="text"
-                          />
-                        </DateRangePicker>
-                      </div>
+                          Delete {selectedRows} rows
+                        </button> 
+                        : ""
+                      }
                     </div>
                     <div className="d-flex align-items-center flex-wrap row-gap-2">
-                      <div className="dropdown me-2">
-                        <Link
-                          to="#"
-                          className="btn bg-soft-purple text-purple"
-                          data-bs-toggle="dropdown"
-                          data-bs-auto-close="outside"
-                        >
-                          <i className="ti ti-columns-3 me-2" />
-                          Manage Columns
-                        </Link>
-                        <div className="dropdown-menu  dropdown-menu-md-end dropdown-md p-3">
-                          <h4 className="mb-2 fw-semibold">
-                            Want to manage datatables?
-                          </h4>
-                          <p className="mb-3">
-                            Please drag and drop your column to reorder your
-                            table and enable see option as you want.
-                          </p>
-                          <div className="border-top pt-3">
-                            <div className="d-flex align-items-center justify-content-between mb-3">
-                              <p className="mb-0 d-flex align-items-center">
-                                <i className="ti ti-grip-vertical me-2" />
-                                Name
-                              </p>
-                              <div className="status-toggle">
-                                <input
-                                  type="checkbox"
-                                  id="col-name"
-                                  className="check"
-                                />
-                                <label
-                                  htmlFor="col-name"
-                                  className="checktoggle"
-                                />
-                              </div>
-                            </div>
-                            <div className="d-flex align-items-center justify-content-between mb-3">
-                              <p className="mb-0 d-flex align-items-center">
-                                <i className="ti ti-grip-vertical me-2" />
-                                Phone
-                              </p>
-                              <div className="status-toggle">
-                                <input
-                                  type="checkbox"
-                                  id="col-phone"
-                                  className="check"
-                                />
-                                <label
-                                  htmlFor="col-phone"
-                                  className="checktoggle"
-                                />
-                              </div>
-                            </div>
-                            <div className="d-flex align-items-center justify-content-between mb-3">
-                              <p className="mb-0 d-flex align-items-center">
-                                <i className="ti ti-grip-vertical me-2" />
-                                Email
-                              </p>
-                              <div className="status-toggle">
-                                <input
-                                  type="checkbox"
-                                  id="col-email"
-                                  className="check"
-                                />
-                                <label
-                                  htmlFor="col-email"
-                                  className="checktoggle"
-                                />
-                              </div>
-                            </div>
-                            <div className="d-flex align-items-center justify-content-between">
-                              <p className="mb-0 d-flex align-items-center">
-                                <i className="ti ti-grip-vertical me-2" />
-                                Action
-                              </p>
-                              <div className="status-toggle">
-                                <input
-                                  type="checkbox"
-                                  id="col-action"
-                                  className="check"
-                                />
-                                <label
-                                  htmlFor="col-action"
-                                  className="checktoggle"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="form-sorts dropdown me-2">
-                        <Link
-                          to="#"
-                          data-bs-toggle="dropdown"
-                          data-bs-auto-close="outside"
-                        >
-                          <i className="ti ti-filter-share" />
-                          Filter
-                        </Link>
-                        <div className="filter-dropdown-menu dropdown-menu  dropdown-menu-md-end p-3">
-                          <div className="filter-set-view">
-                            <div className="filter-set-head">
-                              <h4>
-                                <i className="ti ti-filter-share" />
-                                Filter
-                              </h4>
-                            </div>
-                            
-                            <div className="filter-reset-btns">
-                              <div className="row">
-                                <div className="col-6">
-                                  <Link to="#" className="btn btn-light">
-                                    Reset
-                                  </Link>
-                                </div>
-                                <div className="col-6">
-                                  <Link to="#" className="btn btn-primary">
-                                    Filter
-                                  </Link>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="view-icons">
-                        <Link to="#" className="active">
-                          <i className="ti ti-list-tree" />
-                        </Link>
-                        <Link to={route.companiesGrid}>
-                          <i className="ti ti-grid-dots" />
-                        </Link>
-                      </div>
+                      
                     </div>
                   </div>
 
                   {/* /Filter */}
                   {/* Contact List */}
                   <div className="table-responsive custom-table">
-                    <Table dataSource={searchTerm != "" ? searchData : dealsData} columns={columns} />
+                    <Table dataSource={searchTerm != "" ? searchData : dealsData} columns={columns} handleBulkAction={handleBulkOperation} />
                   </div>
                   <div className="row align-items-center">
                     <div className="col-md-6">
@@ -850,7 +697,7 @@ const Leads = () => {
                           <Select
                             name="source"
                             onChange={(value) => handleChange(value, "select", "contact_name")}
-                            value={{ label: contactData?.find((x: any) => x?.value == formData?.contact_name)?.label, value: formData?.contact_name }}
+                            value={{ label: contactData?.find((x: any) => x?.label == formData?.contact_name)?.label, value: formData?.contact_name }}
                             className="select2" 
                             classNamePrefix="react-select"
                             options={contactData}
@@ -867,7 +714,7 @@ const Leads = () => {
                           <Select
                             name="source"
                             onChange={(value) => handleChange(value, "select", "company_name")}
-                            value={{ label: companyData?.find((x: any) => x?.value == formData?.company_name)?.label, value: formData?.company_name }}
+                            value={{ label: companyData?.find((x: any) => x?.label == formData?.company_name)?.label, value: formData?.company_name }}
                             className="select2" 
                             classNamePrefix="react-select"
                             options={companyData}
@@ -950,7 +797,7 @@ const Leads = () => {
                           <Select
                             name="source"
                             onChange={(value) => handleChange(value, "select", "product_category")}
-                            value={{ label: productData?.find((x: any) => x?.value == formData?.product_category)?.label, value: formData?.product_category }}
+                            value={{ label: productData?.find((x: any) => x?.label == formData?.product_category)?.label, value: formData?.product_category }}
                             className="select2" 
                             classNamePrefix="react-select"
                             options={productData}
@@ -967,7 +814,7 @@ const Leads = () => {
                           <Select
                             name="source"
                             onChange={(value) => handleChange(value, "select", "stage")}
-                            value={{ label: stageData?.find((x: any) => x?.value == formData?.stage)?.label, value: formData?.stage }}
+                            value={{ label: stageData?.find((x: any) => x?.label == formData?.stage)?.label, value: formData?.stage }}
                             className="select2" 
                             classNamePrefix="react-select"
                             options={stageData}
@@ -990,10 +837,10 @@ const Leads = () => {
                           <Select
                             name="source"
                             onChange={(value) => handleChange(value, "select", "team_leader")}
-                            value={{ label: teamData?.find((x: any) => x?.value == formData?.team_leader)?.label, value: formData?.team_leader }}
+                            value={{ label: usersData?.find((x: any) => x?.label == formData?.team_leader)?.label, value: formData?.team_leader }}
                             className="select2" 
                             classNamePrefix="react-select"
-                            options={teamData}
+                            options={usersData}
                             placeholder="Select an option"
                           />
                         </div>
@@ -1147,7 +994,7 @@ const Leads = () => {
                           <Select
                             name="source"
                             onChange={(value) => handleChange(value, "select", "contact_name")}
-                            value={{ label: contactData?.find((x: any) => x?.value == formData?.contact_name?._id)?.label, value: formData?.contact_name }}
+                            value={{ label: contactData?.find((x: any) => x?.label == formData?.contact_name?._id)?.label, value: formData?.contact_name }}
                             className="select2" 
                             classNamePrefix="react-select"
                             options={contactData}
@@ -1164,7 +1011,7 @@ const Leads = () => {
                           <Select
                             name="source"
                             onChange={(value) => handleChange(value, "select", "company_name")}
-                            value={{ label: companyData?.find((x: any) => x?.value == formData?.company_name?._id)?.label, value: formData?.company_name }}
+                            value={{ label: companyData?.find((x: any) => x?.label == formData?.company_name?._id)?.label, value: formData?.company_name }}
                             className="select2" 
                             classNamePrefix="react-select"
                             options={companyData}
@@ -1247,7 +1094,7 @@ const Leads = () => {
                           <Select
                             name="source"
                             onChange={(value) => handleChange(value, "select", "product_category")}
-                            value={{ label: productData?.find((x: any) => x?.value == formData?.product_category?._id)?.label, value: formData?.product_category }}
+                            value={{ label: productData?.find((x: any) => x?.label == formData?.product_category?._id)?.label, value: formData?.product_category }}
                             className="select2" 
                             classNamePrefix="react-select"
                             options={productData}
@@ -1264,7 +1111,7 @@ const Leads = () => {
                           <Select
                             name="source"
                             onChange={(value) => handleChange(value, "select", "stage")}
-                            value={{ label: stageData?.find((x: any) => x?.value == formData?.stage?._id)?.label, value: formData?.stage }}
+                            value={{ label: stageData?.find((x: any) => x?.label == formData?.stage?._id)?.label, value: formData?.stage }}
                             className="select2" 
                             classNamePrefix="react-select"
                             options={stageData}
@@ -1287,10 +1134,10 @@ const Leads = () => {
                           <Select
                             name="source"
                             onChange={(value) => handleChange(value, "select", "team_leader")}
-                            value={{ label: teamData?.find((x: any) => x?.value == formData?.team_leader?._id)?.label, value: formData?.team_leader }}
+                            value={{ label: usersData?.find((x: any) => x?.label == formData?.team_leader?._id)?.label, value: formData?.team_leader }}
                             className="select2" 
                             classNamePrefix="react-select"
-                            options={teamData}
+                            options={usersData}
                             placeholder="Select an option"
                           />
                         </div>
@@ -1337,12 +1184,13 @@ const Leads = () => {
               <button
                 type="button"
                 className="btn btn-primary"
+                data-bs-dismiss="offcanvas"
                 onClick={() => {
                   setOpenModal2(true)
                   handleAddOrUpdateDeals()
                 }}
               >
-                Create
+                Update
               </button>
             </div>
           </form>
@@ -1350,9 +1198,42 @@ const Leads = () => {
       </div>
       {/* /Edit Company */}
      
-      {/* Delete Company */}
-
-      {/* /Delete Company */}
+      {/** Bulk Delete Data */}
+      <Modal show={showBulkDeleteModal} onHide={() => setShowBulkDeleteModal(false)}>
+        <div className="modal-header border-0 m-0 justify-content-end">
+          <button
+            className="btn-close"
+            aria-label="Close"
+            onClick={() => {
+              setShowBulkDeleteModal(false)
+            }}
+          >
+            <i className="ti ti-x" />
+          </button>
+        </div>
+        <div className="modal-body">
+          <div className="success-message text-center">
+            <div className="success-popup-icon bg-light-blue">
+              <i className="ti ti-user-plus" />
+            </div>
+            <h3>Are you sure?</h3>
+            <p>delete ({selectedRows})selected rows</p>
+            <div className="col-lg-12 text-center modal-btn">
+              <Link
+                to="#"
+                className="btn btn-light"
+                onClick={() => setShowBulkDeleteModal(false)}
+              >
+                Cancel
+              </Link>
+              <Link to="#" className="btn btn-primary" onClick={handleBulkDelete}>
+                Delete
+              </Link>
+            </div>
+          </div>
+        </div>
+      </Modal>
+      {/** Bulk Delete Data */}
       {/* Add New Deals */}
       
       {/* /Add New Deals */}

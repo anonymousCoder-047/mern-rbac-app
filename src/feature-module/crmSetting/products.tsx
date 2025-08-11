@@ -1,38 +1,35 @@
 import React, { useState } from "react";
 // import ImageWithBasePath from "../../../core/common/imageWithBasePath";
-import {
-  companyName,
-  initialSettings,
-} from "../../core/common/selectoption/selectoption";
 import Select from "react-select";
 import { Link } from "react-router-dom";
-import DateRangePicker from "react-bootstrap-daterangepicker";
 import Table from "../../core/common/dataTable/index";
 import { Modal } from "react-bootstrap";
 import { TableData } from "../../core/data/interface";
 import { useDispatch, useSelector } from "react-redux";
 import { all_routes } from "../router/all_routes";
-import DatePicker from "react-datepicker";
 import CollapseHeader from "../../core/common/collapse-header";
 import PrivateServer from "../../helper/PrivateServer";
 import { endpoints } from "../../helper/endpoints";
 import _ from "lodash";
-import moment from "moment";
 import useAuth from "../../hooks/useAuth";
 import * as XLSX from "xlsx";
 
 const Products = () => {
   const { values } = useAuth();
   const route = all_routes;
-  const [sources, setSources] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
   const [types, setTypes] = useState([]);
+  const [subTypes, setSubTypes] = useState([]);
   const [taxes, setTaxes] = useState([]);
   const [openModal2, setOpenModal2] = useState(false);
   const [productsData, setProductsData] = useState([]);
   const [searchData, setFilteredSearchData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showBulkActionButton, setShowBulkActionButton] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [selectedRows, setSelectedRows] = useState(0);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [productId, setProductId] = useState("");
   const [fileImport, setFileImport] = useState({
     file_key: "",
@@ -48,6 +45,7 @@ const Products = () => {
     description: "",
     tax: [],
     product_type: "",
+    product_sub_type: "",
     product_category: "",
     product_sub_category: "",
     productId: "",
@@ -57,27 +55,6 @@ const Products = () => {
 //     setSelectedDate(date);
     // setFormData({ ...formData, dob: moment(date).format('YYYY-MM-DD') });
 //   };
-
-  const dispatch = useDispatch();
-  const activityToggle = useSelector(
-    (state: any) => state?.activityTogglePopup
-  );
-  const activityToggleTwo = useSelector(
-    (state: any) => state?.activityTogglePopupTwo
-  );
-  const addTogglePopupTwo = useSelector(
-    (state: any) => state?.addTogglePopupTwo
-  );
-
-  const [stars, setStars] = useState<{ [key: number]: boolean }>({});
-
-  const initializeStarsState = () => {
-    const starsState: { [key: number]: boolean } = {};
-    productsData.forEach((item, index) => {
-      starsState[index] = false;
-    });
-    setStars(starsState);
-  };
 
   const cleanData = (data, filterKeys) => {
     return data.map(obj => {
@@ -148,8 +125,8 @@ const Products = () => {
       const response = await PrivateServer.getData(Products?.view)
   
       if(response?.data) {
-        setProductsData(response?.data);
-        setFilteredSearchData(response?.data);
+        setProductsData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
+        setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))])
       }
     } catch(error) {
       console.log("Error while getting products -- E:", error?.message);
@@ -198,6 +175,20 @@ const Products = () => {
     }
   }
   
+  const getSubTypes = async () => {
+    try {
+      const { SubType } = endpoints;
+      const response = await PrivateServer.getData(SubType?.view)
+  
+      if(response?.data) {
+        const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.sub_type_name, value: x?._id })))]  
+        setSubTypes(_data);
+      }
+    } catch(error) {
+      console.log("Error while getting types -- E:", error?.message);
+    }
+  }
+  
   const getTaxes = async () => {
     try {
       const { Tax } = endpoints;
@@ -214,21 +205,13 @@ const Products = () => {
 
   // Call initializeStarsState once when the component mounts
   React.useEffect(() => {
-    initializeStarsState();
-
     getProducts();
     getCategories();
     getSubCategories();
     getTypes();
+    getSubTypes();
     getTaxes();
   }, []);
-  
-  const handleStarToggle = (index: number) => {
-    setStars((prevStars) => ({
-      ...prevStars,
-      [index]: !prevStars[index],
-    }));
-  };
 
   const handleClose = () => {
     setProductId("");
@@ -241,6 +224,7 @@ const Products = () => {
         description: "",
         tax: [],
         product_type: "",
+        product_sub_type: "",
         product_category: "",
         product_sub_category: "",
         productId: "",
@@ -256,7 +240,7 @@ const Products = () => {
         if(_multiple) {
             const _taxes = _.map(e, 'value')
             setFormData({ ...formData, [_name]: _taxes });
-        } else setFormData({ ...formData, [_name]: e?.value });
+        } else setFormData({ ...formData, [_name]: e?.label });
     } else {
       const { name, value } = e.target; 
       setFormData({ ...formData, [name]: value });
@@ -274,27 +258,24 @@ const Products = () => {
   }
 
   const handleEditProducts = (values) => {
-    console.log("Edit product clicked -- ", values);
     const _tax = [...new Set(values?.tax?.map((x) => x?._id))]
     setFormData({ 
       ...formData, 
       ..._.omit(values, ["_id"]), 
-      productId: values?._id, 
-      product_category: values?.product_category?._id ?? values?.product_category, 
-      product_sub_category: values?.product_sub_category?._id ?? values?.product_sub_category, 
-      product_type: values?.product_type?._id ?? values?.product_type,
-      tax: _tax,
+      productId: values?._id,
+      tax: _tax, 
     });
   }
 
   const handleAddOrUpdateProducts = async () => {
     try {
       const { Products } = endpoints;
-      const { status, data } = formData?.productId !== "" ? await PrivateServer?.patchData(Products.patch, formData?.productId, formData) : await PrivateServer.postData(Products.create, formData);
+      const { data } = formData?.productId !== "" ? await PrivateServer?.patchData(Products.patch, formData?.productId, formData) : await PrivateServer.postData(Products.create, formData);
 
-      if(status == 200) {
+      if(data) {
         if(formData?.productId == "") setFormData({ ...formData, productId: data?.data?._id })
         getProducts();
+        handleClose();
       }
     } catch(err) {
       console.log("Error while saving products -- E: ", err?.message);
@@ -302,19 +283,6 @@ const Products = () => {
   }
 
   const columns = [
-    {
-      title: "",
-      dataIndex: "",
-      render: (text: any, record: any, index: number) => (
-        <div
-          className={`set-star rating-select ${stars[index] ? "filled" : ""}`}
-          onClick={() => handleStarToggle(index)}
-          key={index}
-        >
-          <i className="fa fa-star"></i>
-        </div>
-      ),
-    },
     {
       title: "Product Name",
       dataIndex: "product_name",
@@ -327,13 +295,13 @@ const Products = () => {
             alt={"Customer profile picture"}
           />
         </Link> */}
-        <Link to={route.contactDetails} className="d-flex flex-column">
-        {record?.description}
+        <Link to={route.products} className="d-flex flex-column">
+        {record?.product_name}
         <span className="text-default"></span>
         </Link>
       </h2>
       ),
-      sorter: (a: { [key: string]: string }, b: { [key: string]: string }) => a?.description?.toLowerCase().localeCompare(b?.description?.toLowerCase()),
+      sorter: (a: { [key: string]: string }, b: { [key: string]: string }) => a?.product_name?.toLowerCase().localeCompare(b?.product_name?.toLowerCase()),
     },
     {
       title: "Product Category",
@@ -347,13 +315,13 @@ const Products = () => {
             alt={"Customer profile picture"}
           />
         </Link> */}
-        <Link to={route.contactDetails} className="d-flex flex-column">
-        {record?.product_category?.category_name}
-        <span className="text-default">{record?.product_sub_category?.sub_category_name}</span>
+        <Link to={route.category} className="d-flex flex-column">
+        {record?.product_category}
+        <span className="text-default">{record?.product_sub_category}</span>
         </Link>
       </h2>
       ),
-      sorter: (a: { [key: string]: string }, b: { [key: string]: string }) => a?.product_category?.category_name?.toLowerCase().localeCompare(b?.product_category?.category_name?.toLowerCase()),
+      sorter: (a: { [key: string]: string }, b: { [key: string]: string }) => a?.product_category?.toLowerCase().localeCompare(b?.product_category?.toLowerCase()),
     },
     {
       title: "Product Type",
@@ -367,13 +335,13 @@ const Products = () => {
             alt={"Customer profile picture"}
           />
         </Link> */}
-        <Link to={route.contactDetails} className="d-flex flex-column">
-        {record?.product_type?.type_name}
-        <span className="text-default">{record?.product_type?.sub_type?.sub_type_name}</span>
+        <Link to={route.type} className="d-flex flex-column">
+        {record?.product_type}
+        <span className="text-default">{record?.product_sub_type}</span>
         </Link>
       </h2>
       ),
-      sorter: (a: { [key: string]: string }, b: { [key: string]: string }) => a?.product_type?.type_name?.toLowerCase().localeCompare(b?.product_type?.type_name?.toLowerCase()),
+      sorter: (a: { [key: string]: string }, b: { [key: string]: string }) => a?.product_type?.toLowerCase().localeCompare(b?.product_type?.toLowerCase()),
     },
     {
       title: "QTY Ordered",
@@ -471,6 +439,28 @@ const Products = () => {
       ),
     },
   ];
+
+  const handleBulkOperation = (selectedRows: string | any[]) => {
+    if(selectedRows?.length > 0) {
+      setShowBulkActionButton(true);
+      setSelectedRows(selectedRows?.length)
+      setSelectedIds(selectedRows)
+    } else {
+      setShowBulkActionButton(false);
+      setSelectedRows(0)
+      setSelectedIds([])
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    const { Products } = endpoints;
+    const deleted = await PrivateServer.deleteBulkData(Products?.delete_bulk, selectedIds)
+    if(deleted) {
+      setShowBulkActionButton(false);
+      setShowBulkDeleteModal(false);
+    }
+  }
+
   return (
     <div>
       {/* Page Wrapper */}
@@ -506,7 +496,8 @@ const Products = () => {
                         <input
                           type="text"
                           className="form-control"
-                          placeholder="Search Contacts"
+                          placeholder="Search Products"
+                          onChange={handleSearch}
                         />
                       </div>
                     </div>
@@ -558,202 +549,28 @@ const Products = () => {
                 </div>
 
                 <div className="card-body">
-                  {/* Search */}
-
-                  {/* /Search */}
-                  {/* Filter */}
                   <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2 mb-4">
                     <div className="d-flex align-items-center flex-wrap row-gap-2">
-                      <div className="dropdown me-2">
-                        <Link
-                          to="#"
-                          className="dropdown-toggle"
-                          data-bs-toggle="dropdown"
+                      {
+                        showBulkActionButton ? 
+                        <button
+                          className="btn btn-primary"
+                          onClick={() => setShowBulkDeleteModal(!showBulkDeleteModal)}
                         >
-                          <i className="ti ti-sort-ascending-2 me-2" />
-                          Sort{" "}
-                        </Link>
-                        <div className="dropdown-menu  dropdown-menu-start">
-                          <ul>
-                            <li>
-                              <Link to="#" className="dropdown-item">
-                                <i className="ti ti-circle-chevron-right me-1" />
-                                Ascending
-                              </Link>
-                            </li>
-                            <li>
-                              <Link to="#" className="dropdown-item">
-                                <i className="ti ti-circle-chevron-right me-1" />
-                                Descending
-                              </Link>
-                            </li>
-                            <li>
-                              <Link to="#" className="dropdown-item">
-                                <i className="ti ti-circle-chevron-right me-1" />
-                                Recently Viewed
-                              </Link>
-                            </li>
-                            <li>
-                              <Link to="#" className="dropdown-item">
-                                <i className="ti ti-circle-chevron-right me-1" />
-                                Recently Added
-                              </Link>
-                            </li>
-                          </ul>
-                        </div>
-                      </div>
-                      <div className="icon-form">
-                        <span className="form-icon">
-                          <i className="ti ti-calendar" />
-                        </span>
-                        <DateRangePicker initialSettings={initialSettings}>
-                          <input
-                            className="form-control bookingrange"
-                            type="text"
-                          />
-                        </DateRangePicker>
-                      </div>
+                          Delete {selectedRows} rows
+                        </button> 
+                        : ""
+                      }
                     </div>
                     <div className="d-flex align-items-center flex-wrap row-gap-2">
-                      <div className="dropdown me-2">
-                        <Link
-                          to="#"
-                          className="btn bg-soft-purple text-purple"
-                          data-bs-toggle="dropdown"
-                          data-bs-auto-close="outside"
-                        >
-                          <i className="ti ti-columns-3 me-2" />
-                          Manage Columns
-                        </Link>
-                        <div className="dropdown-menu  dropdown-menu-md-end dropdown-md p-3">
-                          <h4 className="mb-2 fw-semibold">
-                            Want to manage datatables?
-                          </h4>
-                          <p className="mb-3">
-                            Please drag and drop your column to reorder your
-                            table and enable see option as you want.
-                          </p>
-                          <div className="border-top pt-3">
-                            <div className="d-flex align-items-center justify-content-between mb-3">
-                              <p className="mb-0 d-flex align-items-center">
-                                <i className="ti ti-grip-vertical me-2" />
-                                Name
-                              </p>
-                              <div className="status-toggle">
-                                <input
-                                  type="checkbox"
-                                  id="col-name"
-                                  className="check"
-                                />
-                                <label
-                                  htmlFor="col-name"
-                                  className="checktoggle"
-                                />
-                              </div>
-                            </div>
-                            <div className="d-flex align-items-center justify-content-between mb-3">
-                              <p className="mb-0 d-flex align-items-center">
-                                <i className="ti ti-grip-vertical me-2" />
-                                Phone
-                              </p>
-                              <div className="status-toggle">
-                                <input
-                                  type="checkbox"
-                                  id="col-phone"
-                                  className="check"
-                                />
-                                <label
-                                  htmlFor="col-phone"
-                                  className="checktoggle"
-                                />
-                              </div>
-                            </div>
-                            <div className="d-flex align-items-center justify-content-between mb-3">
-                              <p className="mb-0 d-flex align-items-center">
-                                <i className="ti ti-grip-vertical me-2" />
-                                Email
-                              </p>
-                              <div className="status-toggle">
-                                <input
-                                  type="checkbox"
-                                  id="col-email"
-                                  className="check"
-                                />
-                                <label
-                                  htmlFor="col-email"
-                                  className="checktoggle"
-                                />
-                              </div>
-                            </div>
-                            <div className="d-flex align-items-center justify-content-between">
-                              <p className="mb-0 d-flex align-items-center">
-                                <i className="ti ti-grip-vertical me-2" />
-                                Action
-                              </p>
-                              <div className="status-toggle">
-                                <input
-                                  type="checkbox"
-                                  id="col-action"
-                                  className="check"
-                                />
-                                <label
-                                  htmlFor="col-action"
-                                  className="checktoggle"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      {/* <div className="form-sorts dropdown me-2">
-                        <Link
-                          to="#"
-                          data-bs-toggle="dropdown"
-                          data-bs-auto-close="outside"
-                        >
-                          <i className="ti ti-filter-share" />
-                          Filter
-                        </Link>
-                        <div className="filter-dropdown-menu dropdown-menu  dropdown-menu-md-end p-3">
-                          <div className="filter-set-view">
-                            <div className="filter-set-head">
-                              <h4>
-                                <i className="ti ti-filter-share" />
-                                Filter
-                              </h4>
-                            </div>
-                            <div className="filter-reset-btns">
-                              <div className="row">
-                                <div className="col-6">
-                                  <Link to="#" className="btn btn-light">
-                                    Reset
-                                  </Link>
-                                </div>
-                                <div className="col-6">
-                                  <Link to="#" className="btn btn-primary">
-                                    Filter
-                                  </Link>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div> */}
-                      <div className="view-icons">
-                        <Link to="#" className="active">
-                          <i className="ti ti-list-tree" />
-                        </Link>
-                        <Link to={route.contactGrid}>
-                          <i className="ti ti-grid-dots" />
-                        </Link>
-                      </div>
+                      
                     </div>
                   </div>
 
                   {/* /Filter */}
                   {/* Contact List */}
                   <div className="table-responsive custom-table">
-                    <Table dataSource={searchTerm != "" ? searchData : productsData} columns={columns} />
+                    <Table dataSource={searchTerm != "" ? searchData : productsData} columns={columns} handleBulkAction={handleBulkOperation} />
                   </div>
                   <div className="row align-items-center">
                     <div className="col-md-6">
@@ -839,7 +656,7 @@ const Products = () => {
                             <Select
                               name="product_category"
                               onChange={(value) => handleChange(value, "select", "product_category")}
-                              value={{ label: categories?.find((x: any) => x?.value == formData?.product_category)?.label, value: formData?.product_category }}
+                              value={{ label: categories?.find((x: any) => x?.label == formData?.product_category)?.label, value: formData?.product_category }}
                               className="select2" 
                               classNamePrefix="react-select"
                               options={categories}
@@ -857,7 +674,7 @@ const Products = () => {
                             <Select
                               name="product_sub_category"
                               onChange={(value) => handleChange(value, "select", "product_sub_category")}
-                              value={{ label: subCategories?.find((x: any) => x?.value == formData?.product_sub_category)?.label, value: formData?.product_sub_category }}
+                              value={{ label: subCategories?.find((x: any) => x?.label == formData?.product_sub_category)?.label, value: formData?.product_sub_category }}
                               className="select2" 
                               classNamePrefix="react-select"
                               options={subCategories}
@@ -874,10 +691,27 @@ const Products = () => {
                             <Select
                               name="product_type"
                               onChange={(value) => handleChange(value, "select", "product_type")}
-                              value={{ label: types?.find((x: any) => x?.value == formData?.product_type)?.label, value: formData?.product_type }}
+                              value={{ label: types?.find((x: any) => x?.label == formData?.product_type)?.label, value: formData?.product_type }}
                               className="select2" 
                               classNamePrefix="react-select"
                               options={types}
+                              placeholder="Choose"
+                            />
+                            {/* <input type="text" name="primary_phone" value={formData?.primary_phone} onChange={handleChange} className="form-control" /> */}
+                          </div>
+                        </div>
+                        <div className="col-md-6">
+                          <div className="mb-3">
+                            <label className="col-form-label">
+                              Sub Type <span className="text-danger">*</span>
+                            </label>
+                            <Select
+                              name="product_sub_type"
+                              onChange={(value) => handleChange(value, "select", "product_sub_type")}
+                              value={{ label: subTypes?.find((x: any) => x?.label == formData?.product_sub_type)?.label, value: formData?.product_sub_type }}
+                              className="select2" 
+                              classNamePrefix="react-select"
+                              options={subTypes}
                               placeholder="Choose"
                             />
                             {/* <input type="text" name="primary_phone" value={formData?.primary_phone} onChange={handleChange} className="form-control" /> */}
@@ -1059,7 +893,7 @@ const Products = () => {
                             <Select
                               name="product_category"
                               onChange={(value) => handleChange(value, "select", "product_category")}
-                              value={{ label: categories?.find((x: any) => x?.value == formData?.product_category)?.label, value: formData?.product_category }}
+                              value={{ label: categories?.find((x: any) => x?.label == formData?.product_category)?.label, value: formData?.product_category }}
                               className="select2" 
                               classNamePrefix="react-select"
                               options={categories}
@@ -1077,7 +911,7 @@ const Products = () => {
                             <Select
                               name="product_sub_category"
                               onChange={(value) => handleChange(value, "select", "product_sub_category")}
-                              value={{ label: subCategories?.find((x: any) => x?.value == formData?.product_sub_category)?.label, value: formData?.product_sub_category }}
+                              value={{ label: subCategories?.find((x: any) => x?.label == formData?.product_sub_category)?.label, value: formData?.product_sub_category }}
                               className="select2" 
                               classNamePrefix="react-select"
                               options={subCategories}
@@ -1094,10 +928,27 @@ const Products = () => {
                             <Select
                               name="product_type"
                               onChange={(value) => handleChange(value, "select", "product_type")}
-                              value={{ label: types?.find((x: any) => x?.value == formData?.product_type)?.label, value: formData?.product_type }}
+                              value={{ label: types?.find((x: any) => x?.label == formData?.product_type)?.label, value: formData?.product_type }}
                               className="select2" 
                               classNamePrefix="react-select"
                               options={types}
+                              placeholder="Choose"
+                            />
+                            {/* <input type="text" name="primary_phone" value={formData?.primary_phone} onChange={handleChange} className="form-control" /> */}
+                          </div>
+                        </div>
+                        <div className="col-md-6">
+                          <div className="mb-3">
+                            <label className="col-form-label">
+                              Sub Type <span className="text-danger">*</span>
+                            </label>
+                            <Select
+                              name="product_sub_type"
+                              onChange={(value) => handleChange(value, "select", "product_sub_type")}
+                              value={{ label: subTypes?.find((x: any) => x?.label == formData?.product_sub_type)?.label, value: formData?.product_sub_type }}
+                              className="select2" 
+                              classNamePrefix="react-select"
+                              options={subTypes}
                               placeholder="Choose"
                             />
                             {/* <input type="text" name="primary_phone" value={formData?.primary_phone} onChange={handleChange} className="form-control" /> */}
@@ -1196,8 +1047,8 @@ const Products = () => {
                 >
                   Cancel
                 </button>
-                <button type="button" onClick={handleAddOrUpdateProducts} className="btn btn-primary">
-                  Save Changes
+                <button type="button" onClick={handleAddOrUpdateProducts} data-bs-dismiss="offcanvas" className="btn btn-primary">
+                  Update
                 </button>
               </div>
             </form>
@@ -1270,6 +1121,43 @@ const Products = () => {
           </div>
         </div>
         {/* /Delete Contact */}
+
+        {/** Bulk Delete Data */}
+        <Modal show={showBulkDeleteModal} onHide={() => setShowBulkDeleteModal(false)}>
+          <div className="modal-header border-0 m-0 justify-content-end">
+            <button
+              className="btn-close"
+              aria-label="Close"
+              onClick={() => {
+                setShowBulkDeleteModal(false)
+              }}
+            >
+              <i className="ti ti-x" />
+            </button>
+          </div>
+          <div className="modal-body">
+            <div className="success-message text-center">
+              <div className="success-popup-icon bg-light-blue">
+                <i className="ti ti-user-plus" />
+              </div>
+              <h3>Are you sure?</h3>
+              <p>delete ({selectedRows})selected rows</p>
+              <div className="col-lg-12 text-center modal-btn">
+                <Link
+                  to="#"
+                  className="btn btn-light"
+                  onClick={() => setShowBulkDeleteModal(false)}
+                >
+                  Cancel
+                </Link>
+                <Link to="#" className="btn btn-primary" onClick={handleBulkDelete}>
+                  Delete
+                </Link>
+              </div>
+            </div>
+          </div>
+        </Modal>
+        {/** Bulk Delete Data */}
         
         {/* Create Contact */}
         <Modal show={openModal2} onHide={() => setOpenModal2(false)}>

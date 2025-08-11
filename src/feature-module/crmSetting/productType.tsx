@@ -8,6 +8,7 @@ import PrivateServer from "../../helper/PrivateServer";
 import { endpoints } from "../../helper/endpoints";
 import _ from "lodash";
 import useAuth from "../../hooks/useAuth";
+import { Modal } from "react-bootstrap";
 
 const route = all_routes;
 
@@ -15,6 +16,12 @@ const ProductType = () => {
   const { values } = useAuth();
   const [typeData, setTypeData] = useState([]);
   const [subTypes, setSubTypes] = useState([]);
+  const [searchData, setFilteredSearchData] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showBulkActionButton, setShowBulkActionButton] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [selectedRows, setSelectedRows] = useState(0);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [typeId, setTypeId] = useState("");
   const [formData, setFormData] = useState({
     type_name: "",
@@ -28,8 +35,10 @@ const ProductType = () => {
       const { Types } = endpoints;
       const response = await PrivateServer.getData(Types?.view)
   
-      console.log("data -- ", response)
-      if(response?.data) setTypeData(response?.data);
+      if(response?.data) {
+        setTypeData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
+        setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
+      }
     } catch(error) {
       console.log("Error while getting types -- E:", error?.message);
     }
@@ -40,7 +49,6 @@ const getSubTypes = async () => {
     const { SubType } = endpoints;
     const response = await PrivateServer.getData(SubType?.view)
 
-    console.log("data -- ", response)
     if(response?.data) {
         const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.sub_type_name, value: x?._id })))]  
         setSubTypes(_data);
@@ -66,7 +74,7 @@ const getSubTypes = async () => {
       setFormData({ ...formData, [name]: e.target?.files[0] });
     }
     else if(type == "select") {
-      setFormData({ ...formData, [_name]: e?.value });
+      setFormData({ ...formData, [_name]: e?.label });
     } else {
       const { name, value } = e.target; 
       setFormData({ ...formData, [name]: value });
@@ -84,18 +92,18 @@ const getSubTypes = async () => {
   }
 
   const handleEditType = (values) => {
-    console.log("Edit category clicked -- ", values);
     setFormData({ ...formData, ..._.omit(values, ["_id"]), typeId: values?._id });
   }
 
   const handleAddOrUpdateType = async () => {
     try {
       const { Types } = endpoints;
-      const { status, data } = formData?.typeId !== "" ? await PrivateServer?.patchData(Types.patch, formData?.typeId, formData) : await PrivateServer.postData(Types.create, formData);
+      const { data } = formData?.typeId !== "" ? await PrivateServer?.patchData(Types.patch, formData?.typeId, formData) : await PrivateServer.postData(Types.create, formData);
 
-      if(status == 200) {
+      if(data) {
         if(formData?.typeId == "") setFormData({ ...formData, typeId: data?.data?._id })
         getType();
+        handleClose();
       }
     } catch(err) {
       console.log("Error while saving category -- E: ", err?.message);
@@ -117,6 +125,14 @@ const getSubTypes = async () => {
        sorter: (a: any, b: any) =>
         a.type_name.length - b.type_name.length,
       key: "type_name",
+      width: "235px",
+    },
+    {
+      title: "Sub Type",
+      dataIndex: "sub_type",
+       sorter: (a: any, b: any) =>
+        a.sub_type.length - b.sub_type.length,
+      key: "sub_type",
       width: "235px",
     },
     {
@@ -164,6 +180,42 @@ const getSubTypes = async () => {
     getSubTypes();
   }, [])
 
+  const handleSearch = (e) => {
+    const { value: _searchTerm } = e?.target;
+    setSearchTerm(_searchTerm);
+    const _searchData = [...searchData];
+
+    if(searchTerm != "") {
+      const searchResults = _.filter(_searchData, (obj) =>
+        _.some(obj, (value) =>
+          _.isString(value) && _.includes(value.toLowerCase(), searchTerm?.toLowerCase())
+        )
+      );
+      setFilteredSearchData(searchResults)
+    } else setFilteredSearchData(searchData);
+  }
+
+  const handleBulkOperation = (selectedRows: string | any[]) => {
+    if(selectedRows?.length > 0) {
+      setShowBulkActionButton(true);
+      setSelectedRows(selectedRows?.length)
+      setSelectedIds(selectedRows)
+    } else {
+      setShowBulkActionButton(false);
+      setSelectedRows(0)
+      setSelectedIds([])
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    const { Types } = endpoints;
+    const deleted = await PrivateServer.deleteBulkData(Types?.delete_bulk, selectedIds)
+    if(deleted) {
+      setShowBulkActionButton(false);
+      setShowBulkDeleteModal(false);
+    }
+  }
+
   return (
     <>
     {/* Page Wrapper */}
@@ -199,7 +251,8 @@ const getSubTypes = async () => {
                       <input
                         type="text"
                         className="form-control"
-                        placeholder="Search Source"
+                        placeholder="Search Types"
+                        onChange={handleSearch}
                       />
                     </div>
                   </div>
@@ -221,8 +274,25 @@ const getSubTypes = async () => {
               </div>
               <div className="card-body">
                 {/* Contact List */}
+                <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2 mb-4">
+                  <div className="d-flex align-items-center flex-wrap row-gap-2">
+                    {
+                      showBulkActionButton ? 
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => setShowBulkDeleteModal(!showBulkDeleteModal)}
+                      >
+                        Delete {selectedRows} rows
+                      </button> 
+                      : ""
+                    }
+                  </div>
+                  <div className="d-flex align-items-center flex-wrap row-gap-2">
+                    
+                  </div>
+                </div>
                 <div className="table-responsive custom-table">
-                <Table columns={columns} dataSource={typeData} />
+                <Table columns={columns} dataSource={searchTerm != "" ? searchData : typeData} handleBulkAction={handleBulkOperation} />
                 </div>
                 <div className="row align-items-center">
                   <div className="col-md-6">
@@ -281,7 +351,7 @@ const getSubTypes = async () => {
                 <Select
                     name="sub_type"
                     onChange={(value) => handleChange(value, "select", "sub_type")}
-                    value={{ label: subTypes?.find((x: any) => x?.value == formData?.sub_type)?.label, value: formData?.sub_type }}
+                    value={{ label: subTypes?.find((x: any) => x?.label == formData?.sub_type)?.label, value: formData?.sub_type }}
                     className="select2" 
                     classNamePrefix="react-select"
                     options={subTypes}
@@ -350,7 +420,7 @@ const getSubTypes = async () => {
                 <Select
                     name="sub_type"
                     onChange={(value) => handleChange(value, "select", "sub_type")}
-                    value={{ label: subTypes?.find((x: any) => x?.value == formData?.sub_type)?.label, value: formData?.sub_type }}
+                    value={{ label: subTypes?.find((x: any) => x?.label == formData?.sub_type)?.label, value: formData?.sub_type }}
                     className="select2" 
                     classNamePrefix="react-select"
                     options={subTypes}
@@ -369,7 +439,7 @@ const getSubTypes = async () => {
                   Cancel
                 </Link>
                 <button type="button" data-bs-dismiss="modal" onClick={handleAddOrUpdateType} className="btn btn-primary">
-                  Save Changes
+                  Update
                 </button>
               </div>
             </div>
@@ -408,6 +478,42 @@ const getSubTypes = async () => {
       </div>
     </div>
     {/* /Delete Type */}
+    {/** Bulk Delete Data */}
+    <Modal show={showBulkDeleteModal} onHide={() => setShowBulkDeleteModal(false)}>
+      <div className="modal-header border-0 m-0 justify-content-end">
+        <button
+          className="btn-close"
+          aria-label="Close"
+          onClick={() => {
+            setShowBulkDeleteModal(false)
+          }}
+        >
+          <i className="ti ti-x" />
+        </button>
+      </div>
+      <div className="modal-body">
+        <div className="success-message text-center">
+          <div className="success-popup-icon bg-light-blue">
+            <i className="ti ti-user-plus" />
+          </div>
+          <h3>Are you sure?</h3>
+          <p>delete ({selectedRows})selected rows</p>
+          <div className="col-lg-12 text-center modal-btn">
+            <Link
+              to="#"
+              className="btn btn-light"
+              onClick={() => setShowBulkDeleteModal(false)}
+            >
+              Cancel
+            </Link>
+            <Link to="#" className="btn btn-primary" onClick={handleBulkDelete}>
+              Delete
+            </Link>
+          </div>
+        </div>
+      </div>
+    </Modal>
+    {/** Bulk Delete Data */}
   </>
   
   );

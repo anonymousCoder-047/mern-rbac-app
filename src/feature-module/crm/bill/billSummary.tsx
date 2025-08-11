@@ -1,0 +1,318 @@
+import { useState } from "react";
+import Table from "../../../core/common/dataTable/index";
+import { Link } from "react-router-dom";
+import { all_routes } from "../../router/all_routes";
+import CollapseHeader from "../../../core/common/collapse-header";
+import PrivateServer from "../../../helper/PrivateServer";
+import { endpoints } from "../../../helper/endpoints";
+import _ from "lodash";
+import useAuth from "../../../hooks/useAuth";
+import * as XLSX from "xlsx";
+import moment from "moment";
+
+const route = all_routes;
+
+const BillSummary = () => {
+  const { values } = useAuth();
+  const [billData, setBillData] = useState([]);
+  const [searchData, setFilteredSearchData] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [formData, setFormData] = useState({
+    bill_file: "",
+    number: "",
+    filename: "",
+  });
+
+  const handleClose = () => {
+    setFormData({
+      bill_file: "",
+      number: "",
+      filename: "",
+    });
+  }
+
+  const handleChange = (e) => {    
+    const { type } = e.target;
+    if(type == "file") {
+      const { name, value } = e.target;
+      setFormData({ ...formData, bill_file: e.target?.files[0], [name]: value });
+    } else if(type == "select") {
+      setFormData({ ...formData, [_name]: e?.value });
+    } else {
+      const { name, value } = e.target; 
+      setFormData({ ...formData, [name]: value });
+    }
+  }
+
+  const handleAddOrUpdateSources = async () => {
+    try {
+      const { Bill } = endpoints;
+      const _formData = new FormData();
+      _formData.append('bill_file', formData.bill_file);
+
+      const { data } = await PrivateServer.postData(Bill.find, formData.bill_file != "" ? _formData : formData, (formData.bill_file != "" ? {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      } : {}));
+
+      if(data) {
+        setBillData([...new Set(data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))])
+        setFilteredSearchData([...new Set(data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))])
+      }
+    } catch(err) {
+      console.log("Error while saving bill summary -- E: ", err?.message);
+    }
+  }
+
+  const columns = [
+    {
+      title: "Account Id",
+      dataIndex: "billingAccountId",
+       sorter: (a: any, b: any) =>
+        a.billingAccountId.length - b.billingAccountId.length,
+      key: "billingAccountId",
+      width: "237px",
+    },
+    {
+      title: "Account Type",
+      dataIndex: "accountType",
+       sorter: (a: any, b: any) =>
+        a.accountType.length - b.accountType.length,
+      key: "accountType",
+      width: "235px",
+    },
+    {
+      title: "Out Standing Balance",
+      dataIndex: "outStandingBalance",
+       sorter: (a: any, b: any) =>
+        a.outStandingBalance.length - b.outStandingBalance.length,
+      key: "outStandingBalance",
+      width: "235px",
+    },
+    {
+      title: "Invoice Amt",
+      dataIndex: "invoiceAmount",
+       sorter: (a: any, b: any) =>
+        a.invoiceAmount.length - b.invoiceAmount.length,
+      key: "invoiceAmount",
+      width: "235px",
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+       sorter: (a: any, b: any) =>
+        a.status.length - b.status.length,
+      key: "status",
+      width: "235px",
+    },
+    {
+      title: "Invoice #",
+      dataIndex: "invoiceNumber",
+       sorter: (a: any, b: any) =>
+        a.invoiceNumber.length - b.invoiceNumber.length,
+      key: "invoiceNumber",
+      width: "235px",
+    },
+    {
+      title: "Invoice Date",
+      dataIndex: "invoiceDate",
+       sorter: (a: any, b: any) =>
+        a.invoiceDate.length - b.invoiceDate.length,
+      key: "invoiceDate",
+      width: "235px",
+    },
+  ];
+
+  const handleSearch = (e) => {
+    const { value: _searchTerm } = e?.target;
+    setSearchTerm(_searchTerm);
+    const _searchData = [...searchData];
+
+    if(searchTerm != "") {
+      const searchResults = _.filter(_searchData, (obj) =>
+        _.some(obj, (value) =>
+          _.isString(value) && _.includes(value.toLowerCase(), searchTerm?.toLowerCase())
+        )
+      );
+      setFilteredSearchData(searchResults)
+    } else setFilteredSearchData(searchData);
+  }
+
+  const handleExport = () => {
+    try {
+    // Convert data to worksheet format
+    const worksheet = XLSX.utils.json_to_sheet(billData);
+
+    // Create a new workbook and append the worksheet
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Invoice Summary");
+
+    // Write the file and trigger download
+    XLSX.writeFile(workbook, `etisalat_invoice_summary_${moment(new Date()).format('YYYY-MM-DD HH:mm:i')}.xlsx`);
+
+    } catch(err) {
+    console.log("Error == ", err);
+    }
+}
+
+  const handleBulkOperation = (selectedRows: string | any[]) => {}
+
+  return (
+    <>
+    {/* Page Wrapper */}
+    <div className="page-wrapper">
+      <div className="content">
+        <div className="row">
+          <div className="col-md-12">
+            {/* Page Header */}
+            <div className="page-header">
+              <div className="row align-items-center">
+                <div className="col-8">
+                  <h4 className="page-title">
+                    Bill Summary<span className="count-title">{searchTerm != "" ? searchData?.length : billData?.length}</span>
+                  </h4>
+                </div>
+                <div className="col-4 text-end">
+                  <div className="head-icons">
+                   <CollapseHeader/>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* /Page Header */}
+            <div className="card">
+              <div className="card-header">
+                {/* Search */}
+                <div className="row align-items-center">
+                  <div className="col-sm-4">
+                    <div className="icon-form mb-3 mb-sm-0">
+                      <span className="form-icon">
+                        <i className="ti ti-search" />
+                      </span>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Search Source"
+                        onChange={handleSearch}
+                      />
+                    </div>
+                  </div>
+                  <div className="col-sm-8">
+                    <div className="d-flex align-items-center flex-wrap row-gap-2 justify-content-sm-end">
+                        <div className="dropdown me-2">
+                            <Link
+                            to="#"
+                            className="dropdown-toggle"
+                            data-bs-toggle="dropdown"
+                            >
+                            <i className="ti ti-package-export me-2" />
+                            Export
+                            </Link>
+                            <div className="dropdown-menu  dropdown-menu-end">
+                            <ul>
+                                <li>
+                                <Link to="#" className="dropdown-item" onClick={handleExport}>
+                                    <i className="ti ti-file-type-xls text-green me-1" />
+                                    Export as Excel{" "}
+                                </Link>
+                                </li>
+                            </ul>
+                            </div>
+                        </div>
+                        <div className="text-sm-end">
+                        <Link
+                            to="#"
+                            className="btn btn-primary "
+                            data-bs-toggle="modal"
+                            data-bs-target="#add_source"
+                        >
+                            <i className="ti ti-square-rounded-plus me-2" />
+                            Search Invoice
+                        </Link>
+                        </div>
+                    </div>
+                  </div>
+                </div>
+                {/* /Search */}
+              </div>
+              <div className="card-body">
+                {/* Contact List */}
+                <div className="table-responsive custom-table">
+                <Table columns={columns} dataSource={searchTerm != "" ? searchData : billData} handleBulkAction={handleBulkOperation} />
+                </div>
+                <div className="row align-items-center">
+                  <div className="col-md-6">
+                    <div className="datatable-length" />
+                  </div>
+                  <div className="col-md-6">
+                    <div className="datatable-paginate" />
+                  </div>
+                </div>
+                {/* /Contact List */}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {/* /Page Wrapper */}
+
+    {/* Add New Source */}
+    <div className="modal fade" id="add_source" role="dialog">
+      <div className="modal-dialog modal-dialog-centered">
+        <div className="modal-content">
+          <div className="modal-header">
+            <h5 className="modal-title">Search invoice</h5>
+            <button
+              className="btn-close custom-btn-close border p-1 me-0 text-dark"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+              onClick={handleClose}
+            >
+              <i className="ti ti-x" />
+            </button>
+          </div>
+          <form >
+            <div className="modal-body">
+              <div className="mb-3">
+                <label className="col-form-label">
+                  File Upload
+                </label>
+                <input type="file" name="filename" value={formData?.filename} onChange={handleChange} className="form-control" accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+              </div>
+            </div>
+            <span>or</span>
+            <hr />
+            <div className="modal-body">
+              <div className="mb-3">
+                <label className="col-form-label">
+                  Account Number
+                </label>
+                <input type="text" name="number" value={formData?.number} onChange={handleChange} className="form-control" />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <div className="d-flex align-items-center justify-content-end m-0">
+                <Link
+                  to="#"
+                  className="btn btn-light me-2"
+                  data-bs-dismiss="modal"
+                  onClick={handleClose}
+                >
+                  Cancel
+                </Link>
+                <button type="button" data-bs-dismiss="modal" onClick={handleAddOrUpdateSources} className="btn btn-primary">
+                  Search
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    {/* /Add New Source */}
+  </>
+  
+  );
+};
+
+export default BillSummary;

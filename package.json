@@ -50,7 +50,7 @@
     "ajv": "^6.12.6",
     "ajv-keywords": "^3.5.2",
     "antd": "^5.15.3",
-    "apexcharts": "^4.1.0",
+    "apexcharts": "^5.3.2",
     "axios": "^1.7.7",
     "bcryptjs": "^2.4.3",
     "bootstrap": "^5.3.5",

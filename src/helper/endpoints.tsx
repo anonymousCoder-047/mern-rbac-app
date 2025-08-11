@@ -16,6 +16,7 @@ export const endpoints = {
         update: '/group/update',
         patch: '/group/update',
         delete: '/group/delete',
+        delete_bulk: '/group/bulk-delete',
     },
     Profile: {
         view: '/profile/view',
@@ -24,6 +25,7 @@ export const endpoints = {
         update: '/profile/update',
         patch: '/profile/update',
         delete: '/profile/delete',
+        delete_bulk: '/profile/bulk-delete',
     },
     Contact: {
         view: '/contact/view',
@@ -32,6 +34,10 @@ export const endpoints = {
         update: '/contact/update',
         patch: '/contact/update',
         delete: '/contact/delete',
+        delete_bulk: '/contact/bulk-delete',
+    },
+    Bill: {
+        find: '/bill/search',
     },
     Sources: {
         view: '/source/view',
@@ -39,6 +45,7 @@ export const endpoints = {
         update: '/source/update',
         patch: '/source/update',
         delete: '/source/delete',
+        delete_bulk: '/source/bulk-delete',
     },
     Deals: {
         view: '/deals/view',
@@ -46,6 +53,7 @@ export const endpoints = {
         update: '/deals/update',
         patch: '/deals/update',
         delete: '/deals/delete',
+        delete_bulk: '/deals/bulk-delete',
     },
     Products: {
         import: '/products/import',
@@ -54,6 +62,7 @@ export const endpoints = {
         update: '/products/update',
         patch: '/products/update',
         delete: '/products/delete',
+        delete_bulk: '/products/bulk-delete',
     },
     Categories: {
         view: '/category/view',
@@ -61,6 +70,7 @@ export const endpoints = {
         update: '/category/update',
         patch: '/category/update',
         delete: '/category/delete',
+        delete_bulk: '/category/bulk-delete',
     },
     SubCategory: {
         view: '/sub-category/view',
@@ -68,6 +78,7 @@ export const endpoints = {
         update: '/sub-category/update',
         patch: '/sub-category/update',
         delete: '/sub-category/delete',
+        delete_bulk: '/sub-category/bulk-delete',
     },
     Types: {
         view: '/type/view',
@@ -75,6 +86,7 @@ export const endpoints = {
         update: '/type/update',
         patch: '/type/update',
         delete: '/type/delete',
+        delete_bulk: '/type/bulk-delete',
     },
     SubType: {
         view: '/sub-type/view',
@@ -82,6 +94,7 @@ export const endpoints = {
         update: '/sub-type/update',
         patch: '/sub-type/update',
         delete: '/sub-type/delete',
+        delete_bulk: '/sub-type/bulk-delete',
     },
     Tax: {
         view: '/tax/view',
@@ -89,6 +102,7 @@ export const endpoints = {
         update: '/tax/update',
         patch: '/tax/update',
         delete: '/tax/delete',
+        delete_bulk: '/tax/bulk-delete',
     },
     Pipeline: {
         view: '/pipeline/view',
@@ -96,6 +110,7 @@ export const endpoints = {
         update: '/pipeline/update',
         patch: '/pipeline/update',
         delete: '/pipeline/delete',
+        delete_bulk: '/pipeline/bulk-delete',
     },
     Companies: {
         view: '/company/view',
@@ -103,6 +118,7 @@ export const endpoints = {
         update: '/company/update',
         patch: '/company/update',
         delete: '/company/delete',
+        delete_bulk: '/company/bulk-delete',
     },
     Permissions: {
         view: '/permissions/view',
@@ -110,6 +126,7 @@ export const endpoints = {
         update: '/permissions/update',
         patch: '/permissions/update',
         delete: '/permissions/delete',
+        delete_bulk: '/permissions/bulk-delete',
     },
     Role: {
         view: '/role/view',
@@ -117,6 +134,7 @@ export const endpoints = {
         update: '/role/update',
         patch: '/role/update',
         delete: '/role/delete',
+        delete_bulk: '/role/bulk-delete',
     },
     Settings: {
         view: '/settings/view',
@@ -124,6 +142,7 @@ export const endpoints = {
         update: '/settings/update',
         patch: '/settings/update',
         delete: '/settings/delete',
+        delete_bulk: '/settings/bulk-delete',
     },
     Dashboard: {
         view: '/dashboard/view',

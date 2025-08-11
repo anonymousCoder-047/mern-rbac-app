@@ -8,6 +8,7 @@ export const all_routes = {
   contactDetails: "/crm/contact-details",
   contactList: "/crm/contact-list",
   pipeline: "/crm/pipeline",
+  bill_summary: "/crm/bills",
   companyDetails: "/crm/company-details",
   contactGrid: "/crm/contact-grid",
   companies: "/companies",
@@ -41,6 +42,8 @@ export const all_routes = {
   tax: "/crm-setting/tax",
 
   //userManagement routes
-  rolesPermissions: "/user-management/roles-permissions",
+  roles: "/user-management/roles",
+  managePermissions: "/user-management/manage-permissions",
   manageusers: "/user-management/manage-users",
+  managegroups: "/user-management/manage-groups",
 };

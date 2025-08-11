@@ -107,7 +107,7 @@ const Sidebar = () => {
             <div id="sidebar-menu" className="sidebar-menu">
               <ul>
                 <li className="clinicdropdown theme">
-                  <Link to="/profile">
+                  <Link to="/user-management/manage-users">
                     {/* <ImageWithBasePath
                       src="assets/img/profiles/avatar-14.jpg"
                       className="img-fluid"

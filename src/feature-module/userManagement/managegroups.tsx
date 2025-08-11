@@ -12,36 +12,26 @@ import _ from "lodash";
 import useAuth from "../../hooks/useAuth";
 import { Modal } from "react-bootstrap";
 
-const Manageusers = () => {
+const Managegroups = () => {
   const { values } = useAuth();
-  const [passwords, setPasswords] = useState([false, false]);
-  const [users, setUsers] = useState([]);
-  const [roles, setRoles] = useState([]);
   const [groups, setGroups] = useState([]);
+  const [users, setUsers] = useState([]);
   const [searchData, setFilteredSearchData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showBulkActionButton, setShowBulkActionButton] = useState(false);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [selectedRows, setSelectedRows] = useState(0);
   const [selectedIds, setSelectedIds] = useState([]);
-  const [userId, setUserId] = useState("");
+  const [groupId, setGroupId] = useState("");
   const [formData, setFormData] = useState({
-    username: "",
-    email: "",
-    phone: "",
-    userId: "",
-    date_created: moment(new Date()).format('YYYY-MM-DD'),
-    password: "",
-    repeatPassword: "",
-    roleId: "",
+    group_name: "",
+    alias: "",
     groupId: "",
+    group_description: "",
+    group_manager: "",
+    group_members: [],
   })
 
-  const togglePassword = (index: any) => {
-    const updatedPasswords = [...passwords];
-    updatedPasswords[index] = !updatedPasswords[index];
-    setPasswords(updatedPasswords);
-  };
   const [stars, setStars] = useState<{ [key: number]: boolean }>({});
 
   // const initializeStarsState = () => {
@@ -58,25 +48,11 @@ const Manageusers = () => {
       const response = await PrivateServer.getData(Profile.view);
   
       if(response?.data) {
-        setUsers([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
-        setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
+        const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.email, value: x?._id })))]
+        setUsers(_data);
       }
     } catch(error) {
       console.log("Error while getting Users -- E: ", error.message);
-    }
-  }
-
-  const getRoles = async () => {
-    try {
-      const { Role } = endpoints;
-      const response = await PrivateServer.getData(Role.view);
-  
-      if(response?.data) {
-        const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.name, value: x?._id })))]
-        setRoles(_data);
-      }
-    } catch(error) {
-      console.log("Error while getting roles -- E: ", error.message);
     }
   }
 
@@ -85,9 +61,9 @@ const Manageusers = () => {
       const { Group } = endpoints;
       const response = await PrivateServer.getData(Group.view);
   
-      if(response?.data) { 
-        const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.group_name, value: x?._id })))]
-        setGroups(_data);
+      if(response?.data) {
+        setGroups([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
+        setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))])
       }
     } catch(error) {
       console.log("Error while getting groups -- E: ", error.message);
@@ -98,7 +74,6 @@ const Manageusers = () => {
     // initializeStarsState();
 
     getUsers();
-    getRoles();
     getGroups();
   }, []);
 
@@ -110,59 +85,58 @@ const Manageusers = () => {
   };
   
   const handleClose = () => {
-    setUserId("");
+    setGroupId("");
     setFormData({
-      username: "",
-      email: "",
-      phone: "",
-      userId: "",
-      date_created: moment(new Date()).format('YYYY-MM-DD'),
-      password: "",
-      repeatPassword: "",
-      roleId: "",
-      groupId: "",
+        group_name: "",
+        alias: "",
+        groupId: "",
+        group_description: "",
+        group_manager: "",
+        group_members: [],
     });
   }
 
-  const handleChange = (e, type="", _name="") => {    
+  const handleChange = (e, type="", _name="", _multiple=false) => {    
     if(type == "file") {
       const { name } = e.target;
       setFormData({ ...formData, [name]: e.target?.files[0] });
-    }
-    else if(type == "select") {
-      setFormData({ ...formData, [_name]: e?.value });
+    } else if(type == "select") {
+      if(_multiple) {
+          const _users = [...new Set(e?.map((x) => x?.value))]
+          setFormData({ ...formData, [_name]: _users });
+        } else setFormData({ ...formData, [_name]: e?.value });
     } else {
       const { name, value } = e.target; 
       setFormData({ ...formData, [name]: value });
     }
   }
 
-  const handleDeleteUser = async () => {
+  const handleDeleteGroup = async () => {
     try {
-      const { Profile } = endpoints;
-      const response = await PrivateServer?.deleteData(Profile?.delete, userId);
-      if(response) getUsers();
+      const { Group } = endpoints;
+      const response = await PrivateServer?.deleteData(Group?.delete, groupId);
+      if(response) getGroups();
     } catch(err) {
-      console.log("Error while deleting profile -- E: ", err?.message);
+      console.log("Error while deleting group -- E: ", err?.message);
     }
   }
 
-  const handleEditUser = (values) => {
-    setFormData({ ...formData, ..._.omit(values, ["_id"]), userId: values?._id, roleId: values?.roleId?._id, groupId: values?.groupId?._id });
+  const handleEditGroup = (values) => {
+    setFormData({ ...formData, group_manager: values?.group_manager?._id, group_members: [...new Set(values?.group_members?.map((x) => x?._id))], ..._.omit(values, ["_id", 'group_manager', 'group_members']), groupId: values?._id });
   }
 
-  const handleAddOrUpdateUser = async () => {
+  const handleAddOrUpdateGroup = async () => {
     try {
-      const { Profile } = endpoints;
-      const { data } = formData?.userId !== "" ? await PrivateServer?.patchData(Profile.patch, formData?.userId, formData) : await PrivateServer.postData(Profile.create, formData);
+      const { Group } = endpoints;
+      const { data } = formData?.groupId !== "" ? await PrivateServer?.patchData(Group.patch, formData?.groupId, formData) : await PrivateServer.postData(Group.create, formData);
 
-      if(data == 200) {
-        if(formData?.userId == "") setFormData({ ...formData, userId: data?.data?._id })
+      if(data) {
+        if(formData?.groupId == "") setFormData({ ...formData, groupId: data?.data?._id })
         getUsers();
         handleClose();
       }
     } catch(err) {
-      console.log("Error while saving user -- E: ", err?.message);
+      console.log("Error while saving group -- E: ", err?.message);
     }
   }
 
@@ -180,7 +154,7 @@ const Manageusers = () => {
       ),
     },
     {
-      title: "Username",
+      title: "Group Name",
       render: (text: any, record: any) => (
         <h2 className="d-flex align-items-center">
           {/* <Link to="#" className="avatar avatar-sm me-2">
@@ -191,29 +165,63 @@ const Manageusers = () => {
             />
           </Link> */}
           <Link to="#" className="d-flex flex-column">
-            {record?.username}
-            <span className="text-default">{record?.email} </span>
+            {record?.group_name}
           </Link>
         </h2>
       ),
       sorter: true,
     },
     {
-      title: "Phone",
-      dataIndex: "phone",
-      key: "phone",
+      title: "Alias",
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          {/* <Link to="#" className="avatar avatar-sm me-2">
+            <ImageWithBasePath
+              className="w-auto h-auto"
+              src={record.image}
+              alt="User Image"
+            />
+          </Link> */}
+          <Link to="#" className="d-flex flex-column">
+            {record?.alias}
+          </Link>
+        </h2>
+      ),
+    },
+    {
+      title: "Group Manager",
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          {/* <Link to="#" className="avatar avatar-sm me-2">
+            <ImageWithBasePath
+              className="w-auto h-auto"
+              src={record.image}
+              alt="User Image"
+            />
+          </Link> */}
+          <Link to="#" className="d-flex flex-column">
+            {record?.group_manager?.email}
+          </Link>
+        </h2>
+      ),
       sorter: true,
     },
     {
-      title: "Email",
-      dataIndex: "email",
-      key: "email",
-      sorter: true,
-    },
-    {
-      title: "Date Created",
-      dataIndex: "date_created",
-      key: "date_created",
+      title: "Group Members",
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          {/* <Link to="#" className="avatar avatar-sm me-2">
+            <ImageWithBasePath
+              className="w-auto h-auto"
+              src={record.image}
+              alt="User Image"
+            />
+          </Link> */}
+          <Link to="#" className="d-flex flex-column">
+            {record?.group_members?.length}
+          </Link>
+        </h2>
+      ),
       sorter: true,
     },
     {
@@ -235,7 +243,7 @@ const Manageusers = () => {
               to="#"
               data-bs-target="#offcanvas_edit"
               data-bs-toggle="offcanvas"
-              onClick={() => handleEditUser(record)}
+              onClick={() => handleEditGroup(record)}
             >
               <i className="ti ti-edit text-blue" /> Edit
             </Link>)}
@@ -245,7 +253,7 @@ const Manageusers = () => {
               to="#"
               data-bs-toggle="modal"
               data-bs-target="#delete_contact"
-              onClick={() => setUserId(record?._id)}
+              onClick={() => setGroupId(record?._id)}
             >
               <i className="ti ti-trash text-danger"></i> Delete
             </Link>)}
@@ -254,6 +262,7 @@ const Manageusers = () => {
       ),
     },
   ];
+
   const initialSettings = {
     endDate: new Date("2020-08-11T12:30:00.000Z"),
     ranges: {
@@ -314,8 +323,8 @@ const Manageusers = () => {
   }
 
   const handleBulkDelete = async () => {
-    const { Profile } = endpoints;
-    const deleted = await PrivateServer.deleteBulkData(Profile?.delete_bulk, selectedIds)
+    const { Group } = endpoints;
+    const deleted = await PrivateServer.deleteBulkData(Group?.delete_bulk, selectedIds)
     if(deleted) {
       setShowBulkActionButton(false);
       setShowBulkDeleteModal(false);
@@ -334,7 +343,7 @@ const Manageusers = () => {
                 <div className="row align-items-center">
                   <div className="col-8">
                     <h4 className="page-title">
-                      User<span className="count-title">{users?.length}</span>
+                      Group<span className="count-title">{users?.length}</span>
                     </h4>
                   </div>
                   <div className="col-4 text-end">
@@ -397,7 +406,7 @@ const Manageusers = () => {
                           data-bs-target="#offcanvas_add"
                         >
                           <i className="ti ti-square-rounded-plus me-2" />
-                          Add user
+                          Add group
                         </Link>)}
                       </div>
                     </div>
@@ -426,7 +435,7 @@ const Manageusers = () => {
                   {/* /Filter */}
                   {/* Manage Users List */}
                   <div className="table-responsive custom-table">
-                    <Table columns={columns} dataSource={searchTerm != "" ? searchData : users} handleBulkAction={handleBulkOperation} />
+                    <Table columns={columns} dataSource={searchTerm != "" ? searchData : groups} handleBulkAction={handleBulkOperation} />
                   </div>
                   <div className="row align-items-center">
                     <div className="col-md-6">
@@ -444,14 +453,14 @@ const Manageusers = () => {
         </div>
       </div>
       {/* /Page Wrapper */}
-      {/* Add User */}
+      {/* Add Group */}
       <div
         className="offcanvas offcanvas-end offcanvas-large"
         tabIndex={-1}
         id="offcanvas_add"
       >
         <div className="offcanvas-header border-bottom">
-          <h5 className="fw-semibold">Add New User</h5>
+          <h5 className="fw-semibold">Add New Group</h5>
           <button
             type="button"
             className="btn-close custom-btn-close border p-1 me-0 d-flex align-items-center justify-content-center rounded-circle"
@@ -472,83 +481,64 @@ const Manageusers = () => {
                     <div className="mb-3">
                       <label className="col-form-label">
                         {" "}
-                        Username <span className="text-danger">*</span>
+                        Group Name <span className="text-danger">*</span>
                       </label>
-                      <input type="text" name="username" value={formData?.username} onChange={handleChange} className="form-control" />
+                      <input type="text" name="group_name" value={formData?.group_name} onChange={handleChange} className="form-control" />
                     </div>
                   </div>
                   <div className="col-md-6">
                     <div className="mb-3">
                       <div className="d-flex justify-content-between align-items-center">
                         <label className="col-form-label">
-                          Email <span className="text-danger">*</span>
+                          Alias <span className="text-danger">*</span>
                         </label>
                       </div>
-                      <input type="text" name="email" value={formData?.email} onChange={handleChange} className="form-control" />
+                      <input type="text" name="alias" value={formData?.alias} onChange={handleChange} className="form-control" />
+                    </div>
+                  </div>
+                  <div className="col-md-6">
+                    <div className="mb-3">
+                      <div className="d-flex justify-content-between align-items-center">
+                        <label className="col-form-label">
+                          Group Description <span className="text-danger">*</span>
+                        </label>
+                      </div>
+                      <input type="text" name="group_description" value={formData?.group_description} onChange={handleChange} className="form-control" />
                     </div>
                   </div>
                   <div className="col-md-6">
                     <div className="mb-3">
                       <label className="col-form-label">
-                        Role <span className="text-danger">*</span>
+                        Group Manager<span className="text-danger">*</span>
                       </label>
                       <Select
                         classNamePrefix="react-select"
                         className="select"
-                        options={roles}
-                        name="roleId" 
-                        value={{ label: roles?.find((x: any) => x?.value == formData?.roleId)?.label, value: formData?.roleId }} 
-                        onChange={(value) => handleChange(value, "select", "roleId")}
+                        options={users}
+                        name="group_manager" 
+                        value={{ label: users?.find((x: any) => x?.value == formData?.group_manager)?.label, value: formData?.group_manager }} 
+                        onChange={(value) => handleChange(value, "select", "group_manager")}
                       />
                     </div>
                   </div>
                   <div className="col-md-6">
                     <div className="mb-3">
                       <label className="col-form-label">
-                        Group <span className="text-danger">*</span>
+                        Group Members<span className="text-danger">*</span>
                       </label>
                       <Select
+                        isMulti={true}
+                        name="tax"
+                        onChange={(value) => handleChange(value, "select", "group_members", true)}
+                        value={_.map(formData?.group_members, (_value) => ({
+                            label: users?.find((x: any) => x?.value == _value )?.label,
+                            value: _value,
+                        }))}
+                        className="select2" 
                         classNamePrefix="react-select"
-                        className="select"
-                        options={groups}
-                        name="groupId" 
-                        value={{ label: groups?.find((x: any) => x?.value == formData?.groupId)?.label, value: formData?.groupId }} 
-                        onChange={(value) => handleChange(value, "select", "groupId")}
-                      />
-                    </div>
-                  </div>
-                  <div className="col-md-6">
-                    <div className="mb-3">
-                      <label className="col-form-label">
-                        Phone <span className="text-danger">*</span>
-                      </label>
-                      <input type="text" name="phone" value={formData?.phone} onChange={handleChange} className="form-control" />
-                    </div>
-                  </div>
-                  <div className="col-md-6">
-                    <div className="mb-3">
-                      <label className="col-form-label">
-                        Password <span className="text-danger">*</span>
-                      </label>
-                      <div className="icon-form-end">
-                        <span className="form-icon">
-                          <i className="ti ti-eye-off" />
-                        </span>
-                        <input type="password" name="password" value={formData?.password} onChange={handleChange} className="form-control" />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="col-md-6">
-                    <div className="mb-3">
-                      <label className="col-form-label">
-                        Repeat Password <span className="text-danger">*</span>
-                      </label>
-                      <div className="icon-form-end">
-                        <span className="form-icon">
-                          <i className="ti ti-eye-off" />
-                        </span>
-                        <input type="password" name="repeatPassword" value={formData?.repeatPassword} onChange={handleChange} className="form-control" />
-                      </div>
+                        options={users}
+                        placeholder="Choose"
+                    />
                     </div>
                   </div>
                 </div>
@@ -564,27 +554,33 @@ const Manageusers = () => {
               >
                 Cancel
               </Link>
-              <button type="button" className="btn btn-primary" data-bs-dismiss="offcanvas" onClick={handleAddOrUpdateUser}>
+              <button 
+                type="button" 
+                className="btn btn-primary" 
+                data-bs-dismiss="offcanvas"
+                aria-label="Close"
+                onClick={handleAddOrUpdateGroup}
+              >
                 Create
               </button>
             </div>
           </form>
         </div>
       </div>
-      {/* /Add User */}
+      {/* /Add Group */}
 
-      {/* Edit User */}
+      {/* Edit Group */}
       <div
         className="offcanvas offcanvas-end offcanvas-large"
         tabIndex={-1}
         id="offcanvas_edit"
       >
         <div className="offcanvas-header border-bottom">
-          <h5 className="fw-semibold">Edit User</h5>
+          <h5 className="fw-semibold">Edit Group</h5>
           <button
             type="button"
             className="btn-close custom-btn-close border p-1 me-0 d-flex align-items-center justify-content-center rounded-circle"
-            data-bs-dismiss="offcanvas"
+            data-bs-dismiss="offcanvas_edit"
             aria-label="Close"
             onClick={handleClose}
           >
@@ -601,130 +597,64 @@ const Manageusers = () => {
                     <div className="mb-3">
                       <label className="col-form-label">
                         {" "}
-                        Username <span className="text-danger">*</span>
+                        Group Name <span className="text-danger">*</span>
                       </label>
-                      <input
-                        name="username"
-                        value={formData?.username}
-                        onChange={handleChange}
-                        type="text"
-                        className="form-control"
-                        defaultValue="Darlee Robertson"
-                      />
+                      <input type="text" name="group_name" value={formData?.group_name} onChange={handleChange} className="form-control" />
                     </div>
                   </div>
                   <div className="col-md-6">
                     <div className="mb-3">
                       <div className="d-flex justify-content-between align-items-center">
                         <label className="col-form-label">
-                          Email <span className="text-danger">*</span>
+                          Alias <span className="text-danger">*</span>
                         </label>
                       </div>
-                      <input
-                        name="email"
-                        value={formData?.email}
-                        onChange={handleChange}
-                        type="text"
-                        className="form-control"
-                        defaultValue="robertson@example.com"
-                      />
+                      <input type="text" name="alias" value={formData?.alias} onChange={handleChange} className="form-control" />
+                    </div>
+                  </div>
+                  <div className="col-md-6">
+                    <div className="mb-3">
+                      <div className="d-flex justify-content-between align-items-center">
+                        <label className="col-form-label">
+                          Group Description <span className="text-danger">*</span>
+                        </label>
+                      </div>
+                      <input type="text" name="group_description" value={formData?.group_description} onChange={handleChange} className="form-control" />
                     </div>
                   </div>
                   <div className="col-md-6">
                     <div className="mb-3">
                       <label className="col-form-label">
-                        Role <span className="text-danger">*</span>
+                        Group Manager<span className="text-danger">*</span>
                       </label>
                       <Select
                         classNamePrefix="react-select"
                         className="select"
-                        options={roles}
-                        name="roleId" 
-                        value={{ label: roles?.find((x: any) => x?.value == formData?.roleId)?.label, value: formData?.roleId }} 
-                        onChange={(value) => handleChange(value, "select", "roleId")}
+                        options={users}
+                        name="group_manager" 
+                        value={{ label: users?.find((x: any) => x?.value == formData?.group_manager)?.label, value: formData?.group_manager }} 
+                        onChange={(value) => handleChange(value, "select", "group_manager")}
                       />
                     </div>
                   </div>
                   <div className="col-md-6">
                     <div className="mb-3">
                       <label className="col-form-label">
-                        Group <span className="text-danger">*</span>
+                        Group Members<span className="text-danger">*</span>
                       </label>
                       <Select
+                        isMulti={true}
+                        name="tax"
+                        onChange={(value) => handleChange(value, "select", "group_members", true)}
+                        value={_.map(formData?.group_members, (_value) => ({
+                            label: users?.find((x: any) => x?.value == _value )?.label, // Converts 'create' to 'Create'
+                            value: _value,
+                        }))}
+                        className="select2" 
                         classNamePrefix="react-select"
-                        className="select"
-                        options={groups}
-                        name="groupId" 
-                        value={{ label: groups?.find((x: any) => x?.value == formData?.groupId)?.label, value: formData?.groupId }} 
-                        onChange={(value) => handleChange(value, "select", "groupId")}
-                      />
-                    </div>
-                  </div>
-                  <div className="col-md-6">
-                    <div className="mb-3">
-                      <label className="col-form-label">
-                        Phone <span className="text-danger">*</span>
-                      </label>
-                      <input
-                        name="phone"
-                        value={formData?.phone}
-                        onChange={handleChange}
-                        type="text"
-                        className="form-control"
-                        defaultValue="	+1 989757485"
-                      />
-                    </div>
-                  </div>
-                  <div className="col-md-6">
-                    <div className="mb-3">
-                      <label className="col-form-label">
-                        Password <span className="text-danger">*</span>
-                      </label>
-                      <div className="icon-form-end">
-                        <span
-                          className="form-icon"
-                          onClick={() => togglePassword(0)}
-                        >
-                          <i
-                            className={
-                              passwords[0] ? "ti ti-eye" : "ti ti-eye-off"
-                            }
-                          ></i>
-                        </span>
-                        <input
-                          name="password"
-                          value={formData?.password}
-                          onChange={handleChange}
-                          type={passwords[0] ? "text" : "password"}
-                          className="form-control"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="col-md-6">
-                    <div className="mb-3">
-                      <label className="col-form-label">
-                        Repeat Password <span className="text-danger">*</span>
-                      </label>
-                      <div className="icon-form-end">
-                        <span
-                          className="form-icon"
-                          onClick={() => togglePassword(1)}
-                        >
-                          <i
-                            className={
-                              passwords[1] ? "ti ti-eye" : "ti ti-eye-off"
-                            }
-                          ></i>
-                        </span>
-                        <input
-                          name="repeatPassword"
-                          value={formData?.repeatPassword}
-                          onChange={handleChange}
-                          type={passwords[1] ? "text" : "password"}
-                          className="form-control"
-                        />
-                      </div>
+                        options={users}
+                        placeholder="Choose"
+                    />
                     </div>
                   </div>
                 </div>
@@ -736,6 +666,7 @@ const Manageusers = () => {
                 to="#"
                 className="btn btn-light me-2"
                 data-bs-dismiss="offcanvas"
+                aria-label="Close"
                 onClick={handleClose}
               >
                 Cancel
@@ -743,8 +674,9 @@ const Manageusers = () => {
               <button
                 type="button"
                 data-bs-dismiss="offcanvas"
+                aria-label="Close"
                 className="btn btn-primary"
-                onClick={handleAddOrUpdateUser}
+                onClick={handleAddOrUpdateGroup}
               >
                 Update
               </button>
@@ -752,8 +684,8 @@ const Manageusers = () => {
           </form>
         </div>
       </div>
-      {/* /Edit User */}
-      {/* Delete User */}
+      {/* /Edit Group */}
+      {/* Delete Group */}
       <div className="modal fade" id="delete_contact" role="dialog">
         <div className="modal-dialog modal-dialog-centered">
           <div className="modal-content">
@@ -762,17 +694,24 @@ const Manageusers = () => {
                 <div className="avatar avatar-xl bg-danger-light rounded-circle mb-3">
                   <i className="ti ti-trash-x fs-36 text-danger" />
                 </div>
-                <h4 className="mb-2">Remove users?</h4>
+                <h4 className="mb-2">Remove group?</h4>
                 <p className="mb-0">Are you sure you want to remove it</p>
                 <div className="d-flex align-items-center justify-content-center mt-4">
                   <Link
                     to="#"
                     className="btn btn-light me-2"
                     data-bs-dismiss="modal"
+                    aria-label="Close"
                   >
                     Cancel
                   </Link>
-                  <Link to="#" className="btn btn-danger" data-bs-dismiss="modal" onClick={handleDeleteUser}>
+                  <Link 
+                    to="#" 
+                    className="btn btn-danger"
+                    data-bs-dismiss="modal"
+                    aria-label="Close" 
+                    onClick={handleDeleteGroup}
+                  >
                     Yes, Delete it
                   </Link>
                 </div>
@@ -781,7 +720,7 @@ const Manageusers = () => {
           </div>
         </div>
       </div>
-      {/* /Delete User */}
+      {/* /Delete Group */}
       {/** Bulk Delete Data */}
       <Modal show={showBulkDeleteModal} onHide={() => setShowBulkDeleteModal(false)}>
         <div className="modal-header border-0 m-0 justify-content-end">
@@ -822,4 +761,4 @@ const Manageusers = () => {
   );
 };
 
-export default Manageusers;
+export default Managegroups;

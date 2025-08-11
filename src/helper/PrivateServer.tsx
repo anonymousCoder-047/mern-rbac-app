@@ -55,6 +55,16 @@ class PrivateServer {
             throw error;
         }
     }
+    
+    async deleteBulkData(endpoint="", _id=[], params={}) {
+        try {
+            const { status } = await axiosPrivate.post(endpoint, { ids: _id }, params);
+        
+            if(status == 200) return status;
+        } catch(error) {
+            throw error;
+        }
+    }
 }
 
 export default new PrivateServer();

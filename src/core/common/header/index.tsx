@@ -3,12 +3,14 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import ImageWithBasePath from "../imageWithBasePath";
 import { all_routes } from "../../../feature-module/router/all_routes";
 import { useDispatch, useSelector } from "react-redux";
+import _ from "lodash";
 import {
   setExpandMenu,
   setMiniSidebar,
   setMobileSidebar,
 } from "../../data/redux/commonSlice";
 import { HorizontalSidebarData } from "../../data/json/horizontalSidebar";
+import { SidebarData } from "../../data/json/sidebarData";
 const Header = () => {
 
   const navigate = useNavigate();
@@ -17,6 +19,7 @@ const Header = () => {
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const route = all_routes;
+  const [searchData, setFilteredSearchData] = useState([]);
   const location = useLocation();
   const dispatch = useDispatch();
   const mobileSidebar = useSelector((state: any) => state.commonSlice.mobileSidebar);
@@ -93,6 +96,43 @@ const Header = () => {
     navigate(route.login);
   }
 
+  const filterMenu = (menuArray: any[], searchTerm: string) => {
+    const term = searchTerm.toLowerCase();
+
+    return _.chain(menuArray)
+      .map((menuItem) => {
+        const matchesTopLabel = _.includes(menuItem.label.toLowerCase(), term);
+
+        const matchingSubItems = _.filter(menuItem.submenuItems, (sub) =>
+          _.includes(sub.label.toLowerCase(), term)
+        );
+
+        if (matchesTopLabel || matchingSubItems.length) {
+          return {
+            ...menuItem,
+            submenuItems: matchingSubItems.length ? matchingSubItems : menuItem.submenuItems,
+          };
+        }
+
+        return null;
+      })
+      .compact()
+      .value();
+  };
+
+  const handleSearch = (e) => {
+    const { value } = e?.target;
+
+    if(value !== "") {
+      const _menu = filterMenu(SidebarData, value);
+      if(!_.isEmpty(_menu)) {
+        setFilteredSearchData(_menu)
+      }
+    } else setFilteredSearchData([])
+  }
+
+  const handleRedirect = (item) => navigate(item?.link)
+
   return (
     <>
       {/* Header */}
@@ -146,7 +186,7 @@ const Header = () => {
                 </Link>
                 <form className="dropdown">
                   <div className="searchinputs" id="dropdownMenuClickable">
-                    <input type="text" placeholder="Search" />
+                    <input type="text" placeholder="Search" onChange={handleSearch} />
                     <div className="search-addon">
                       <button type="submit">
                         <i className="ti ti-command" />
@@ -154,6 +194,36 @@ const Header = () => {
                     </div>
                   </div>
                 </form>
+                {searchData.length > 0 && (
+                  <ul className="list-group position-absolute w-100 mt-1 zindex-dropdown">
+                    {searchData.length > 0 && (
+                      <ul className="list-group position-absolute w-100 mt-1 zindex-dropdown">
+                        {searchData.map((item, idx) => (
+                          <li key={idx} className="list-group-item px-2 py-1">
+                            {/* Top-level label */}
+                            <strong>{item.label}</strong>
+
+                            {/* Matching submenu items */}
+                            {item.submenuItems?.length > 0 && (
+                              <ul className="list-unstyled ms-3 mt-1">
+                                {item.submenuItems.map((sub, subIdx) => (
+                                  <li
+                                    key={subIdx}
+                                    className="list-group-item list-group-item-action border-0 px-2 py-1"
+                                    onClick={() => handleRedirect(sub)}
+                                  >
+                                    <i className={sub.icon} style={{ marginRight: "6px" }} />
+                                    {sub.label}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </ul>
+                )}
               </div>
             </li>
             {/* /Search */}
@@ -223,13 +293,13 @@ const Header = () => {
             {/* Nav List */}
             <li className="nav-item nav-list">
               <ul className="nav">
-                <li>
+                {/* <li>
                   <Link to="#" onClick={toggleFullscreen} className="btn btn-icon border btn-menubar btnFullscreen">
                     <i className="ti ti-maximize"></i>
                   </Link>
-                </li>
+                </li> */}
 
-                <li className="dark-mode-list">
+                {/* <li className="dark-mode-list">
                   <Link
                     to="#"
                     className={`dark-mode-toggle ${layoutBs ? "" : "active"}`}
@@ -248,7 +318,7 @@ const Header = () => {
                       onClick={LayoutDark}
                     ></i>
                   </Link>
-                </li>
+                </li> */}
                 <li className="nav-item dropdown">
                   <Link
                     to="#"

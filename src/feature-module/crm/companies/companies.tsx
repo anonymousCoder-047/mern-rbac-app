@@ -22,6 +22,10 @@ const Companies = () => {
   const [searchData, setFilteredSearchData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [companyId, setCompanyId] = useState("");
+  const [showBulkActionButton, setShowBulkActionButton] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [selectedRows, setSelectedRows] = useState(0);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [formData, setFormData] = useState({
     company_name: "",
     email: "",
@@ -74,10 +78,9 @@ const Companies = () => {
       const { Companies } = endpoints;
       const response = await PrivateServer.getData(Companies?.view)
   
-      console.log("data -- ", response)
       if(response?.data) {
-        setCompanyData(response?.data);
-        setFilteredSearchData(response?.data);
+        setCompanyData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
+        setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
       }
     } catch(error) {
       console.log("Error while getting companies -- E:", error?.message);
@@ -129,10 +132,10 @@ const Companies = () => {
     }
   }
 
-  const handleDeleteContact = async () => {
+  const handleDeleteCompany = async () => {
     try {
-      const { Contact } = endpoints;
-      const response = await PrivateServer?.deleteData(Contact?.delete, companyId);
+      const { Companies } = endpoints;
+      const response = await PrivateServer?.deleteData(Companies?.delete, companyId);
       if(response) getCompanies();
     } catch(err) {
       console.log("Error while deleting contact -- E: ", err?.message);
@@ -140,7 +143,6 @@ const Companies = () => {
   }
 
   const handleEditContact = (values) => {
-    console.log("Edit contact clicked -- ", values);
     setFormData({ ...formData, ..._.omit(values, ["_id"]), companyId: values?._id });
   }
 
@@ -323,6 +325,27 @@ const Companies = () => {
     timePicker: false,
   };
 
+  const handleBulkOperation = (selectedRows: string | any[]) => {
+    if(selectedRows?.length > 0) {
+      setShowBulkActionButton(true);
+      setSelectedRows(selectedRows?.length)
+      setSelectedIds(selectedRows)
+    } else {
+      setShowBulkActionButton(false);
+      setSelectedRows(0)
+      setSelectedIds([])
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    const { Companies } = endpoints;
+    const deleted = await PrivateServer.deleteBulkData(Companies?.delete_bulk, selectedIds)
+    if(deleted) {
+      setShowBulkActionButton(false);
+      setShowBulkDeleteModal(false);
+    }
+  }
+
   return (
     <>
       <div className="page-wrapper">
@@ -406,197 +429,26 @@ const Companies = () => {
                   {/* Filter */}
                   <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2 mb-4">
                     <div className="d-flex align-items-center flex-wrap row-gap-2">
-                      <div className="dropdown me-2">
-                        <Link
-                          to="#"
-                          className="dropdown-toggle"
-                          data-bs-toggle="dropdown"
+                      {
+                        showBulkActionButton ? 
+                        <button
+                          className="btn btn-primary"
+                          onClick={() => setShowBulkDeleteModal(!showBulkDeleteModal)}
                         >
-                          <i className="ti ti-sort-ascending-2 me-2" />
-                          Sort{" "}
-                        </Link>
-                        <div className="dropdown-menu  dropdown-menu-start">
-                          <ul>
-                            <li>
-                              <Link to="#" className="dropdown-item">
-                                <i className="ti ti-circle-chevron-right me-1" />
-                                Ascending
-                              </Link>
-                            </li>
-                            <li>
-                              <Link to="#" className="dropdown-item">
-                                <i className="ti ti-circle-chevron-right me-1" />
-                                Descending
-                              </Link>
-                            </li>
-                            <li>
-                              <Link to="#" className="dropdown-item">
-                                <i className="ti ti-circle-chevron-right me-1" />
-                                Recently Viewed
-                              </Link>
-                            </li>
-                            <li>
-                              <Link to="#" className="dropdown-item">
-                                <i className="ti ti-circle-chevron-right me-1" />
-                                Recently Added
-                              </Link>
-                            </li>
-                          </ul>
-                        </div>
-                      </div>
-                      <div className="icon-form">
-                        <span className="form-icon">
-                          <i className="ti ti-calendar" />
-                        </span>
-                        <DateRangePicker initialSettings={initialSettings}>
-                          <input
-                            className="form-control bookingrange"
-                            type="text"
-                          />
-                        </DateRangePicker>
-                      </div>
+                          Delete {selectedRows} rows
+                        </button> 
+                        : ""
+                      }
                     </div>
                     <div className="d-flex align-items-center flex-wrap row-gap-2">
-                      <div className="dropdown me-2">
-                        <Link
-                          to="#"
-                          className="btn bg-soft-purple text-purple"
-                          data-bs-toggle="dropdown"
-                          data-bs-auto-close="outside"
-                        >
-                          <i className="ti ti-columns-3 me-2" />
-                          Manage Columns
-                        </Link>
-                        <div className="dropdown-menu  dropdown-menu-md-end dropdown-md p-3">
-                          <h4 className="mb-2 fw-semibold">
-                            Want to manage datatables?
-                          </h4>
-                          <p className="mb-3">
-                            Please drag and drop your column to reorder your
-                            table and enable see option as you want.
-                          </p>
-                          <div className="border-top pt-3">
-                            <div className="d-flex align-items-center justify-content-between mb-3">
-                              <p className="mb-0 d-flex align-items-center">
-                                <i className="ti ti-grip-vertical me-2" />
-                                Name
-                              </p>
-                              <div className="status-toggle">
-                                <input
-                                  type="checkbox"
-                                  id="col-name"
-                                  className="check"
-                                />
-                                <label
-                                  htmlFor="col-name"
-                                  className="checktoggle"
-                                />
-                              </div>
-                            </div>
-                            <div className="d-flex align-items-center justify-content-between mb-3">
-                              <p className="mb-0 d-flex align-items-center">
-                                <i className="ti ti-grip-vertical me-2" />
-                                Phone
-                              </p>
-                              <div className="status-toggle">
-                                <input
-                                  type="checkbox"
-                                  id="col-phone"
-                                  className="check"
-                                />
-                                <label
-                                  htmlFor="col-phone"
-                                  className="checktoggle"
-                                />
-                              </div>
-                            </div>
-                            <div className="d-flex align-items-center justify-content-between mb-3">
-                              <p className="mb-0 d-flex align-items-center">
-                                <i className="ti ti-grip-vertical me-2" />
-                                Email
-                              </p>
-                              <div className="status-toggle">
-                                <input
-                                  type="checkbox"
-                                  id="col-email"
-                                  className="check"
-                                />
-                                <label
-                                  htmlFor="col-email"
-                                  className="checktoggle"
-                                />
-                              </div>
-                            </div>
-                            <div className="d-flex align-items-center justify-content-between">
-                              <p className="mb-0 d-flex align-items-center">
-                                <i className="ti ti-grip-vertical me-2" />
-                                Action
-                              </p>
-                              <div className="status-toggle">
-                                <input
-                                  type="checkbox"
-                                  id="col-action"
-                                  className="check"
-                                />
-                                <label
-                                  htmlFor="col-action"
-                                  className="checktoggle"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="form-sorts dropdown me-2">
-                        <Link
-                          to="#"
-                          data-bs-toggle="dropdown"
-                          data-bs-auto-close="outside"
-                        >
-                          <i className="ti ti-filter-share" />
-                          Filter
-                        </Link>
-                        <div className="filter-dropdown-menu dropdown-menu  dropdown-menu-md-end p-3">
-                          <div className="filter-set-view">
-                            <div className="filter-set-head">
-                              <h4>
-                                <i className="ti ti-filter-share" />
-                                Filter
-                              </h4>
-                            </div>
-                            
-                            <div className="filter-reset-btns">
-                              <div className="row">
-                                <div className="col-6">
-                                  <Link to="#" className="btn btn-light">
-                                    Reset
-                                  </Link>
-                                </div>
-                                <div className="col-6">
-                                  <Link to="#" className="btn btn-primary">
-                                    Filter
-                                  </Link>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="view-icons">
-                        <Link to="#" className="active">
-                          <i className="ti ti-list-tree" />
-                        </Link>
-                        <Link to={route.companiesGrid}>
-                          <i className="ti ti-grid-dots" />
-                        </Link>
-                      </div>
+                      
                     </div>
                   </div>
 
                   {/* /Filter */}
                   {/* Contact List */}
                   <div className="table-responsive custom-table">
-                    <Table dataSource={searchTerm != "" ? searchData : companyData} columns={columns} />
+                    <Table dataSource={searchTerm != "" ? searchData : companyData} columns={columns} handleBulkAction={handleBulkOperation} />
                   </div>
                   <div className="row align-items-center">
                     <div className="col-md-6">
@@ -624,7 +476,7 @@ const Companies = () => {
                 </div>
                 <h4 className="mb-2">Remove Companies?</h4>
                 <p className="mb-0">
-                  Company ”NovaWaveLLC” from your Account.
+                  Company {formData?.company_name} from your Account.
                 </p>
                 <div className="d-flex align-items-center justify-content-center mt-4">
                   <Link
@@ -634,7 +486,7 @@ const Companies = () => {
                   >
                     Cancel
                   </Link>
-                  <Link to="#" className="btn btn-danger" data-bs-dismiss="modal">
+                  <Link to="#" className="btn btn-danger" onClick={handleDeleteCompany} data-bs-dismiss="modal">
                     Yes, Delete it
                   </Link>
                 </div>
@@ -836,6 +688,7 @@ const Companies = () => {
               </button>
               <button
                 type="button"
+                data-bs-dismiss="offcanvas"
                 className="btn btn-primary"
                 onClick={() => {
                   setOpenModal2(true)
@@ -1028,13 +881,14 @@ const Companies = () => {
               </button>
               <button
                 type="button"
+                data-bs-dismiss="offcanvas"
                 className="btn btn-primary"
                 onClick={() => {
                   setOpenModal2(true)
                   handleAddOrUpdateCompanies()
                 }}
               >
-                Create
+                Update
               </button>
             </div>
           </form>
@@ -1042,9 +896,42 @@ const Companies = () => {
       </div>
       {/* /Edit Company */}
      
-      {/* Delete Company */}
-
-      {/* /Delete Company */}
+      {/** Bulk Delete Data */}
+      <Modal show={showBulkDeleteModal} onHide={() => setShowBulkDeleteModal(false)}>
+        <div className="modal-header border-0 m-0 justify-content-end">
+          <button
+            className="btn-close"
+            aria-label="Close"
+            onClick={() => {
+              setShowBulkDeleteModal(false)
+            }}
+          >
+            <i className="ti ti-x" />
+          </button>
+        </div>
+        <div className="modal-body">
+          <div className="success-message text-center">
+            <div className="success-popup-icon bg-light-blue">
+              <i className="ti ti-user-plus" />
+            </div>
+            <h3>Are you sure?</h3>
+            <p>delete ({selectedRows})selected rows</p>
+            <div className="col-lg-12 text-center modal-btn">
+              <Link
+                to="#"
+                className="btn btn-light"
+                onClick={() => setShowBulkDeleteModal(false)}
+              >
+                Cancel
+              </Link>
+              <Link to="#" className="btn btn-primary" onClick={handleBulkDelete}>
+                Delete
+              </Link>
+            </div>
+          </div>
+        </div>
+      </Modal>
+      {/** Bulk Delete Data */}
       {/* Add New Deals */}
       
       {/* /Add New Deals */}

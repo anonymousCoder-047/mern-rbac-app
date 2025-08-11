@@ -8,6 +8,7 @@ import PrivateServer from "../../helper/PrivateServer";
 import { endpoints } from "../../helper/endpoints";
 import _ from "lodash";
 import useAuth from "../../hooks/useAuth";
+import { Modal } from "react-bootstrap";
 
 const route = all_routes;
 
@@ -15,6 +16,12 @@ const Category = () => {
   const { values } = useAuth();
   const [categoryData, setCategoryData] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
+  const [searchData, setFilteredSearchData] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showBulkActionButton, setShowBulkActionButton] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [selectedRows, setSelectedRows] = useState(0);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [categoryId, setcategoryId] = useState("");
   const [formData, setFormData] = useState({
     category_name: "",
@@ -28,8 +35,10 @@ const Category = () => {
       const { Categories } = endpoints;
       const response = await PrivateServer.getData(Categories?.view)
   
-      console.log("data -- ", response)
-      if(response?.data) setCategoryData(response?.data);
+      if(response?.data) {
+        setCategoryData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
+        setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))])
+      }
     } catch(error) {
       console.log("Error while getting categories -- E:", error?.message);
     }
@@ -40,13 +49,12 @@ const getSubCategories = async () => {
     const { SubCategory } = endpoints;
     const response = await PrivateServer.getData(SubCategory?.view)
 
-    console.log("data -- ", response)
     if(response?.data) {
         const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.sub_category_name, value: x?._id })))]  
         setSubCategories(_data);
     }
     } catch(error) {
-    console.log("Error while getting sub-category -- E:", error?.message);
+      console.log("Error while getting sub-category -- E:", error?.message);
     }
 }
 
@@ -66,7 +74,7 @@ const getSubCategories = async () => {
       setFormData({ ...formData, [name]: e.target?.files[0] });
     }
     else if(type == "select") {
-      setFormData({ ...formData, [_name]: e?.value });
+      setFormData({ ...formData, [_name]: e?.label });
     } else {
       const { name, value } = e.target; 
       setFormData({ ...formData, [name]: value });
@@ -84,18 +92,18 @@ const getSubCategories = async () => {
   }
 
   const handleEditCategory = (values) => {
-    console.log("Edit category clicked -- ", values);
     setFormData({ ...formData, ..._.omit(values, ["_id"]), categoryId: values?._id });
   }
 
   const handleAddOrUpdateCategory = async () => {
     try {
       const { Categories } = endpoints;
-      const { status, data } = formData?.categoryId !== "" ? await PrivateServer?.patchData(Categories.patch, formData?.categoryId, formData) : await PrivateServer.postData(Categories.create, formData);
+      const { data } = formData?.categoryId !== "" ? await PrivateServer?.patchData(Categories.patch, formData?.categoryId, formData) : await PrivateServer.postData(Categories.create, formData);
 
-      if(status == 200) {
+      if(data) {
         if(formData?.categoryId == "") setFormData({ ...formData, categoryId: data?.data?._id })
         getCategory();
+        handleClose();
       }
     } catch(err) {
       console.log("Error while saving category -- E: ", err?.message);
@@ -114,10 +122,18 @@ const getSubCategories = async () => {
     {
       title: "Category Name",
       dataIndex: "category_name",
-       sorter: (a: any, b: any) =>
+      sorter: (a: any, b: any) =>
         a.category_name.length - b.category_name.length,
       key: "category_name",
       width: "235px",
+    },
+    {
+      title: "Sub Category",
+      dataIndex: "sub_category",
+       sorter: (a: any, b: any) =>
+        a.sub_category.length - b.sub_category.length,
+      key: "source_name",
+      width: "237px",
     },
     {
       title: "Action",
@@ -164,6 +180,42 @@ const getSubCategories = async () => {
     getSubCategories();
   }, [])
 
+  const handleSearch = (e) => {
+    const { value: _searchTerm } = e?.target;
+    setSearchTerm(_searchTerm);
+    const _searchData = [...searchData];
+
+    if(searchTerm != "") {
+      const searchResults = _.filter(_searchData, (obj) =>
+        _.some(obj, (value) =>
+          _.isString(value) && _.includes(value.toLowerCase(), searchTerm?.toLowerCase())
+        )
+      );
+      setFilteredSearchData(searchResults)
+    } else setFilteredSearchData(searchData);
+  }
+
+  const handleBulkOperation = (selectedRows: string | any[]) => {
+    if(selectedRows?.length > 0) {
+      setShowBulkActionButton(true);
+      setSelectedRows(selectedRows?.length)
+      setSelectedIds(selectedRows)
+    } else {
+      setShowBulkActionButton(false);
+      setSelectedRows(0)
+      setSelectedIds([])
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    const { Categories } = endpoints;
+    const deleted = await PrivateServer.deleteBulkData(Categories?.delete_bulk, selectedIds)
+    if(deleted) {
+      setShowBulkActionButton(false);
+      setShowBulkDeleteModal(false);
+    }
+  }
+
   return (
     <>
     {/* Page Wrapper */}
@@ -199,7 +251,8 @@ const getSubCategories = async () => {
                       <input
                         type="text"
                         className="form-control"
-                        placeholder="Search Source"
+                        placeholder="Search Category"
+                        onChange={handleSearch}
                       />
                     </div>
                   </div>
@@ -220,9 +273,26 @@ const getSubCategories = async () => {
                 {/* /Search */}
               </div>
               <div className="card-body">
+                <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2 mb-4">
+                  <div className="d-flex align-items-center flex-wrap row-gap-2">
+                    {
+                      showBulkActionButton ? 
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => setShowBulkDeleteModal(!showBulkDeleteModal)}
+                      >
+                        Delete {selectedRows} rows
+                      </button> 
+                      : ""
+                    }
+                  </div>
+                  <div className="d-flex align-items-center flex-wrap row-gap-2">
+                    
+                  </div>
+                </div>
                 {/* Contact List */}
                 <div className="table-responsive custom-table">
-                <Table columns={columns} dataSource={categoryData} />
+                <Table columns={columns} dataSource={searchTerm != "" ? searchData : categoryData} handleBulkAction={handleBulkOperation} />
                 </div>
                 <div className="row align-items-center">
                   <div className="col-md-6">
@@ -281,7 +351,7 @@ const getSubCategories = async () => {
                 <Select
                     name="sub_category"
                     onChange={(value) => handleChange(value, "select", "sub_category")}
-                    value={{ label: subCategories?.find((x: any) => x?.value == formData?.sub_category)?.label, value: formData?.sub_category }}
+                    value={{ label: subCategories?.find((x: any) => x?.label == formData?.sub_category)?.label, value: formData?.sub_category }}
                     className="select2" 
                     classNamePrefix="react-select"
                     options={subCategories}
@@ -350,7 +420,7 @@ const getSubCategories = async () => {
                 <Select
                     name="sub_category"
                     onChange={(value) => handleChange(value, "select", "sub_category")}
-                    value={{ label: subCategories?.find((x: any) => x?.value == formData?.sub_category)?.label, value: formData?.sub_category }}
+                    value={{ label: subCategories?.find((x: any) => x?.label == formData?.sub_category)?.label, value: formData?.sub_category }}
                     className="select2" 
                     classNamePrefix="react-select"
                     options={subCategories}
@@ -369,7 +439,7 @@ const getSubCategories = async () => {
                   Cancel
                 </Link>
                 <button type="button" data-bs-dismiss="modal" onClick={handleAddOrUpdateCategory} className="btn btn-primary">
-                  Save Changes
+                  Update
                 </button>
               </div>
             </div>
@@ -408,6 +478,42 @@ const getSubCategories = async () => {
       </div>
     </div>
     {/* /Delete Category */}
+    {/** Bulk Delete Data */}
+    <Modal show={showBulkDeleteModal} onHide={() => setShowBulkDeleteModal(false)}>
+      <div className="modal-header border-0 m-0 justify-content-end">
+        <button
+          className="btn-close"
+          aria-label="Close"
+          onClick={() => {
+            setShowBulkDeleteModal(false)
+          }}
+        >
+          <i className="ti ti-x" />
+        </button>
+      </div>
+      <div className="modal-body">
+        <div className="success-message text-center">
+          <div className="success-popup-icon bg-light-blue">
+            <i className="ti ti-user-plus" />
+          </div>
+          <h3>Are you sure?</h3>
+          <p>delete ({selectedRows})selected rows</p>
+          <div className="col-lg-12 text-center modal-btn">
+            <Link
+              to="#"
+              className="btn btn-light"
+              onClick={() => setShowBulkDeleteModal(false)}
+            >
+              Cancel
+            </Link>
+            <Link to="#" className="btn btn-primary" onClick={handleBulkDelete}>
+              Delete
+            </Link>
+          </div>
+        </div>
+      </div>
+    </Modal>
+    {/** Bulk Delete Data */}
   </>
   
   );

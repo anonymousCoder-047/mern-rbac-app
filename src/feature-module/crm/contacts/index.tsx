@@ -16,6 +16,7 @@ const ContactDetails = () => {
     totalData: 0,
     first_name: "",
     last_name: "",
+    team_leader: "",
     job_title: "",
     company_name: "",
     email: "",
@@ -105,7 +106,6 @@ const ContactDetails = () => {
     const { state:propState } = location;
 
     if(propState && !_.isEmpty(propState)) {
-      console.log("location state parsed -- ", propState);
       setContactDetails({ ...contactDetails, ...propState });
     }
   }, [location?.state])
@@ -176,7 +176,7 @@ const ContactDetails = () => {
                     <div className="d-flex align-items-center mb-2">
                       <div>
                         <h5 className="mb-1">{`${contactDetails?.first_name} ${contactDetails?.last_name}`}</h5>
-                        <p className="mb-2">{contactDetails?.company_name?.company_name}, {contactDetails?.city}, {contactDetails?.country}</p>
+                        <p className="mb-2">{contactDetails?.company_name}, {contactDetails?.city}, {contactDetails?.country}</p>
                       </div>
                     </div>
                     <div className="contacts-action">
@@ -247,6 +247,12 @@ const ContactDetails = () => {
                     </div>
                     <div className="d-flex align-items-center mb-3">
                       <span className="avatar avatar-xs bg-light-300 p-0 flex-shrink-0 rounded-circle text-dark me-2">
+                        <i className="ti ti-mail" />
+                      </span>
+                      <p>{contactDetails?.team_leader}</p>
+                    </div>
+                    <div className="d-flex align-items-center mb-3">
+                      <span className="avatar avatar-xs bg-light-300 p-0 flex-shrink-0 rounded-circle text-dark me-2">
                         <i className="ti ti-phone" />
                       </span>
                       <p>{contactDetails?.primary_phone}</p>
@@ -305,10 +311,10 @@ const ContactDetails = () => {
                     <div className="d-flex align-items-center">
                       <div>
                         <h6 className="fw-medium mb-1">
-                          {contactDetails?.company_name?.company_name}{" "}
+                          {contactDetails?.company_name}{" "}
                           <i className="fa-solid fa-circle-check text-success" />
                         </h6>
-                        <p>{contactDetails?.company_name?.city}, {contactDetails?.company_name?.country}</p>
+                        <p>{contactDetails?.city}, {contactDetails?.country}</p>
                       </div>
                     </div>
                   </div>

@@ -8,12 +8,19 @@ import PrivateServer from "../../helper/PrivateServer";
 import { endpoints } from "../../helper/endpoints";
 import _ from "lodash";
 import useAuth from "../../hooks/useAuth";
+import { Modal } from "react-bootstrap";
 
 const route = all_routes;
 
 const Tax = () => {
   const { values } = useAuth()
   const [taxData, setTaxData] = useState([]);
+  const [searchData, setFilteredSearchData] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showBulkActionButton, setShowBulkActionButton] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [selectedRows, setSelectedRows] = useState(0);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [taxId, setTaxId] = useState("");
   const [formData, setFormData] = useState({
     tax_name: "",
@@ -26,8 +33,10 @@ const Tax = () => {
       const { Tax } = endpoints;
       const response = await PrivateServer.getData(Tax?.view)
   
-      console.log("data -- ", response)
-      if(response?.data) setTaxData(response?.data);
+      if(response?.data) {
+        setTaxData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
+        setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))])
+      }
     } catch(error) {
       console.log("Error while getting sub sub types -- E:", error?.message);
     }
@@ -66,7 +75,6 @@ const Tax = () => {
   }
 
   const handleEditTax = (values) => {
-    console.log("Edit sub tax clicked -- ", values);
     setFormData({ ...formData, ..._.omit(values, ["_id"]), taxId: values?._id });
   }
 
@@ -145,6 +153,42 @@ const Tax = () => {
     getTaxes();
   }, [])
 
+  const handleSearch = (e) => {
+    const { value: _searchTerm } = e?.target;
+    setSearchTerm(_searchTerm);
+    const _searchData = [...searchData];
+
+    if(searchTerm != "") {
+      const searchResults = _.filter(_searchData, (obj) =>
+        _.some(obj, (value) =>
+          _.isString(value) && _.includes(value.toLowerCase(), searchTerm?.toLowerCase())
+        )
+      );
+      setFilteredSearchData(searchResults)
+    } else setFilteredSearchData(searchData);
+  }
+
+  const handleBulkOperation = (selectedRows: string | any[]) => {
+    if(selectedRows?.length > 0) {
+      setShowBulkActionButton(true);
+      setSelectedRows(selectedRows?.length)
+      setSelectedIds(selectedRows)
+    } else {
+      setShowBulkActionButton(false);
+      setSelectedRows(0)
+      setSelectedIds([])
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    const { Tax } = endpoints;
+    const deleted = await PrivateServer.deleteBulkData(Tax?.delete_bulk, selectedIds)
+    if(deleted) {
+      setShowBulkActionButton(false);
+      setShowBulkDeleteModal(false);
+    }
+  }
+
   return (
     <>
     {/* Page Wrapper */}
@@ -180,7 +224,8 @@ const Tax = () => {
                       <input
                         type="text"
                         className="form-control"
-                        placeholder="Search Source"
+                        placeholder="Search Tax"
+                        onChange={handleSearch}
                       />
                     </div>
                   </div>
@@ -202,8 +247,25 @@ const Tax = () => {
               </div>
               <div className="card-body">
                 {/* Contact List */}
+                <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2 mb-4">
+                  <div className="d-flex align-items-center flex-wrap row-gap-2">
+                    {
+                      showBulkActionButton ? 
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => setShowBulkDeleteModal(!showBulkDeleteModal)}
+                      >
+                        Delete {selectedRows} rows
+                      </button> 
+                      : ""
+                    }
+                  </div>
+                  <div className="d-flex align-items-center flex-wrap row-gap-2">
+                    
+                  </div>
+                </div>
                 <div className="table-responsive custom-table">
-                <Table columns={columns} dataSource={taxData} />
+                <Table columns={columns} dataSource={searchTerm != "" ? searchData : taxData} handleBulkAction={handleBulkOperation} />
                 </div>
                 <div className="row align-items-center">
                   <div className="col-md-6">
@@ -357,6 +419,43 @@ const Tax = () => {
       </div>
     </div>
     {/* /Delete Type */}
+
+    {/** Bulk Delete Data */}
+    <Modal show={showBulkDeleteModal} onHide={() => setShowBulkDeleteModal(false)}>
+      <div className="modal-header border-0 m-0 justify-content-end">
+        <button
+          className="btn-close"
+          aria-label="Close"
+          onClick={() => {
+            setShowBulkDeleteModal(false)
+          }}
+        >
+          <i className="ti ti-x" />
+        </button>
+      </div>
+      <div className="modal-body">
+        <div className="success-message text-center">
+          <div className="success-popup-icon bg-light-blue">
+            <i className="ti ti-user-plus" />
+          </div>
+          <h3>Are you sure?</h3>
+          <p>delete ({selectedRows})selected rows</p>
+          <div className="col-lg-12 text-center modal-btn">
+            <Link
+              to="#"
+              className="btn btn-light"
+              onClick={() => setShowBulkDeleteModal(false)}
+            >
+              Cancel
+            </Link>
+            <Link to="#" className="btn btn-primary" onClick={handleBulkDelete}>
+              Delete
+            </Link>
+          </div>
+        </div>
+      </div>
+    </Modal>
+    {/** Bulk Delete Data */}
   </>
   );
 };

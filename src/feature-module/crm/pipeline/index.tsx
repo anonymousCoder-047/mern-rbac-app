@@ -18,6 +18,7 @@ import moment from "moment";
 import { DatePicker } from "antd";
 import useAuth from "../../../hooks/useAuth";
 import * as XLSX from "xlsx";
+import { Modal } from "react-bootstrap";
 
 const route = all_routes;
 const Pipeline = () => {
@@ -25,15 +26,15 @@ const Pipeline = () => {
   const [pipelineData, setPipelineData] = useState([]);
   const [searchData, setFilteredSearchData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [stageData, setStageData] = useState({
-    name: "",
-    percentage: ""
-  });
+  const [showBulkActionButton, setShowBulkActionButton] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [selectedRows, setSelectedRows] = useState(0);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [pipelineId, setPipelineId] = useState("");
   const [formData, setFormData] = useState({
     pipeline_name: "",
-    stage_name: [],
-    stage_percentage: [],
+    stage_name: "",
+    stage_percentage: "",
     created_date: moment(new Date()).format("YYYY-MM-DD"),
     pipelineId: "",
   });
@@ -43,23 +44,15 @@ const Pipeline = () => {
     setSelectedDate(date);
     setFormData({ ...formData, created_date: moment(date).format('YYYY-MM-DD') });
   };
-  const dispatch = useDispatch();
-  const activityToggle = useSelector(
-    (state: any) => state?.activityTogglePopup
-  );
-  const activityToggleTwo = useSelector(
-    (state: any) => state?.activityTogglePopupTwo
-  );
 
   const getPipelines = async () => {
     try {
       const { Pipeline } = endpoints;
       const response = await PrivateServer.getData(Pipeline?.view)
   
-      console.log("data -- ", response)
       if(response?.data) {
-        setPipelineData(response?.data);
-        setFilteredSearchData(response?.data);
+        setPipelineData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
+        setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))])
       }
     } catch(error) {
       console.log("Error while getting pipeline -- E:", error?.message);
@@ -101,18 +94,18 @@ const Pipeline = () => {
   }
 
   const handleEditPipeline = (values) => {
-    console.log("Edit pipeline clicked -- ", values);
     setFormData({ ...formData, ..._.omit(values, ["_id"]), pipelineId: values?._id });
   }
 
   const handleAddOrUpdatePipeline = async () => {
     try {
       const { Pipeline } = endpoints;
-      const { status, data } = formData?.pipelineId !== "" ? await PrivateServer?.patchData(Pipeline.patch, formData?.pipelineId, formData) : await PrivateServer.postData(Pipeline.create, formData);
+      const { data } = formData?.pipelineId !== "" ? await PrivateServer?.patchData(Pipeline.patch, formData?.pipelineId, formData) : await PrivateServer.postData(Pipeline.create, formData);
 
-      if(status == 200) {
+      if(data) {
         if(formData?.pipelineId == "") setFormData({ ...formData, pipelineId: data?.data?._id })
         getPipelines();
+        handleClose();
       }
     } catch(err) {
       console.log("Error while saving pipeline -- E: ", err?.message);
@@ -213,21 +206,6 @@ const Pipeline = () => {
     },
   ];
 
-  const handleEditStages = (_items, action="") => {
-    let _stages: any = [...formData?.stage_name]
-    let _percentages: any = [...formData?.stage_percentage]
-
-    if(action == "delete") {
-      _stages = _.without(_stages, _items?.name);
-      _percentages = _.without(_stages, _items?.percentage);
-    } else {
-      _stages = [..._stages, _items?.name];
-      _percentages = [..._percentages, _items?.percentage];
-    }
-
-    setFormData({ ...formData, stage_name: _stages, stage_percentage: _percentages });
-  }
-
   const cleanData = (data, filterKeys) => {
     return data.map(obj => {
         // Remove filterKeys from object
@@ -273,6 +251,27 @@ const Pipeline = () => {
   useEffect(() => {
     getPipelines()
   }, [])
+  
+  const handleBulkOperation = (selectedRows: string | any[]) => {
+    if(selectedRows?.length > 0) {
+      setShowBulkActionButton(true);
+      setSelectedRows(selectedRows?.length)
+      setSelectedIds(selectedRows)
+    } else {
+      setShowBulkActionButton(false);
+      setSelectedRows(0)
+      setSelectedIds([])
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    const { Pipeline } = endpoints;
+    const deleted = await PrivateServer.deleteBulkData(Pipeline?.delete_bulk, selectedIds)
+    if(deleted) {
+      setShowBulkActionButton(false);
+      setShowBulkDeleteModal(false);
+    }
+  }
 
   return (
     <>
@@ -324,44 +323,16 @@ const Pipeline = () => {
   {/* Filter */}
   <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2 mb-4">
     <div className="d-flex align-items-center flex-wrap row-gap-2">
-      <div className="dropdown me-2">
-        <Link
-          to="#"
-          className="dropdown-toggle"
-          data-bs-toggle="dropdown"
+      {
+        showBulkActionButton ? 
+        <button
+          className="btn btn-primary"
+          onClick={() => setShowBulkDeleteModal(!showBulkDeleteModal)}
         >
-          <i className="ti ti-sort-ascending-2 me-2" />
-          Sort
-        </Link>
-        <div className="dropdown-menu  dropdown-menu-start">
-          <ul>
-            <li>
-              <Link to="#" className="dropdown-item">
-                <i className="ti ti-circle-chevron-right me-1" />
-                Ascending
-              </Link>
-            </li>
-            <li>
-              <Link to="#" className="dropdown-item">
-                <i className="ti ti-circle-chevron-right me-1" />
-                Descending
-              </Link>
-            </li>
-            <li>
-              <Link to="#" className="dropdown-item">
-                <i className="ti ti-circle-chevron-right me-1" />
-                Recently Viewed
-              </Link>
-            </li>
-            <li>
-              <Link to="#" className="dropdown-item">
-                <i className="ti ti-circle-chevron-right me-1" />
-                Recently Added
-              </Link>
-            </li>
-          </ul>
-        </div>
-      </div>
+          Delete {selectedRows} rows
+        </button> 
+        : ""
+      }
       <div className="dropdown">
         <Link
           to="#"
@@ -384,100 +355,6 @@ const Pipeline = () => {
       </div>
     </div>
     <div className="d-flex align-items-center flex-wrap row-gap-2">
-      <div className="dropdown me-2">
-        <Link
-          to="#"
-          className="btn bg-soft-purple text-purple"
-          data-bs-toggle="dropdown"
-          data-bs-auto-close="outside"
-        >
-          <i className="ti ti-columns-3 me-2" />
-          Manage Columns
-        </Link>
-        <div className="dropdown-menu  dropdown-menu-md-end dropdown-md p-3">
-          <h4 className="mb-2 fw-semibold">Want to manage datatables?</h4>
-          <p className="mb-3">
-            Please drag and drop your column to reorder your table and enable
-            see option as you want.
-          </p>
-          <div className="border-top pt-3">
-            <div className="d-flex align-items-center justify-content-between mb-3">
-              <p className="mb-0 d-flex align-items-center">
-                <i className="ti ti-grip-vertical me-2" />
-                Pipeline Name
-              </p>
-              <div className="status-toggle">
-                <input type="checkbox" id="col-name" className="check" />
-                <label htmlFor="col-name" className="checktoggle" />
-              </div>
-            </div>
-            <div className="d-flex align-items-center justify-content-between mb-3">
-              <p className="mb-0 d-flex align-items-center">
-                <i className="ti ti-grip-vertical me-2" />
-                Stages
-              </p>
-              <div className="status-toggle">
-                <input type="checkbox" id="col-tag" className="check" />
-                <label htmlFor="col-tag" className="checktoggle" />
-              </div>
-            </div>
-            <div className="d-flex align-items-center justify-content-between mb-3">
-              <p className="mb-0 d-flex align-items-center">
-                <i className="ti ti-grip-vertical me-2" />
-                Created Dates
-              </p>
-              <div className="status-toggle">
-                <input type="checkbox" id="col-loc" className="check" />
-                <label htmlFor="col-loc" className="checktoggle" />
-              </div>
-            </div>
-            <div className="d-flex align-items-center justify-content-between mb-3">
-              <p className="mb-0 d-flex align-items-center">
-                <i className="ti ti-grip-vertical me-2" />
-                Action
-              </p>
-              <div className="status-toggle">
-                <input type="checkbox" id="col-rate" className="check" />
-                <label htmlFor="col-rate" className="checktoggle" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="form-sorts dropdown me-2">
-        <Link
-          to="#"
-          data-bs-toggle="dropdown"
-          data-bs-auto-close="outside"
-        >
-          <i className="ti ti-filter-share" />
-          Filter
-        </Link>
-        <div className="filter-dropdown-menu dropdown-menu dropdown-menu-md-end p-3">
-          <div className="filter-set-view">
-            <div className="filter-set-head">
-              <h4>
-                <i className="ti ti-filter-share" />
-                Filter
-              </h4>
-            </div>
-            <div className="filter-reset-btns">
-              <div className="row">
-                <div className="col-6">
-                  <Link to="#" className="btn btn-light">
-                    Reset
-                  </Link>
-                </div>
-                <div className="col-6">
-                  <Link to="#" className="btn btn-primary">
-                    Filter
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
       {values?.permissions?.includes('create') && (<Link
         to="#"
         className="btn btn-primary"
@@ -494,7 +371,7 @@ const Pipeline = () => {
 
                   {/* Pipeline List */}
                   <div className="table-responsive custom-table">
-                    <Table dataSource={searchTerm != "" ? searchData : pipelineData} columns={columns} />
+                    <Table dataSource={searchTerm != "" ? searchData : pipelineData} columns={columns} handleBulkAction={handleBulkOperation} />
                   </div>
                   <div className="row align-items-center">
                     <div className="col-md-6">
@@ -543,50 +420,34 @@ const Pipeline = () => {
           <div className="mb-3">
             <div className="pipe-title d-flex align-items-center justify-content-between">
               <h5 className="form-title">Pipeline Stages</h5>
-              <Link
-                to="#"
-                className="add-stage"
-                data-bs-toggle="modal"
-                data-bs-target="#add_stage"
-              >
-                <i className="ti ti-square-rounded-plus" />
-                Add New
-              </Link>
             </div>
             <div className="pipeline-listing">
-              {
-                _.flatMap(pipelineData, (item:any) =>
-                _.zipWith(item?.stage_name, item?.stage_percentage, (name, percentage) => ({
-                    name,
-                    percentage
-                })))?.map((x: any, index: number) => (
-                  <div key={index} className="pipeline-item">
-                    <p>
-                      <i className="ti ti-grip-vertical" /> {x?.name} - ({x?.percentage})
-                    </p>
-                    <div className="action-pipeline">
-                      <Link
-                        to="#"
-                        data-bs-toggle="modal"
-                        data-bs-target="#edit_stage"
-                        onClick={() => handleEditStages(x, 'edit')}
-                      >
-                        <i className="ti ti-edit text-blue" />
-                        Edit
-                      </Link>
-                      <Link
-                        to="#"
-                        data-bs-toggle="modal"
-                        data-bs-target="#delete_stage"
-                        onClick={() => handleEditStages(x, 'delete')}
-                      >
-                        <i className="ti ti-trash text-danger" />
-                        Delete
-                      </Link>
-                    </div>
+              <div className="modal-body">
+                <form >
+                  <div className="mb-3">
+                    <label className="col-form-label">Stage Name *</label>
+                    <input
+                      name="stage_name"
+                      value={formData?.stage_name}
+                      onChange={handleChange}
+                      type="text"
+                      className="form-control"
+                      defaultValue="Inpipeline"
+                    />
                   </div>
-                ))
-              }
+                  <div className="mb-3">
+                    <label className="col-form-label">Stage Percentage *</label>
+                    <input
+                      name="stage_percentage"
+                      value={formData?.stage_percentage}
+                      onChange={handleChange}
+                      type="text"
+                      className="form-control"
+                      defaultValue="Inpipeline"
+                    />
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
           <div className="mb-3">
@@ -613,6 +474,7 @@ const Pipeline = () => {
           <button
             type="button"
             className="btn btn-primary"
+            data-bs-dismiss="offcanvas"
             onClick={handleAddOrUpdatePipeline}
           >
             Create
@@ -661,50 +523,34 @@ const Pipeline = () => {
           <div className="mb-3">
             <div className="pipe-title d-flex align-items-center justify-content-between">
               <h5 className="form-title">Pipeline Stages</h5>
-              <Link
-                to="#"
-                className="add-stage"
-                data-bs-toggle="modal"
-                data-bs-target="#add_stage"
-              >
-                <i className="ti ti-square-rounded-plus" />
-                Add New
-              </Link>
             </div>
             <div className="pipeline-listing">
-              {
-                _.flatMap(pipelineData, (item:any) =>
-                _.zipWith(item?.stage_name, item?.stage_percentage, (name, percentage) => ({
-                    name,
-                    percentage
-                })))?.map((x: any, index: number) => (
-                  <div key={index} className="pipeline-item">
-                    <p>
-                      <i className="ti ti-grip-vertical" /> {x?.name} - ({x?.percentage})
-                    </p>
-                    <div className="action-pipeline">
-                      <Link
-                        to="#"
-                        data-bs-toggle="modal"
-                        data-bs-target="#edit_stage"
-                        onClick={() => setStageData(x)}
-                      >
-                        <i className="ti ti-edit text-blue" />
-                        Edit
-                      </Link>
-                      <Link
-                        to="#"
-                        data-bs-toggle="modal"
-                        data-bs-target="#delete_stage"
-                        onClick={() => setStageData(x)}
-                      >
-                        <i className="ti ti-trash text-danger" />
-                        Delete
-                      </Link>
-                    </div>
+              <div className="modal-body">
+                <form >
+                  <div className="mb-3">
+                    <label className="col-form-label">Stage Name *</label>
+                    <input
+                      name="stage_name"
+                      value={formData?.stage_name}
+                      onChange={handleChange}
+                      type="text"
+                      className="form-control"
+                      defaultValue="Inpipeline"
+                    />
                   </div>
-                ))
-              }
+                  <div className="mb-3">
+                    <label className="col-form-label">Stage Percentage *</label>
+                    <input
+                      name="stage_percentage"
+                      value={formData?.stage_percentage}
+                      onChange={handleChange}
+                      type="text"
+                      className="form-control"
+                      defaultValue="Inpipeline"
+                    />
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
           <div className="mb-3">
@@ -729,9 +575,9 @@ const Pipeline = () => {
             Cancel
           </button>
           <button type="submit" className="btn btn-primary"  
-            onClick={() => handleEditStages(stageData, 'edit')}
+            onClick={handleAddOrUpdatePipeline}
           data-bs-dismiss="offcanvas">
-            Save Changes
+            Update
           </button>
         </div>
       </form>
@@ -761,7 +607,7 @@ const Pipeline = () => {
               >
                 Cancel
               </Link>
-              <Link to="#" className="btn btn-danger" onClick={handleDeletePipeline}>
+              <Link to="#" className="btn btn-danger" data-bs-dismiss="modal" onClick={handleDeletePipeline}>
                 Yes, Delete it
               </Link>
             </div>
@@ -771,143 +617,43 @@ const Pipeline = () => {
     </div>
   </div>
   {/* /Delete Stage */}
-  {/* Delete Stage */}
-  <div className="modal fade" id="delete_stage" role="dialog">
-    <div className="modal-dialog modal-dialog-centered">
-      <div className="modal-content">
-        <div className="modal-body">
-          <div className="text-center">
-            <div className="avatar avatar-xl bg-danger-light rounded-circle mb-3">
-              <i className="ti ti-trash-x fs-36 text-danger" />
-            </div>
-            <h4 className="mb-2">Remove Stage?</h4>
-            <p className="mb-0">
-              Are you sure you want to remove <br /> stage you selected.
-            </p>
-            <div className="d-flex align-items-center justify-content-center mt-4">
-              <Link
-                to="#"
-                className="btn btn-light me-2"
-                data-bs-dismiss="modal"
-              >
-                Cancel
-              </Link>
-              <Link to="#" className="btn btn-danger" onClick={() => handleEditStages(stageData, 'delete')}>
-                Yes, Delete it
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
+  {/** Bulk Delete Data */}
+  <Modal show={showBulkDeleteModal} onHide={() => setShowBulkDeleteModal(false)}>
+    <div className="modal-header border-0 m-0 justify-content-end">
+      <button
+        className="btn-close"
+        aria-label="Close"
+        onClick={() => {
+          setShowBulkDeleteModal(false)
+        }}
+      >
+        <i className="ti ti-x" />
+      </button>
     </div>
-  </div>
-  {/* /Delete Stage */}
-  {/* Add Stage */}
-  <div className="modal custom-modal fade" id="add_stage" role="dialog">
-    <div className="modal-dialog modal-dialog-centered">
-      <div className="modal-content">
-        <div className="modal-header">
-          <h5 className="modal-title">Add Stage</h5>
-          <button
-            className="btn-close"
-            data-bs-dismiss="modal"
-            aria-label="Close"
+    <div className="modal-body">
+      <div className="success-message text-center">
+        <div className="success-popup-icon bg-light-blue">
+          <i className="ti ti-user-plus" />
+        </div>
+        <h3>Are you sure?</h3>
+        <p>delete ({selectedRows})selected rows</p>
+        <div className="col-lg-12 text-center modal-btn">
+          <Link
+            to="#"
+            className="btn btn-light"
+            onClick={() => setShowBulkDeleteModal(false)}
           >
-            <i className="ti ti-x" />
-          </button>
-        </div>
-        <div className="modal-body">
-          <form >
-            <div className="mb-3">
-              <label className="col-form-label">Stage Name *</label>
-              <input
-                name="stage_name"
-                value={stageData?.name}
-                onChange={(e) => setStageData({ ...stageData, name: e?.target?.value })}
-                type="text"
-                className="form-control"
-                defaultValue="Inpipeline"
-              />
-            </div>
-            <div className="mb-3">
-              <label className="col-form-label">Stage Percentage *</label>
-              <input
-                name="stage_name"
-                value={stageData?.percentage}
-                onChange={(e) => setStageData({ ...stageData, percentage: e?.target?.value })}
-                type="text"
-                className="form-control"
-                defaultValue="Inpipeline"
-              />
-            </div>
-            <div className="modal-btn text-end">
-              <Link to="#" className="btn btn-light" data-bs-dismiss="modal">
-                Cancel
-              </Link>
-              <Link  to="#" className="btn btn-danger"  data-bs-dismiss="modal" onClick={() => handleEditStages(stageData, 'edit')}>
-                Add
-              </Link>
-            </div>
-          </form>
+            Cancel
+          </Link>
+          <Link to="#" className="btn btn-primary" onClick={handleBulkDelete}>
+            Delete
+          </Link>
         </div>
       </div>
     </div>
-  </div>
-  {/* /Add Stage */}
-  {/* Edit Stage */}
-  <div className="modal custom-modal fade" id="edit_stage" role="dialog">
-    <div className="modal-dialog modal-dialog-centered">
-      <div className="modal-content">
-        <div className="modal-header">
-          <h5 className="modal-title">Edit Stage</h5>
-          <button
-            className="btn-close"
-            data-bs-dismiss="modal"
-            aria-label="Close"
-          >
-            <i className="ti ti-x" />
-          </button>
-        </div>
-        <div className="modal-body">
-          <form >
-            <div className="mb-3">
-              <label className="col-form-label">Stage Name *</label>
-              <input
-                name="stage_name"
-                value={stageData?.name}
-                onChange={(e) => setStageData({ ...stageData, name: e?.target?.value })}
-                type="text"
-                className="form-control"
-                defaultValue="Inpipeline"
-              />
-            </div>
-            <div className="mb-3">
-              <label className="col-form-label">Stage Percentage *</label>
-              <input
-                name="stage_name"
-                value={stageData?.percentage}
-                onChange={(e) => setStageData({ ...stageData, percentage: e?.target?.value })}
-                type="text"
-                className="form-control"
-                defaultValue="Inpipeline"
-              />
-            </div>
-            <div className="modal-btn text-end">
-              <Link to="#" className="btn btn-light" data-bs-dismiss="modal">
-                Cancel
-              </Link>
-              <Link  to="#" className="btn btn-danger"  data-bs-dismiss="modal" onClick={() => handleEditStages(stageData, 'edit')}>
-                Save Changes
-              </Link>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-  {/* /Edit Stage */}
+  </Modal>
+  {/** Bulk Delete Data */}
 </>
-
     </>
   );
 };
