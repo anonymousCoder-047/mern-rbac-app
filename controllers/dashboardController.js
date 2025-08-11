@@ -12,7 +12,13 @@ const app = expressRouter.Router();
 // load configuration variables
 
 app.get('/', async (req, res) => {
-    return apiResponse.successResponse(res, "Welcome!");
+    try {
+        return apiResponse.successResponse(res, "Welcome!");
+    } catch(err) {
+        console.log("Internal server error: ", err);
+
+        return apiResponse.ErrorResponse(res, "Internal server error");
+    }
 });
 
 module.exports.dashboardController = app;

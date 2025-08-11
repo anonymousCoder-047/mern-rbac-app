@@ -21,7 +21,11 @@ class PermissionsServices {
     }
 
     async get_permissions(_filters={}) {
-        return await Permissions.find({..._filters});
+        return await Permissions.find({..._filters}).populate({ path: 'profileId', model: 'profile' });
+    }
+
+    async delete_Many(_filters={}) {
+        return await Permissions.deleteMany({..._filters});
     }
 }
 

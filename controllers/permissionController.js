@@ -1,6 +1,7 @@
 
 // load dependencies
 const _ = require('lodash');
+const { ObjectId } = require("mongodb")
 
 // loading validators
 const {
@@ -13,93 +14,150 @@ const { canCreate, canRead, canUpdate, canDelete } = require('../middlewares/per
 
 // loading database service
 const { getNextSequence } = require('../helpers/incrementCount');
-const { create, get_permissions, get_permissions_by_id, update_permissions, delete_permissions } = require('../services/permissionsServices');
+const { create, get_permissions, get_permissions_by_id, update_permissions, delete_permissions, delete_Many } = require('../services/permissionsServices');
 
 const apiResponse = require('../helpers/apiResponse');
 const expressRouter = require('express');
+const { isAdmin } = require('../middlewares/authMiddleware');
 const app = expressRouter.Router();
 
 // load configuration variables
 
 app.get('/view/:profileId', canRead('read'), async (req, res) => {
-    const _id = req.params.profileId;
-    const permission_data = await get_permissions({ profileId: _id });
+    try {
+        const _id = req.params.profileId;
+        const permission_data = await get_permissions({ profileId: _id });
+    
+        if(!_.isEmpty(permission_data)) return apiResponse.successResponseWithData(res, "Permission information", permission_data);
+        else return apiResponse.ErrorResponse(res, "Sorry, no Permission data exists");
+    } catch(err) {
+        console.log("Internal server error: ", err);
 
-    if(!_.isEmpty(permission_data)) return apiResponse.successResponseWithData(res, "Permission information", permission_data);
-    else return apiResponse.ErrorResponse(res, "Sorry, no Permission data exists");
+        return apiResponse.ErrorResponse(res, "Internal server error");
+    }
 });
 
 app.get('/view', canRead('read'), async (req, res) => {
-    const permission_data = await get_permissions({});
+    try {
+        const _is_admin = await isAdmin(req, res);
+        
+        if(_is_admin == true) {
+            const permission_data = await get_permissions({});
+        
+            if(!_.isEmpty(permission_data)) return apiResponse.successResponseWithData(res, "Permission information", permission_data);
+            else return apiResponse.ErrorResponse(res, "Sorry, no Permission data exists");
+        } else return apiResponse.forbiddenResponse(res, "Sorry, Access Denied");
+    } catch(err) {
+        console.log("Internal server error: ", err);
 
-    if(!_.isEmpty(permission_data)) return apiResponse.successResponseWithData(res, "Permission information", permission_data);
-    else return apiResponse.ErrorResponse(res, "Sorry, no Permission data exists");
+        return apiResponse.ErrorResponse(res, "Internal server error");
+    }
 });
 
 app.post('/create', validateCreatePermissions, canCreate('create'), async (req, res) => {
-    let permission_data = req.body;
-
-    if(!_.isEmpty(permission_data)) {
-        const [_existing_permission] = await get_permissions({ profileId: permission_data?.profileId });
-        if(_.isEmpty(_existing_permission)) { 
-            permission_data['id'] = await getNextSequence('permissions');
-            const _new_permission = await create(permission_data);
+    try {
+        let permission_data = req.body;
     
-            if(!_.isEmpty(_new_permission)) return apiResponse.successResponseWithData(res, "New Permissions Created Successfully.", _new_permission);
-            else apiResponse.ErrorResponse(res, "Unable to create new permissions.");
-        } else {
-            const _deleted_permission = await delete_permissions(_existing_permission?._id);
-            if(_deleted_permission) {
+        if(!_.isEmpty(permission_data)) {
+            const [_existing_permission] = await get_permissions({ profileId: permission_data?.profileId });
+            if(_.isEmpty(_existing_permission)) { 
                 permission_data['id'] = await getNextSequence('permissions');
                 const _new_permission = await create(permission_data);
+        
                 if(!_.isEmpty(_new_permission)) return apiResponse.successResponseWithData(res, "New Permissions Created Successfully.", _new_permission);
                 else apiResponse.ErrorResponse(res, "Unable to create new permissions.");
-            } else apiResponse.ErrorResponse(res, "Error while re-creating the permissions...");
-        }
-    } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", permission_data);
+            } else {
+                const _deleted_permission = await delete_permissions(_existing_permission?._id);
+                if(_deleted_permission) {
+                    permission_data['id'] = await getNextSequence('permissions');
+                    const _new_permission = await create(permission_data);
+                    if(!_.isEmpty(_new_permission)) return apiResponse.successResponseWithData(res, "New Permissions Created Successfully.", _new_permission);
+                    else apiResponse.ErrorResponse(res, "Unable to create new permissions.");
+                } else apiResponse.ErrorResponse(res, "Error while re-creating the permissions...");
+            }
+        } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", permission_data);
+    } catch(err) {
+        console.log("Internal server error: ", err);
+
+        return apiResponse.ErrorResponse(res, "Internal server error");
+    }
 });
 
 app.post('/update', validateUpdatePermissions, canUpdate('update'), async (req, res) => {
-    const permission_data = req.body;
-
-    if(!_.isEmpty(permission_data)) {
-        const _existing_permission = await get_permissions_by_id(permission_data?.id);
-        if(!_.isEmpty(_existing_permission)) {
-            const _updated_permission = await update_permissions(permission_data?.id, _.omit(permission_data, ['id']));
+    try {
+        const permission_data = req.body;
     
-            if(!_.isEmpty(_updated_permission)) return apiResponse.successResponseWithData(res, "Permissions Updated Successfully.", _updated_permission);
-            else apiResponse.ErrorResponse(res, "Unable to update permissions.");
-        } else apiResponse.ErrorResponse(res, "Permissions doesnot exists.");
-    } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", permission_data);
+        if(!_.isEmpty(permission_data)) {
+            const _existing_permission = await get_permissions_by_id(permission_data?.id);
+            if(!_.isEmpty(_existing_permission)) {
+                const _updated_permission = await update_permissions(permission_data?.id, _.omit(permission_data, ['id']));
+        
+                if(!_.isEmpty(_updated_permission)) return apiResponse.successResponseWithData(res, "Permissions Updated Successfully.", _updated_permission);
+                else apiResponse.ErrorResponse(res, "Unable to update permissions.");
+            } else apiResponse.ErrorResponse(res, "Permissions doesnot exists.");
+        } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", permission_data);
+    } catch(err) {
+        console.log("Internal server error: ", err);
+
+        return apiResponse.ErrorResponse(res, "Internal server error");
+    }
 });
 
 app.patch('/update/:id', canUpdate('update'), async (req, res) => {
-    const permission_id = req.params.id;
-    const permission_data = req.body;
-
-    if(!_.isEmpty(permission_data) && permission_id != "") {
-        const _existing_permission = await get_permissions_by_id(permission_id);
-        if(!_.isEmpty(_existing_permission)) {
-            const _updated_permission = await update_permissions(permission_id, _.omit(permission_data, ['id']));
+    try {
+        const permission_id = req.params.id;
+        const permission_data = req.body;
     
-            if(!_.isEmpty(_updated_permission)) return apiResponse.successResponseWithData(res, "Permissions Updated Successfully.", _updated_permission);
-            else apiResponse.ErrorResponse(res, "Unable to update permissions.");
-        } else apiResponse.ErrorResponse(res, "Permissions doesnot exists.");
-    } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", permission_data);
+        if(!_.isEmpty(permission_data) && permission_id != "") {
+            const _existing_permission = await get_permissions_by_id(permission_id);
+            if(!_.isEmpty(_existing_permission)) {
+                const _updated_permission = await update_permissions(permission_id, _.omit(permission_data, ['id']));
+        
+                if(!_.isEmpty(_updated_permission)) return apiResponse.successResponseWithData(res, "Permissions Updated Successfully.", _updated_permission);
+                else apiResponse.ErrorResponse(res, "Unable to update permissions.");
+            } else apiResponse.ErrorResponse(res, "Permissions doesnot exists.");
+        } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", permission_data);
+    } catch(err) {
+        console.log("Internal server error: ", err);
+
+        return apiResponse.ErrorResponse(res, "Internal server error");
+    }
 });
 
 app.post('/delete', validateDeletePermissions, canDelete('delete'), async (req, res) => {
-    const permission_data = req.body;
-
-    if(!_.isEmpty(permission_data)) {
-        const _existing_permission = await get_permission_by_id(permission_data?.id);
-        if(!_.isEmpty(_existing_permission)) {
-            const _deleted_permission = await delete_permissions(permission_data?.id);
+    try {
+        const permission_data = req.body;
     
+        if(!_.isEmpty(permission_data)) {
+            const _existing_permission = await get_permissions_by_id(permission_data?.id);
+            if(!_.isEmpty(_existing_permission)) {
+                const _deleted_permission = await delete_permissions(permission_data?.id);
+        
+                if(!_.isEmpty(_deleted_permission)) return apiResponse.successResponseWithData(res, "Permission Deleted Successfully.", _deleted_permission);
+                else apiResponse.ErrorResponse(res, "Unable to delete permissions.");
+            } else apiResponse.ErrorResponse(res, "Permission doesnot exists.");
+        } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", permission_data);
+    } catch(err) {
+        console.log("Internal server error: ", err);
+
+        return apiResponse.ErrorResponse(res, "Internal server error");
+    }
+});
+
+app.post('/bulk-delete', canDelete('delete'), async (req, res) => {
+    try {
+        const permission_data = req.body;
+    
+        if(!_.isEmpty(permission_data)) {
+            const _deleted_permission = await delete_Many({ _id: { $in: permission_data?.ids?.map(id => ObjectId.createFromHexString(id)) }});
             if(!_.isEmpty(_deleted_permission)) return apiResponse.successResponseWithData(res, "Permission Deleted Successfully.", _deleted_permission);
-            else apiResponse.ErrorResponse(res, "Unable to delete permissions.");
-        } else apiResponse.ErrorResponse(res, "Permission doesnot exists.");
-    } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", permission_data);
+            else apiResponse.ErrorResponse(res, "Unable to delete permission.");
+        } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", permission_data);
+    } catch(err) {
+        console.log("Internal server error: ", err);
+
+        return apiResponse.ErrorResponse(res, "Internal server error");
+    }
 });
 
 module.exports.permissionController = app;

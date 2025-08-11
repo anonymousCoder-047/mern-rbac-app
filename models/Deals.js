@@ -25,12 +25,13 @@ const dealsSchema = mongoose.Schema({
         default: moment(new Date()).add(14, 'days').format()
     },
     contact_name: {
-        type: ObjectId,
+        type: String,
+        default: "",
         required: false,
-        default: ""
     },
     company_name: {
-        type: ObjectId,
+        type: String,
+        default: "",
         required: false,
     },
     sr_type: {
@@ -39,7 +40,8 @@ const dealsSchema = mongoose.Schema({
         default: ""
     },
     product_category: {
-        type: ObjectId,
+        type: String,
+        default: "",
         required: false,
     },
     closing_date: {
@@ -48,7 +50,8 @@ const dealsSchema = mongoose.Schema({
         default: moment(new Date()).add(14, 'days').format()
     },
     stage: {
-        type: ObjectId,
+        type: String,
+        default: "",
         required: false,
     },
     amount: {
@@ -57,7 +60,8 @@ const dealsSchema = mongoose.Schema({
         default: 0.0
     },
     team_leader: {
-        type: ObjectId,
+        type: String,
+        default: "",
         required: false,
     },
     comments: {
@@ -84,6 +88,14 @@ const dealsSchema = mongoose.Schema({
         type: String,
         required: false,
         default: ""
+    },
+    profileId: {
+        type: ObjectId,
+        required: false,
+    },
+    groupId: {
+        type: ObjectId,
+        required: false
     },
 });
 

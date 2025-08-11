@@ -25,13 +25,11 @@ class ContactsServices {
     }
 
     async get_contacts_by_id(_contacts_id) {
-        return await Contacts.findById({ _id: typeof _contacts_id == 'object' ? _contacts_id : ObjectId.createFromHexString(_contacts_id) })
-        .populate({ path: 'company_name', model: 'company' });
+        return await Contacts.findById({ _id: typeof _contacts_id == 'object' ? _contacts_id : ObjectId.createFromHexString(_contacts_id) });
     }
 
     async get_contacts(_filters={}) {
-        return await Contacts.find({..._filters})
-        .populate({ path: 'company_name', model: 'company' });
+        return await Contacts.find({..._filters});
     }
 }
 

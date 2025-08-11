@@ -23,6 +23,7 @@ const companyRouter = require('../controllers/companyController').companyControl
 const sourceRouter = require('../controllers/sourceController').sourceController;
 const contactsRouter = require('../controllers/contactsController').contactsController;
 const taxRouter = require('../controllers/taxController').taxController;
+const billRouter = require('../controllers/billSummaryController').billController;
 
 // loading middleware
 const {
@@ -30,23 +31,26 @@ const {
    checkLoggedIn
 } = require("../middlewares/authMiddleware");
 
-app.use('/', indexRouter);
-app.use('/auth', authRouter);
-app.use('/dashboard', validateToken, checkLoggedIn, dashboardRouter);
-app.use('/group', validateToken, checkLoggedIn, groupRouter);
-app.use('/profile', validateToken, checkLoggedIn, profileRouter);
-app.use('/permissions', validateToken, checkLoggedIn, permissionsRouter);
-app.use('/role', validateToken, checkLoggedIn, roleRouter);
-app.use('/products', validateToken, checkLoggedIn, productsRouter);
-app.use('/category', validateToken, checkLoggedIn, categoryRouter);
-app.use('/sub-category', validateToken, checkLoggedIn, subCategoryRouter);
-app.use('/type', validateToken, checkLoggedIn, typeRouter);
-app.use('/sub-type', validateToken, checkLoggedIn, subTypeRouter);
-app.use('/pipeline', validateToken, checkLoggedIn, pipelineRouter);
-app.use('/deals', validateToken, checkLoggedIn, dealsRouter);
-app.use('/company', validateToken, checkLoggedIn, companyRouter);
-app.use('/source', validateToken, checkLoggedIn, sourceRouter);
-app.use('/contact', validateToken, checkLoggedIn, contactsRouter);
-app.use('/tax', validateToken, checkLoggedIn, taxRouter);
+const apiPrefix = '/api';
+
+app.use(apiPrefix + '/', indexRouter);
+app.use(apiPrefix + '/auth', authRouter);
+app.use(apiPrefix + '/dashboard', validateToken, checkLoggedIn, dashboardRouter);
+app.use(apiPrefix + '/group', validateToken, checkLoggedIn, groupRouter);
+app.use(apiPrefix + '/profile', validateToken, checkLoggedIn, profileRouter);
+app.use(apiPrefix + '/permissions', validateToken, checkLoggedIn, permissionsRouter);
+app.use(apiPrefix + '/role', validateToken, checkLoggedIn, roleRouter);
+app.use(apiPrefix + '/products', validateToken, checkLoggedIn, productsRouter);
+app.use(apiPrefix + '/category', validateToken, checkLoggedIn, categoryRouter);
+app.use(apiPrefix + '/sub-category', validateToken, checkLoggedIn, subCategoryRouter);
+app.use(apiPrefix + '/type', validateToken, checkLoggedIn, typeRouter);
+app.use(apiPrefix + '/sub-type', validateToken, checkLoggedIn, subTypeRouter);
+app.use(apiPrefix + '/pipeline', validateToken, checkLoggedIn, pipelineRouter);
+app.use(apiPrefix + '/deals', validateToken, checkLoggedIn, dealsRouter);
+app.use(apiPrefix + '/company', validateToken, checkLoggedIn, companyRouter);
+app.use(apiPrefix + '/source', validateToken, checkLoggedIn, sourceRouter);
+app.use(apiPrefix + '/contact', validateToken, checkLoggedIn, contactsRouter);
+app.use(apiPrefix + '/tax', validateToken, checkLoggedIn, taxRouter);
+app.use(apiPrefix + '/bill', billRouter);
 
 module.exports = app;

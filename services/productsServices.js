@@ -26,18 +26,12 @@ class ProductsServices {
 
     async get_product_by_id(_product_id) {
         return await Products.findById({ _id: typeof _product_id == 'object' ? _product_id : ObjectId.createFromHexString(_product_id) })
-        .populate({ path: 'tax', model: 'tax' })
-        .populate({ path: 'product_type', model: 'type', populate: { path: 'sub_type', model: 'sub_type' }})
-        .populate({ path: 'product_category', model: 'category' })
-        .populate({ path: 'product_sub_category', model: 'sub_category' });
+        .populate({ path: 'tax', model: 'tax' });
     }
 
     async get_product(_filters={}) {
         return await Products.find({..._filters})
-        .populate({ path: 'tax', model: 'tax' })
-        .populate({ path: 'product_type', model: 'type', populate: { path: 'sub_type', model: 'sub_type' }})
-        .populate({ path: 'product_category', model: 'category' })
-        .populate({ path: 'product_sub_category', model: 'sub_category' });
+        .populate({ path: 'tax', model: 'tax' });
     }
 }
 

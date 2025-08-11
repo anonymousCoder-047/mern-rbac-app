@@ -13,19 +13,27 @@ const pipelineSchema = mongoose.Schema({
         default: "",
         required: false
     },
-    stage_name: [{
+    stage_name: {
         type: String,
         default: "",
         required: false
-    }],
-    stage_percentage: [{
+    },
+    stage_percentage: {
         type: String,
         default: "",
         required: false
-    }],
+    },
     created_date: {
         type: String,
         default: "",
+        required: false
+    },
+    profileId: {
+        type: ObjectId,
+        required: false,
+    },
+    groupId: {
+        type: ObjectId,
         required: false
     },
 });

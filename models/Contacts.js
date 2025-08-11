@@ -34,7 +34,8 @@ const contactsSchema = mongoose.Schema({
         required: false
     },
     company_name: {
-        type: ObjectId,
+        type: String,
+        default: "",
         required: false
     },
     email: {
@@ -58,7 +59,8 @@ const contactsSchema = mongoose.Schema({
         required: false
     },
     source: {
-        type: ObjectId,
+        type: String,
+        default: "",
         required: false
     },
     description: {
@@ -90,6 +92,14 @@ const contactsSchema = mongoose.Schema({
         type: String,
         required: false,
         default: ""
+    },
+    profileId: {
+        type: ObjectId,
+        required: false,
+    },
+    groupId: {
+        type: ObjectId,
+        required: false
     },
 });
 

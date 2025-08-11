@@ -1,5 +1,6 @@
 
 const mongoose = require('mongoose')
+const ObjectId = mongoose.Types.ObjectId;
 
 const taxSchema = mongoose.Schema({
     id: {
@@ -16,6 +17,14 @@ const taxSchema = mongoose.Schema({
         type: String,
         required: false,
         default: ""
+    },
+    profileId: {
+        type: ObjectId,
+        required: false,
+    },
+    groupId: {
+        type: ObjectId,
+        required: false
     },
 });
 

@@ -38,16 +38,32 @@ const productsSchema = mongoose.Schema({
         required: false,
     }],
     product_type: {
-        type: ObjectId,
+        type: String,
+        default: "",
+        required: false,
+    },
+    product_sub_type: {
+        type: String,
+        default: "",
         required: false,
     },
     product_category: {
-        type: ObjectId,
+        type: String,
+        default: "",
         required: false,
     },
     product_sub_category: {
+        type: String,
+        default: "",
+        required: false,
+    },
+    profileId: {
         type: ObjectId,
         required: false,
+    },
+    groupId: {
+        type: ObjectId,
+        required: false
     },
 });
 

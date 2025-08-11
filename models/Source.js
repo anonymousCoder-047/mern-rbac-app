@@ -18,6 +18,14 @@ const sourceSchema = mongoose.Schema({
         default: "",
         required: false
     },
+    profileId: {
+        type: ObjectId,
+        required: false,
+    },
+    groupId: {
+        type: ObjectId,
+        required: false
+    },
 });
 
 module.exports.Source = new mongoose.model('source', sourceSchema, 'source');

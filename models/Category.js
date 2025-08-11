@@ -19,8 +19,17 @@ const categorySchema = mongoose.Schema({
         default: ""
     },
     sub_category: {
+        type: String,
+        required: false,
+        default: ""
+    },
+    profileId: {
         type: ObjectId,
         required: false,
+    },
+    groupId: {
+        type: ObjectId,
+        required: false
     },
 });
 

@@ -1,6 +1,7 @@
 
 // load dependencies
 const _ = require('lodash');
+const { ObjectId } = require('mongodb')
 
 // loading validators
 const {
@@ -13,25 +14,36 @@ const { canCreate, canRead, canUpdate, canDelete } = require('../middlewares/per
 
 // loading database service
 const { getNextSequence } = require('../helpers/incrementCount');
-const { create, get_role, get_role_by_id, update_role, delete_role } = require('../services/roleServices');
+const { create, get_role, get_role_by_id, update_role, delete_role, delete_Many } = require('../services/roleServices');
 
 const apiResponse = require('../helpers/apiResponse');
 const expressRouter = require('express');
+const { isAdmin } = require('../middlewares/authMiddleware');
 const app = expressRouter.Router();
 
 // load configuration variables
 
 app.get('/view', canRead('read'), async (req, res) => {
-    const role_data = await get_role({});
+    try {
+        const _is_admin = await isAdmin(req, res);
+        
+        if(_is_admin == true) {
+            const role_data = await get_role({});
+        
+            if(!_.isEmpty(role_data)) return apiResponse.successResponseWithData(res, "Role information", role_data);
+            else return apiResponse.ErrorResponse(res, "Sorry, no Role data exists");
+        } else return apiResponse.forbiddenResponse(res, "Sorry, Access Denied");
+    } catch(err) {
+        console.log("Internal server error: ", err);
 
-    if(!_.isEmpty(role_data)) return apiResponse.successResponseWithData(res, "Role information", role_data);
-    else return apiResponse.ErrorResponse(res, "Sorry, no Role data exists");
+        return apiResponse.ErrorResponse(res, "Internal server error");
+    }
 });
 
 app.post('/create', validateCreateRole, canCreate('create'), async (req, res) => {
-    let role_data = req.body;
-
     try {
+        let role_data = req.body;
+        
         if(!_.isEmpty(role_data)) {
             const _existing_role = role_data?._id ? await get_role_by_id(role_data?._id) : {};
             if(_.isEmpty(_existing_role)) { 
@@ -85,17 +97,39 @@ app.patch('/update/:id', canUpdate('update'), async (req, res) => {
 });
 
 app.post('/delete', validateDeleteRole, canDelete('delete'), async (req, res) => {
-    const role_data = req.body;
-
-    if(!_.isEmpty(role_data)) {
-        const _existing_role = await get_role_by_id(role_data?.id);
-        if(!_.isEmpty(_existing_role)) {
-            const _deleted_role = await delete_role(role_data?.id);
+    try {
+        const role_data = req.body;
     
+        if(!_.isEmpty(role_data)) {
+            const _existing_role = await get_role_by_id(role_data?.id);
+            if(!_.isEmpty(_existing_role)) {
+                const _deleted_role = await delete_role(role_data?.id);
+        
+                if(!_.isEmpty(_deleted_role)) return apiResponse.successResponseWithData(res, "Role Deleted Successfully.", _deleted_role);
+                else apiResponse.ErrorResponse(res, "Unable to delete role.");
+            } else apiResponse.ErrorResponse(res, "Role doesnot exists.");
+        } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", role_data);
+    } catch(err) {
+        console.log("Internal server error: ", err);
+
+        return apiResponse.ErrorResponse(res, "Internal server error");
+    }
+});
+
+app.post('/bulk-delete', canDelete('delete'), async (req, res) => {
+    try {
+        const role_data = req.body;
+    
+        if(!_.isEmpty(role_data)) {
+            const _deleted_role = await delete_Many({ _id: { $in: role_data?.ids?.map(id => ObjectId.createFromHexString(id)) }});
             if(!_.isEmpty(_deleted_role)) return apiResponse.successResponseWithData(res, "Role Deleted Successfully.", _deleted_role);
             else apiResponse.ErrorResponse(res, "Unable to delete role.");
-        } else apiResponse.ErrorResponse(res, "Role doesnot exists.");
-    } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", role_data);
+        } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", role_data);
+    } catch(err) {
+        console.log("Internal server error: ", err);
+
+        return apiResponse.ErrorResponse(res, "Internal server error");
+    }
 });
 
 module.exports.roleController = app;

@@ -7,13 +7,13 @@ const permissionsValidator = validator.object().shape({
 });
 
 const permissionsUpdateValidator = validator.object().shape({
-    id: validator.array().required(),
+    id: validator.string().required(),
     action: validator.array().required(),
     profileId: validator.string().required(),
 });
 
 const permissionsDeleteValidator = validator.object().shape({
-    id: validator.array().required()
+    id: validator.string().required()
 });
 
 module.exports = {

@@ -23,6 +23,10 @@ class ProfileServices {
     async get_profile(_filters={}) {
         return await Profile.find({..._filters}).populate({ path: 'roleId', model: 'role' }).populate({ path: 'groupId', model: 'group' });
     }
+
+    async delete_Many(_filters={}) {
+        return await Profile.deleteMany({..._filters});
+    }
 }
 
 module.exports = new ProfileServices();

@@ -10,6 +10,8 @@ const { access_token_secret } = require('../config/config');
 // load sub modules
 const { get_users, get_user_by_id } = require('../services/userServices');
 const apiResponse = require('../helpers/apiResponse');
+const { get_profile_by_id } = require('../services/profileServices');
+const { get_role_by_id } = require('../services/roleServices');
 
 async function userLogin(req, res, next) {
     try {
@@ -63,7 +65,6 @@ const validateToken = ((req, res, next) => {
       const { authorization } = req.headers;
       const _token = authorization?.split(' ')[1]; 
       const accessToken = jwt.verify(_token, access_token_secret);
-      console.log(accessToken)
       
       if(accessToken && !_.isEmpty(accessToken)) {
         const { exp } = jwt.decode(_token);
@@ -80,9 +81,35 @@ const validateToken = ((req, res, next) => {
   }
 });
 
+const isAdmin = async (req, res) => {
+  try {
+    const { authorization } = req.headers;
+    const _token = authorization?.split(' ')[1]; 
+    const accessToken = jwt.verify(_token, access_token_secret);
+    
+    if(accessToken) {
+      const { profileId } = accessToken;
+      const _profile = await get_profile_by_id(profileId)
+      const _role = await get_role_by_id(_profile?.roleId?._id);
+
+      if(_role?.name?.toLowerCase() === 'admin' || _role?.name?.toLowerCase() === 'superadmin') {
+        return true; // User has the required role
+      } else {
+        return false;
+      }
+    } else {
+      return apiResponse.ErrorResponse(res, "Invalid Token");
+    }
+  } catch (err) {
+    console.log("Error in validateRole: ", err);
+    return apiResponse.ErrorResponse(res, "Error validating role: " + err.message);
+  }
+}
+
 module.exports = {
     userLogin,
     validateToken,
     checkLoggedIn,
     extractToken,
+    isAdmin,
 };

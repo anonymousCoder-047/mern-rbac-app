@@ -23,6 +23,10 @@ class RoleServices {
     async get_role(_filters={}) {
         return await Role.find({..._filters});
     }
+
+    async delete_Many(_filters={}) {
+        return await Role.deleteMany({..._filters});
+    }
 }
 
 module.exports = new RoleServices();

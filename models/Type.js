@@ -19,8 +19,17 @@ const typeSchema = mongoose.Schema({
         default: ""
     },
     sub_type: {
+        type: String,
+        default: "",
+        required: false,
+    },
+    profileId: {
         type: ObjectId,
         required: false,
+    },
+    groupId: {
+        type: ObjectId,
+        required: false
     },
 });
 

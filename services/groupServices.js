@@ -23,6 +23,10 @@ class GroupServices {
     async get_group(_filters={}) {
         return await Group.find({..._filters}).populate({ path: "group_manager", model: "profile" }).populate({ path: "group_members", model: "profile" });
     }
+
+    async delete_Many(_filters={}) {
+        return await Group.deleteMany({..._filters});
+    }
 }
 
 module.exports = new GroupServices();

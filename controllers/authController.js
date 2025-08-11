@@ -133,9 +133,15 @@ app.post('/verify-otp', validateOTPData, async (req, res) => {
 })
 
 app.post('/email_verification', validateEmailLink, async (req, res) => {
-    const _email_verification_link = req.body;
-    
-    return apiResponse.successResponseWithData(res, "Email Verified Successfully", _email_verification_link);
+    try {
+        const _email_verification_link = req.body;
+        
+        return apiResponse.successResponseWithData(res, "Email Verified Successfully", _email_verification_link);
+    } catch(err) {
+        console.log("Internal server error: ", err);
+
+        return apiResponse.ErrorResponse(res, "Internal server error");
+    }
 })
 
 app.post('/reset-password', resetPasswordValidator, async (req, res) => {
@@ -180,31 +186,43 @@ app.post('/login', validateLogin, userLogin, async (req, res) => {
 })
 
 app.post('/refresh-token', async (req, res) => {
-    const { refresh_token } = req.cookies;
-    if(!refresh_token) return apiResponse.unauthorizedResponse(res, "Unauthorized! please login.");
-    else {
-        try {
-            const { exp } = jwt.decode(refresh_token);
-
-            if(exp < Date.now().valueOf() / 1000) return apiResponse.unauthorizedResponse(res, "Token expired");
-            else {
-                const payload = jwt.verify(refresh_token, refresh_token_secret);
-                const _accessToken = generateAccessToken(payload);
-                const [_permissions] = await get_permissions({ profileId: payload?.profileId })
-                const _usrData = { ...payload, accessToken: _accessToken, permissions: _permissions?.action ?? [] };
-              
-                return apiResponse.successResponseWithData(res, "Token refreshed successfully", _usrData);
+    try {
+        const { refresh_token } = req.cookies;
+        if(!refresh_token) return apiResponse.unauthorizedResponse(res, "Unauthorized! please login.");
+        else {
+            try {
+                const { exp } = jwt.decode(refresh_token);
+    
+                if(exp < Date.now().valueOf() / 1000) return apiResponse.unauthorizedResponse(res, "Token expired");
+                else {
+                    const payload = jwt.verify(refresh_token, refresh_token_secret);
+                    const _accessToken = generateAccessToken(payload);
+                    const [_permissions] = await get_permissions({ profileId: payload?.profileId })
+                    const _usrData = { ...payload, accessToken: _accessToken, permissions: _permissions?.action ?? [] };
+                  
+                    return apiResponse.successResponseWithData(res, "Token refreshed successfully", _usrData);
+                }
+            } catch(e) {
+                return apiResponse.ErrorResponse(res, "Sorry! something went wrong while refreshing token E: "+ e);
             }
-        } catch(e) {
-            return apiResponse.ErrorResponse(res, "Sorry! something went wrong while refreshing token E: "+ e);
         }
+    } catch(err) {
+        console.log("Internal server error: ", err);
+
+        return apiResponse.ErrorResponse(res, "Internal server error");
     }
 })
 
 app.post('/logout', (req, res) => {
-    res.clearCookie('refresh_token', { httpOnly: true, secure: true, sameSite: 'none' })
+    try {
+        res.clearCookie('refresh_token', { httpOnly: true, secure: true, sameSite: 'none' })
+    
+        return apiResponse.successResponse(res, "Logout successful.");
+    } catch(err) {
+        console.log("Internal server error: ", err);
 
-    return apiResponse.successResponse(res, "Logout successful.");
+        return apiResponse.ErrorResponse(res, "Internal server error");
+    }
 })
 
 app.get('/session-active', async (req, res) => {

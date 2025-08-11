@@ -4,6 +4,7 @@ const path = require('path');
 const _ = require('lodash');
 const multer = require('multer');
 const xlsx = require("xlsx");
+const { ObjectId } = require('mongodb')
 
 // loading validators
 
@@ -11,61 +12,88 @@ const { canCreate, canRead, canUpdate, canDelete } = require('../middlewares/per
 
 // loading database service
 const { getNextSequence } = require('../helpers/incrementCount');
-const { create, createMany, delete_contacts, get_contacts, get_contacts_by_id, update_contacts } = require('../services/contactsServices');
+const { create, createMany, delete_contacts, get_contacts, get_contacts_by_id, update_contacts, delete_Many } = require('../services/contactsServices');
 
 const apiResponse = require('../helpers/apiResponse');
 const expressRouter = require('express');
 const { send_mail } = require('../helpers/mail');
 const { domain, mail_username } = require('../config/config');
+const { get_profile_by_id } = require('../services/profileServices');
+const { extractToken, isAdmin } = require('../middlewares/authMiddleware');
 const app = expressRouter.Router();
 
 const upload = multer({ storage: multer.memoryStorage() });
 // load configuration variables
 
 app.get('/view', canRead('read'), async (req, res) => {
-    const contacts_data = await get_contacts({});
+    try {
+        const { profileId } = extractToken(req?.headers?.authorization?.split('Bearer ')[1]);
+        const profile_data = await get_profile_by_id(profileId);
+        const _is_admin = await isAdmin(req, res);
+        const contacts_data = _is_admin == true ? await get_contacts({}) : await get_contacts({ groupId: profile_data?.groupId?._id });
+    
+        if(!_.isEmpty(contacts_data)) return apiResponse.successResponseWithData(res, "Contacts information", contacts_data);
+        else return apiResponse.ErrorResponse(res, "Sorry, no Contacts data exists");
+    } catch(err) {
+        console.log("Internal server error: ", err);
 
-    if(!_.isEmpty(contacts_data)) return apiResponse.successResponseWithData(res, "Contacts information", contacts_data);
-    else return apiResponse.ErrorResponse(res, "Sorry, no Contacts data exists");
+        return apiResponse.ErrorResponse(res, "Internal server error");
+    }
 });
 
 app.post('/send-mail', canCreate('create'), async (req, res) => {
-    let mail_data = req.body;
+    try {
+        let mail_data = req.body;
+    
+        if(!_.isEmpty(mail_data)) {
+            const emailData = {
+                url: domain,
+                bodyData: mail_data?.emailBody,
+                support_details: "https://wa.me/971505658506?text=Hello! i need your assistance to reset password for my account."
+            };
+    
+            const _attachments = [
+                {
+                    filename: 'the_a_team.png',
+                    path: path.join(__dirname, '../public/images/the_a_team.png'), // path to the image file
+                    cid: 'the_a_team_logo' // same as the cid used in the HTML img src
+                }
+            ]
+    
+            const _mail_info = await send_mail("contact_email", emailData, mail_username, mail_data?.toEmail, "Reset Password", _attachments, mail_data?.ccEmail ? mail_data?.ccEmail?.split(",") : [], mail_data?.bccEmail ? mail_data?.bccEmail?.split(",") : []);
+            if(_mail_info.status == 200) return apiResponse.successResponseWithData(res, "Mail sent successfully.", _mail_info.messageId)
+            else apiResponse.ErrorResponse(res, "Sorry! couldnt send Mail E: "+ _mail_info.status);
+        } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", contacts_data);
+    } catch(err) {
+        console.log("Internal server error: ", err);
 
-    if(!_.isEmpty(mail_data)) {
-        const emailData = {
-            url: domain,
-            bodyData: mail_data?.emailBody,
-            support_details: "https://wa.me/971505658506?text=Hello! i need your assistance to reset password for my account."
-        };
-
-        const _attachments = [
-            {
-                filename: 'the_a_team.png',
-                path: path.join(__dirname, '../public/images/the_a_team.png'), // path to the image file
-                cid: 'the_a_team_logo' // same as the cid used in the HTML img src
-            }
-        ]
-
-        const _mail_info = await send_mail("contact_email", emailData, mail_username, mail_data?.toEmail, "Reset Password", _attachments, mail_data?.ccEmail ? mail_data?.ccEmail?.split(",") : [], mail_data?.bccEmail ? mail_data?.bccEmail?.split(",") : []);
-        if(_mail_info.status == 200) return apiResponse.successResponseWithData(res, "Mail sent successfully.", _mail_info.messageId)
-        else apiResponse.ErrorResponse(res, "Sorry! couldnt send Mail E: "+ _mail_info.status);
-    } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", contacts_data);
+        return apiResponse.ErrorResponse(res, "Internal server error");
+    }
 });
 
 app.post('/create', canCreate('create'), async (req, res) => {
-    let contacts_data = req.body;
-
-    if(!_.isEmpty(contacts_data)) {
-        const [_existing_contacts] = await get_contacts({ email: contacts_data?.email });
-        if(_.isEmpty(_existing_contacts)) { 
-            contacts_data['id'] = await getNextSequence('contacts');
-            const _new_contacts = await create(contacts_data);
+    try {
+        let contacts_data = req.body;
+        const { profileId } = extractToken(req?.headers?.authorization?.split('Bearer ')[1]);
+        const profile_data = await get_profile_by_id(profileId);
     
-            if(!_.isEmpty(_new_contacts)) return apiResponse.successResponseWithData(res, "New Contacts Created Successfully.", _new_contacts);
-            else apiResponse.ErrorResponse(res, "Unable to create new contacts.");
-        } else apiResponse.ErrorResponse(res, "Contacts already exists.");
-    } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", contacts_data);
+        if(!_.isEmpty(contacts_data)) {
+            const [_existing_contacts] = await get_contacts({ email: contacts_data?.email });
+            if(_.isEmpty(_existing_contacts)) { 
+                contacts_data['id'] = await getNextSequence('contacts');
+                contacts_data['profileId'] = profile_data?._id;
+                contacts_data['groupId'] = profile_data?.groupId?._id;
+                const _new_contacts = await create(contacts_data);
+        
+                if(!_.isEmpty(_new_contacts)) return apiResponse.successResponseWithData(res, "New Contacts Created Successfully.", _new_contacts);
+                else apiResponse.ErrorResponse(res, "Unable to create new contacts.");
+            } else apiResponse.ErrorResponse(res, "Contacts already exists.");
+        } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", contacts_data);
+    } catch(err) {
+        console.log("Internal server error: ", err);
+
+        return apiResponse.ErrorResponse(res, "Internal server error");
+    }
 });
 
 app.post('/bulk', canCreate('create'), upload.single('team'), async (req, res) => {
@@ -84,46 +112,80 @@ app.post('/bulk', canCreate('create'), upload.single('team'), async (req, res) =
 });
 
 app.post('/update', canUpdate('update'), async (req, res) => {
-    const contacts_data = req.body;
-
-    if(!_.isEmpty(contacts_data)) {
-        const _existing_contacts = await get_contacts_by_id(contacts_data?.id);
-        if(!_.isEmpty(_existing_contacts)) {
-            const _updated_contacts = await update_contacts(contacts_data?.id, _.omit(contacts_data, ['id']));
+    try {
+        const contacts_data = req.body;
     
-            if(!_.isEmpty(_updated_contacts)) return apiResponse.successResponseWithData(res, "Contacts Updated Successfully.", _updated_contacts);
-            else apiResponse.ErrorResponse(res, "Unable to update contacts.");
-        } else apiResponse.ErrorResponse(res, "Contacts doesnot exists.");
-    } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", contacts_data);
+        if(!_.isEmpty(contacts_data)) {
+            const _existing_contacts = await get_contacts_by_id(contacts_data?.id);
+            if(!_.isEmpty(_existing_contacts)) {
+                const _updated_contacts = await update_contacts(contacts_data?.id, _.omit(contacts_data, ['id']));
+        
+                if(!_.isEmpty(_updated_contacts)) return apiResponse.successResponseWithData(res, "Contacts Updated Successfully.", _updated_contacts);
+                else apiResponse.ErrorResponse(res, "Unable to update contacts.");
+            } else apiResponse.ErrorResponse(res, "Contacts doesnot exists.");
+        } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", contacts_data);
+    } catch(err) {
+        console.log("Internal server error: ", err);
+
+        return apiResponse.ErrorResponse(res, "Internal server error");
+    }
 });
 
 app.patch('/update/:id', canUpdate('update'), async (req, res) => {
-    const contacts_id = req.params.id;
-    const contacts_data = req.body;
-
-    if(!_.isEmpty(contacts_data) && contacts_id != "") {
-        const _existing_contacts = await get_contacts_by_id(contacts_id);
-        if(!_.isEmpty(_existing_contacts)) {            
-            const _updated_contacts = await update_contacts(contacts_id, _.omit(contacts_data, ['id']));
+    try {
+        const contacts_id = req.params.id;
+        const contacts_data = req.body;
     
-            if(!_.isEmpty(_updated_contacts)) return apiResponse.successResponseWithData(res, "Contacts Updated Successfully.", _updated_contacts);
-            else apiResponse.ErrorResponse(res, "Unable to update contacts.");
-        } else apiResponse.ErrorResponse(res, "Contacts doesnot exists.");
-    } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", contacts_data);
+        if(!_.isEmpty(contacts_data) && contacts_id != "") {
+            const _existing_contacts = await get_contacts_by_id(contacts_id);
+            if(!_.isEmpty(_existing_contacts)) {            
+                const _updated_contacts = await update_contacts(contacts_id, _.omit(contacts_data, ['id']));
+        
+                if(!_.isEmpty(_updated_contacts)) return apiResponse.successResponseWithData(res, "Contacts Updated Successfully.", _updated_contacts);
+                else apiResponse.ErrorResponse(res, "Unable to update contacts.");
+            } else apiResponse.ErrorResponse(res, "Contacts doesnot exists.");
+        } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", contacts_data);
+    } catch(err) {
+        console.log("Internal server error: ", err);
+
+        return apiResponse.ErrorResponse(res, "Internal server error");
+    }
 });
 
 app.post('/delete', canDelete('delete'), async (req, res) => {
-    const contacts_data = req.body;
-
-    if(!_.isEmpty(contacts_data)) {
-        const _existing_contacts = await get_contacts_by_id(contacts_data?.id);
-        if(!_.isEmpty(_existing_contacts)) {
-            const _deleted_contacts = await delete_contacts(contacts_data?.id);
+    try {
+        const contacts_data = req.body;
     
-            if(!_.isEmpty(_deleted_contacts)) return apiResponse.successResponseWithData(res, "Contacts Deleted Successfully.", _deleted_contacts);
+        if(!_.isEmpty(contacts_data)) {
+            const _existing_contacts = await get_contacts_by_id(contacts_data?.id);
+            if(!_.isEmpty(_existing_contacts)) {
+                const _deleted_contacts = await delete_contacts(contacts_data?.id);
+        
+                if(!_.isEmpty(_deleted_contacts)) return apiResponse.successResponseWithData(res, "Contacts Deleted Successfully.", _deleted_contacts);
+                else apiResponse.ErrorResponse(res, "Unable to delete contacts.");
+            } else apiResponse.ErrorResponse(res, "Contacts doesnot exists.");
+        } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", contacts_data);
+    } catch(err) {
+        console.log("Internal server error: ", err);
+
+        return apiResponse.ErrorResponse(res, "Internal server error");
+    }
+});
+
+app.post('/bulk-delete', canDelete('delete'), async (req, res) => {
+    try {
+        const contacts_data = req.body;
+    
+        if(!_.isEmpty(contacts_data)) {
+            const _deleted_contact = await delete_Many({ _id: { $in: contacts_data?.ids?.map(id => ObjectId.createFromHexString(id)) }});
+            if(!_.isEmpty(_deleted_contact)) return apiResponse.successResponseWithData(res, "Contacts Deleted Successfully.", _deleted_contact);
             else apiResponse.ErrorResponse(res, "Unable to delete contacts.");
-        } else apiResponse.ErrorResponse(res, "Contacts doesnot exists.");
-    } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", contacts_data);
+        } else return apiResponse.badRequestResponse(res, "Sorry, missing field in body ", contacts_data);
+    } catch(err) {
+        console.log("Internal server error: ", err);
+
+        return apiResponse.ErrorResponse(res, "Internal server error");
+    }
 });
 
 module.exports.contactsController = app;

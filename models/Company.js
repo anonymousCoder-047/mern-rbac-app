@@ -63,6 +63,14 @@ const companySchema = mongoose.Schema({
         required: false,
         default: ""
     },
+    profileId: {
+        type: ObjectId,
+        required: false,
+    },
+    groupId: {
+        type: ObjectId,
+        required: false
+    },
 });
 
 module.exports.Company = new mongoose.model('company', companySchema, 'company');
