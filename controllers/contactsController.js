@@ -30,7 +30,8 @@ app.get('/view', canRead('read'), async (req, res) => {
         const { profileId } = extractToken(req?.headers?.authorization?.split('Bearer ')[1]);
         const profile_data = await get_profile_by_id(profileId);
         const _is_admin = await isAdmin(req, res);
-        const contacts_data = _is_admin == true ? await get_contacts({}) : await get_contacts({ groupId: profile_data?.groupId?._id });
+        // const contacts_data = _is_admin == true ? await get_contacts({}) : await get_contacts({ groupId: profile_data?.groupId?._id });
+        const contacts_data = await get_contacts({});
     
         if(!_.isEmpty(contacts_data)) return apiResponse.successResponseWithData(res, "Contacts information", contacts_data);
         else return apiResponse.ErrorResponse(res, "Sorry, no Contacts data exists");

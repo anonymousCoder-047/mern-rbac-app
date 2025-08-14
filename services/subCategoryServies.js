@@ -29,7 +29,11 @@ class SubCategoryServices {
     }
 
     async get_sub_category(_filters={}) {
-        return await SubCategory.find({..._filters});
+        return await SubCategory.find({..._filters})
+        .populate({ path: 'profileId', model: 'profile' })
+        .populate({ path: 'groupId', model: 'group', populate: [
+            { path: 'group_manager', model: 'users' }
+        ]})
     }
 }
 

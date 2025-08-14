@@ -17,12 +17,19 @@ function extractInvoiceIds(buffer) {
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-  return _(rows)
-    .flatten()
-    .map((id) => _.toString(id))
-    .filter(_.identity)
-    .uniq()
-    .value();
+  if (rows.length < 2) return [];
+
+  const headers = rows[0].map((h, i) => {
+    const key = _.snakeCase(_.toString(h).trim());
+    return i === 0 ? 'invoiceId' : key || `column_${i}`;
+  });
+
+  return rows.slice(1).map((row) => {
+    return headers.reduce((obj, key, i) => {
+      obj[key] = _.toString(row[i] || '').trim();
+      return obj;
+    }, {});
+  });
 }
 
 async function fetchInvoiceWithDelay(invoiceId, delayMs) {
@@ -52,10 +59,13 @@ app.post('/search', upload.single('bill_file'), async (req, res) => {
             const accountNumbers = extractInvoiceIds(bills.buffer);
             
             for (const _id of accountNumbers) {
-                const id = _.startsWith(_.toString(_id), '0') ? _.toString(_id) : '0' + _.toString(_id);
+                const id = _.startsWith(_.toString(_id?.invoiceId), '0') ? _.toString(_id?.invoiceId) : '0' + _.toString(_id?.invoiceId);
                 
-                const resp = await fetchInvoiceWithDelay(id, 800);
-                if (resp?.accountInfo) results.push(resp.accountInfo); // Push array of invoices
+                const resp = await fetchInvoiceWithDelay(id, 830);
+                if (resp?.accountInfo) {
+                  const accountInfoObj = _.isArray(resp.accountInfo) ? resp.accountInfo[0] : resp.accountInfo;
+                  results.push({ ..._.cloneDeep(_id), ..._.cloneDeep(accountInfoObj) }); // Push array of invoices
+                }
             }
     
             return apiResponse.successResponseWithData(res, "Bill Summary", _.flatten(results));

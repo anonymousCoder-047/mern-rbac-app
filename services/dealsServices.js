@@ -29,7 +29,11 @@ class DealsServices {
     }
     
     async get_deals(_filters={}) {
-        return await Deals.find({..._filters});
+        return await Deals.find({..._filters})
+        .populate({ path: 'profileId', model: 'profile' })
+        .populate({ path: 'groupId', model: 'group', populate: [
+            { path: 'group_manager', model: 'users' }
+        ]})
     }
 }
 

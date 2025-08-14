@@ -20,7 +20,7 @@ const {
 // loading database service
 const { getNextSequence } = require('../helpers/incrementCount');
 const { create, get_users, get_user_by_id, update_user } = require('../services/userServices');
-const { create:createProfile } = require('../services/profileServices');
+const { create:createProfile, get_profile_by_id } = require('../services/profileServices');
 
 const apiResponse = require('../helpers/apiResponse');
 const expressRouter = require('express');
@@ -176,7 +176,8 @@ app.post('/login', validateLogin, userLogin, async (req, res) => {
         const _accessToken = generateAccessToken(_existing_usr);
         const _refreshToken = generateRefreshToken(_existing_usr);
         const [_permissions] = await get_permissions({ profileId: _existing_usr?.profileId })
-        const _usrData = { ..._existing_usr?._doc, 'token': _accessToken, permissions: _permissions?.action ?? [] };
+        const _profile = await get_profile_by_id(_existing_usr?.profileId);
+        const _usrData = { ..._existing_usr?._doc, ..._.pick(_profile, ['roleId', 'groupId']), 'token': _accessToken, permissions: _permissions?.action ?? [] };
 
         res.cookie('refresh_token', _refreshToken, { httpOnly: true, secure: true, sameSite: 'none' });
         return apiResponse.successResponseWithData(res, "User logged in successfully!", _usrData);
@@ -198,7 +199,8 @@ app.post('/refresh-token', async (req, res) => {
                     const payload = jwt.verify(refresh_token, refresh_token_secret);
                     const _accessToken = generateAccessToken(payload);
                     const [_permissions] = await get_permissions({ profileId: payload?.profileId })
-                    const _usrData = { ...payload, accessToken: _accessToken, permissions: _permissions?.action ?? [] };
+                    const _profile = await get_profile_by_id(payload?.profileId);
+                    const _usrData = { ...payload, ..._.pick(_profile, ['roleId', 'groupId']), accessToken: _accessToken, permissions: _permissions?.action ?? [] };
                   
                     return apiResponse.successResponseWithData(res, "Token refreshed successfully", _usrData);
                 }

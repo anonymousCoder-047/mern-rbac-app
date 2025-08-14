@@ -24,7 +24,8 @@ app.get('/view', canRead('read'), async (req, res) => {
         const { profileId } = extractToken(req?.headers?.authorization?.split('Bearer ')[1]);
         const profile_data = await get_profile_by_id(profileId);
         const _is_admin = await isAdmin(req, res);
-        const type_data = _is_admin == true ? await get_type({}) : await get_type({ groupId: profile_data?.groupId?._id });
+        // const type_data = _is_admin == true ? await get_type({}) : await get_type({ groupId: profile_data?.groupId?._id });
+        const type_data = await get_type({});
     
         if(!_.isEmpty(type_data)) return apiResponse.successResponseWithData(res, "Type information", type_data);
         else return apiResponse.ErrorResponse(res, "Sorry, no Type data exists");

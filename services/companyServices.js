@@ -25,7 +25,11 @@ class CompanyServices {
     }
 
     async get_company(_filters={}) {
-        return await Company.find({..._filters});
+        return await Company.find({..._filters})
+        .populate({ path: 'profileId', model: 'profile' })
+        .populate({ path: 'groupId', model: 'group', populate: [
+            { path: 'group_manager', model: 'users' }
+        ]})
     }
 }
 

@@ -24,7 +24,8 @@ app.get('/view', canRead('read'), async (req, res) => {
         const { profileId } = extractToken(req?.headers?.authorization?.split('Bearer ')[1]);
         const profile_data = await get_profile_by_id(profileId);
         const _is_admin = await isAdmin(req, res);
-        const sub_type_data = _is_admin == true ? await get_sub_type({}) : await get_sub_type({ groupId: profile_data?.groupId?._id });
+        // const sub_type_data = _is_admin == true ? await get_sub_type({}) : await get_sub_type({ groupId: profile_data?.groupId?._id });
+        const sub_type_data = await get_sub_type({});
     
         if(!_.isEmpty(sub_type_data)) return apiResponse.successResponseWithData(res, "Sub Type information", sub_type_data);
         else return apiResponse.ErrorResponse(res, "Sorry, no Sub Type data exists");

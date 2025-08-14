@@ -24,7 +24,8 @@ app.get('/view', canRead('read'), async (req, res) => {
         const { profileId } = extractToken(req?.headers?.authorization?.split('Bearer ')[1]);
         const profile_data = await get_profile_by_id(profileId);
         const _is_admin = await isAdmin(req, res);
-        const category_data = _is_admin === true ? await get_category({}) : await get_category({ groupId: profile_data?.groupId?._id });
+        // const category_data = _is_admin === true ? await get_category({}) : await get_category({ groupId: profile_data?.groupId?._id });
+        const category_data = await get_category({});
     
         if(!_.isEmpty(category_data)) return apiResponse.successResponseWithData(res, "Category information", category_data);
         else return apiResponse.ErrorResponse(res, "Sorry, no Category data exists");

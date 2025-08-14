@@ -24,7 +24,8 @@ app.get('/view', canRead('read'), async (req, res) => {
         const { profileId } = extractToken(req?.headers?.authorization?.split('Bearer ')[1]);
         const profile_data = await get_profile_by_id(profileId);
         const _is_admin = await isAdmin(req, res);
-        const sub_category_data = _is_admin == true ? await get_sub_category({}) : await get_sub_category({ groupId: profile_data?.groupId?._id });
+        // const sub_category_data = _is_admin == true ? await get_sub_category({}) : await get_sub_category({ groupId: profile_data?.groupId?._id });
+        const sub_category_data = await get_sub_category({});
     
         if(!_.isEmpty(sub_category_data)) return apiResponse.successResponseWithData(res, "Sub Category information", sub_category_data);
         else return apiResponse.ErrorResponse(res, "Sorry, no Sub Category data exists");

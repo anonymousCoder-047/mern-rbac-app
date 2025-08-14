@@ -46,9 +46,10 @@ app.get('/me', canRead('read'), async (req, res) => {
     try {
         const { _id } = extractToken(req?.headers?.authorization?.split('Bearer ')[1]);
         const profile_data = await get_user_by_id(_id);
+        const _profile = await get_profile_by_id(profile_data?.profileId);
         const [_permissions] = await get_permissions({ profileId: profile_data?.profileId })
     
-        if(!_.isEmpty(profile_data)) return apiResponse.successResponseWithData(res, "Profile information", { ..._.pick(profile_data, ['username', 'email', 'profileId', '_id']), permissions: _permissions?.action });
+        if(!_.isEmpty(profile_data)) return apiResponse.successResponseWithData(res, "Profile information", { ..._.pick(profile_data, ['username', 'email', 'profileId', '_id']), ..._.pick(_profile, ['roleId', 'groupId']), permissions: _permissions?.action });
         else return apiResponse.notFoundResponse(res, "Sorry, no profile data exists");
     } catch(err) {
         console.log("Internal server error: ", err);

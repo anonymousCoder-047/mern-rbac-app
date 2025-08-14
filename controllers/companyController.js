@@ -24,7 +24,8 @@ app.get('/view', canRead('read'), async (req, res) => {
         const { profileId } = extractToken(req?.headers?.authorization?.split('Bearer ')[1]);
         const profile_data = await get_profile_by_id(profileId);
         const _is_admin = await isAdmin(req, res);
-        const company_data = _is_admin == true ? await get_company({}) : await get_company({ groupId: profile_data?.groupId?._id });
+        // const company_data = _is_admin == true ? await get_company({}) : await get_company({ groupId: profile_data?.groupId?._id });
+        const company_data = await get_company({});
     
         if(!_.isEmpty(company_data)) return apiResponse.successResponseWithData(res, "Company information", company_data);
         else return apiResponse.ErrorResponse(res, "Sorry, no Company data exists");

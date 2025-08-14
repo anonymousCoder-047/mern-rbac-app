@@ -31,6 +31,10 @@ class ProductsServices {
 
     async get_product(_filters={}) {
         return await Products.find({..._filters})
+        .populate({ path: 'profileId', model: 'profile' })
+        .populate({ path: 'groupId', model: 'group', populate: [
+            { path: 'group_manager', model: 'users' }
+        ]})
         .populate({ path: 'tax', model: 'tax' });
     }
 }

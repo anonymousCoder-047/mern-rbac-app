@@ -1,6 +1,7 @@
 
 const mongoose = require('mongoose')
 const ObjectId = mongoose.Types.ObjectId
+const moment = require('moment');
 
 const sourceSchema = mongoose.Schema({
     id: {
@@ -15,7 +16,7 @@ const sourceSchema = mongoose.Schema({
     },
     created_date: {
         type: String,
-        default: "",
+        default: moment(new Date()).format('YYYY-MM-DD'),
         required: false
     },
     profileId: {

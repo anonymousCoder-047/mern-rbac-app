@@ -25,7 +25,11 @@ class SourceServices {
     }
 
     async get_source(_filters={}) {
-        return await Source.find({..._filters});
+        return await Source.find({..._filters})
+        .populate({ path: 'profileId', model: 'profile' })
+        .populate({ path: 'groupId', model: 'group', populate: [
+            { path: 'group_manager', model: 'users' }
+        ]})
     }
 }
 

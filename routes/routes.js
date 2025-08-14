@@ -10,6 +10,7 @@ const authRouter = require('../controllers/authController').authController;
 const dashboardRouter = require('../controllers/dashboardController').dashboardController;
 const groupRouter = require('../controllers/groupController').groupController;
 const profileRouter = require('../controllers/profileController').profileController;
+const userRouter = require('../controllers/userController').userController;
 const permissionsRouter = require('../controllers/permissionController').permissionController;
 const roleRouter = require('../controllers/roleController').roleController;
 const productsRouter = require('../controllers/productsController').productsController;
@@ -24,6 +25,7 @@ const sourceRouter = require('../controllers/sourceController').sourceController
 const contactsRouter = require('../controllers/contactsController').contactsController;
 const taxRouter = require('../controllers/taxController').taxController;
 const billRouter = require('../controllers/billSummaryController').billController;
+const opportunityStatusRouter = require('../controllers/opportunityStatusController').opportunityStatusController;
 
 // loading middleware
 const {
@@ -38,6 +40,7 @@ app.use(apiPrefix + '/auth', authRouter);
 app.use(apiPrefix + '/dashboard', validateToken, checkLoggedIn, dashboardRouter);
 app.use(apiPrefix + '/group', validateToken, checkLoggedIn, groupRouter);
 app.use(apiPrefix + '/profile', validateToken, checkLoggedIn, profileRouter);
+app.use(apiPrefix + '/user', validateToken, checkLoggedIn, userRouter);
 app.use(apiPrefix + '/permissions', validateToken, checkLoggedIn, permissionsRouter);
 app.use(apiPrefix + '/role', validateToken, checkLoggedIn, roleRouter);
 app.use(apiPrefix + '/products', validateToken, checkLoggedIn, productsRouter);
@@ -51,6 +54,7 @@ app.use(apiPrefix + '/company', validateToken, checkLoggedIn, companyRouter);
 app.use(apiPrefix + '/source', validateToken, checkLoggedIn, sourceRouter);
 app.use(apiPrefix + '/contact', validateToken, checkLoggedIn, contactsRouter);
 app.use(apiPrefix + '/tax', validateToken, checkLoggedIn, taxRouter);
+app.use(apiPrefix + '/opportunity-status', validateToken, checkLoggedIn, opportunityStatusRouter);
 app.use(apiPrefix + '/bill', billRouter);
 
 module.exports = app;

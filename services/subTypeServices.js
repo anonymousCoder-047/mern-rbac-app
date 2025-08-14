@@ -29,7 +29,11 @@ class SubTypeServices {
     }
 
     async get_sub_type(_filters={}) {
-        return await SubType.find({..._filters});
+        return await SubType.find({..._filters})
+        .populate({ path: 'profileId', model: 'profile' })
+        .populate({ path: 'groupId', model: 'group', populate: [
+            { path: 'group_manager', model: 'users' }
+        ]})
     }
 }
 

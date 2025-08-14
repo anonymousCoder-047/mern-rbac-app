@@ -25,7 +25,11 @@ class PipelineServices {
     }
 
     async get_pipeline(_filters={}) {
-        return await Pipeline.find({..._filters});
+        return await Pipeline.find({..._filters})
+        .populate({ path: 'profileId', model: 'profile' })
+        .populate({ path: 'groupId', model: 'group', populate: [
+            { path: 'group_manager', model: 'users' }
+        ]})
     }
 }
 

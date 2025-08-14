@@ -24,7 +24,8 @@ app.get('/view', canRead('read'), async (req, res) => {
         const { profileId } = extractToken(req?.headers?.authorization?.split('Bearer ')[1]);
         const profile_data = await get_profile_by_id(profileId);
         const _is_admin = await isAdmin(req, res);
-        const source_data = _is_admin == true ? await get_source({}) : await get_source({ groupId: profile_data?.groupId?._id });
+        // const source_data = _is_admin == true ? await get_source({}) : await get_source({ groupId: profile_data?.groupId?._id });
+        const source_data = await get_source({});
     
         if(!_.isEmpty(source_data)) return apiResponse.successResponseWithData(res, "Source information", source_data);
         else return apiResponse.ErrorResponse(res, "Sorry, no Source data exists");

@@ -29,7 +29,11 @@ class TypeServices {
     }
 
     async get_type(_filters={}) {
-        return await Type.find({..._filters});
+        return await Type.find({..._filters})
+        .populate({ path: 'profileId', model: 'profile' })
+        .populate({ path: 'groupId', model: 'group', populate: [
+            { path: 'group_manager', model: 'users' }
+        ]})
     }
 }
 

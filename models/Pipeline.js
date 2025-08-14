@@ -1,6 +1,7 @@
 
 const mongoose = require('mongoose')
 const ObjectId = mongoose.Types.ObjectId
+const moment = require('moment')
 
 const pipelineSchema = mongoose.Schema({
     id: {
@@ -8,7 +9,57 @@ const pipelineSchema = mongoose.Schema({
         required: true,
         default: 0
     },
-    pipeline_name: {
+    started_date: {
+        type: String,
+        default: moment(new Date()).format('YYYY-MM-DD'),
+        required: false
+    },
+    updated_date: {
+        type: String,
+        default: "",
+        required: false
+    },
+    expected_closure_date: {
+        type: String,
+        default: "",
+        required: false
+    },
+    product_category: {
+        type: String,
+        default: "",
+        required: false
+    },
+    product_description: {
+        type: String,
+        default: "",
+        required: false
+    },
+    sr_type: {
+        type: String,
+        default: "",
+        required: false
+    },
+    qty: {
+        type: Number,
+        default: "",
+        required: false
+    },
+    mrc: {
+        type: String,
+        default: "",
+        required: false
+    },
+    annual_rev: {
+        type: String,
+        default: "",
+        required: false
+    },
+    company_name: {
+        type: String,
+        default: "",
+        required: false
+    },
+    opportunity_status: {
         type: String,
         default: "",
         required: false
@@ -18,12 +69,32 @@ const pipelineSchema = mongoose.Schema({
         default: "",
         required: false
     },
-    stage_percentage: {
+    comments: {
         type: String,
         default: "",
         required: false
     },
-    created_date: {
+    followup_date: {
+        type: String,
+        default: "",
+        required: false
+    },
+    sales_id: {
+        type: String,
+        default: "",
+        required: false
+    },
+    name: {
+        type: String,
+        default: "",
+        required: false
+    },
+    contact_number: {
+        type: String,
+        default: "",
+        required: false
+    },
+    email: {
         type: String,
         default: "",
         required: false
