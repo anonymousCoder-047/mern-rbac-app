@@ -257,6 +257,19 @@ const ContactList = () => {
       sorter: (a: { [key: string]: string }, b: { [key: string]: string }) => a?.first_name?.toLowerCase().localeCompare(b?.first_name?.toLowerCase()),
     },
     {
+      title: "Created By",
+      dataIndex: "profileId",
+      sorter: (a: any, b: any) => a.secondary_phone.length - b.secondary_phone.length,
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          <Link to={route.companies} className="d-flex flex-column">
+          {record?.profileId?.username}
+            <span className="text-default">{record?.profileId?.email}</span>
+          </Link>
+        </h2>
+      ),
+    },
+    {
       title: "Team Leader",
       dataIndex: "team_leader",
       render: (text: any, record: any, index: number) => (
@@ -270,6 +283,7 @@ const ContactList = () => {
         </Link> */}
         <Link to={route.contactDetails} className="d-flex flex-column">
         {record?.team_leader}
+        <span className="text-default">{record?.groupId?.group_manager?.team_leader?.email}</span>
         </Link>
       </h2>
       ),
@@ -396,7 +410,7 @@ const ContactList = () => {
                     </div>
                     <div className="col-sm-8">
                       <div className="d-flex align-items-center flex-wrap row-gap-2 justify-content-sm-end">
-                        <div className="dropdown me-2">
+                        {values?.roleId?.name?.toLowerCase() == 'admin' && (<div className="dropdown me-2">
                           <Link
                             to="#"
                             className="dropdown-toggle"
@@ -415,7 +429,7 @@ const ContactList = () => {
                               </li>
                             </ul>
                           </div>
-                        </div>
+                        </div>)}
                         {values?.permissions?.includes('create') && (<Link
                           to="#"
                           className="btn btn-primary"

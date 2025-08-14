@@ -293,6 +293,19 @@ const Leads = () => {
       sorter: (a: any, b: any) => a.opportunity_name.length - b.opportunity_name.length,
     },
     {
+      title: "Created By",
+      dataIndex: "profileId",
+      sorter: (a: any, b: any) => a.secondary_phone.length - b.secondary_phone.length,
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          <Link to={route.companies} className="d-flex flex-column">
+          {record?.profileId?.username}
+            <span className="text-default">{record?.profileId?.email}</span>
+          </Link>
+        </h2>
+      ),
+    },
+    {
       title: "Team Lead",
       dataIndex: "team_leader",
       render: (text: any, record: any) => (
@@ -301,6 +314,7 @@ const Leads = () => {
             className="d-flex flex-column fw-medium"
           >
             {record.team_leader}
+            <span className="text-default">{record?.groupId?.group_manager?.team_leader?.email}</span>
           </Link>
         </h2>
       ),
@@ -491,7 +505,7 @@ const Leads = () => {
                     </div>
                     <div className="col-sm-8">
                       <div className="d-flex align-items-center flex-wrap row-gap-2 justify-content-sm-end">
-                        <div className="dropdown me-2">
+                        {values?.roleId?.name?.toLowerCase() == 'admin' && (<div className="dropdown me-2">
                           <Link
                             to="#"
                             className="dropdown-toggle"
@@ -510,7 +524,7 @@ const Leads = () => {
                               </li>
                             </ul>
                           </div>
-                        </div>
+                        </div>)}
                         {values?.permissions?.includes('create') && (<Link
                           to="#"
                           className="btn btn-primary"
@@ -695,7 +709,7 @@ const Leads = () => {
                           <label className="col-form-label">Contact Name</label>
                           {/* <input type="text" name="secondary_phone" value={formData?.secondary_phone} onChange={handleChange} className="form-control" /> */}
                           <Select
-                            name="source"
+                            name="contact_name"
                             onChange={(value) => handleChange(value, "select", "contact_name")}
                             value={{ label: contactData?.find((x: any) => x?.label == formData?.contact_name)?.label, value: formData?.contact_name }}
                             className="select2" 
@@ -712,7 +726,7 @@ const Leads = () => {
                           </label>
                           {/* <input type="text" name="website" value={formData?.website} onChange={handleChange} className="form-control" /> */}
                           <Select
-                            name="source"
+                            name="company_name"
                             onChange={(value) => handleChange(value, "select", "company_name")}
                             value={{ label: companyData?.find((x: any) => x?.label == formData?.company_name)?.label, value: formData?.company_name }}
                             className="select2" 
@@ -795,7 +809,7 @@ const Leads = () => {
                           <label className="col-form-label">Product Category</label>
                           {/* <input type="text" name="product_category" value={formData?.product_category} onChange={handleChange} className="form-control" /> */}
                           <Select
-                            name="source"
+                            name="product_category"
                             onChange={(value) => handleChange(value, "select", "product_category")}
                             value={{ label: productData?.find((x: any) => x?.label == formData?.product_category)?.label, value: formData?.product_category }}
                             className="select2" 
@@ -812,7 +826,7 @@ const Leads = () => {
                           </label>
                           {/* <input type="text" name="state" value={formData?.state} onChange={handleChange} className="form-control" /> */}
                           <Select
-                            name="source"
+                            name="stage"
                             onChange={(value) => handleChange(value, "select", "stage")}
                             value={{ label: stageData?.find((x: any) => x?.label == formData?.stage)?.label, value: formData?.stage }}
                             className="select2" 
@@ -835,7 +849,7 @@ const Leads = () => {
                           <label className="col-form-label">Team Leader </label>
                           {/* <input type="text" name="city" value={formData?.city} onChange={handleChange} className="form-control" /> */}
                           <Select
-                            name="source"
+                            name="team_leader"
                             onChange={(value) => handleChange(value, "select", "team_leader")}
                             value={{ label: usersData?.find((x: any) => x?.label == formData?.team_leader)?.label, value: formData?.team_leader }}
                             className="select2" 
@@ -992,9 +1006,9 @@ const Leads = () => {
                           <label className="col-form-label">Contact Name</label>
                           {/* <input type="text" name="secondary_phone" value={formData?.secondary_phone} onChange={handleChange} className="form-control" /> */}
                           <Select
-                            name="source"
+                            name="contact_name"
                             onChange={(value) => handleChange(value, "select", "contact_name")}
-                            value={{ label: contactData?.find((x: any) => x?.label == formData?.contact_name?._id)?.label, value: formData?.contact_name }}
+                            value={{ label: contactData?.find((x: any) => x?.label == formData?.contact_name)?.label, value: formData?.contact_name }}
                             className="select2" 
                             classNamePrefix="react-select"
                             options={contactData}
@@ -1009,9 +1023,9 @@ const Leads = () => {
                           </label>
                           {/* <input type="text" name="website" value={formData?.website} onChange={handleChange} className="form-control" /> */}
                           <Select
-                            name="source"
+                            name="company_name"
                             onChange={(value) => handleChange(value, "select", "company_name")}
-                            value={{ label: companyData?.find((x: any) => x?.label == formData?.company_name?._id)?.label, value: formData?.company_name }}
+                            value={{ label: companyData?.find((x: any) => x?.label == formData?.company_name)?.label, value: formData?.company_name }}
                             className="select2" 
                             classNamePrefix="react-select"
                             options={companyData}
@@ -1092,9 +1106,9 @@ const Leads = () => {
                           <label className="col-form-label">Product Category</label>
                           {/* <input type="text" name="product_category" value={formData?.product_category} onChange={handleChange} className="form-control" /> */}
                           <Select
-                            name="source"
+                            name="product_category"
                             onChange={(value) => handleChange(value, "select", "product_category")}
-                            value={{ label: productData?.find((x: any) => x?.label == formData?.product_category?._id)?.label, value: formData?.product_category }}
+                            value={{ label: productData?.find((x: any) => x?.label == formData?.product_category)?.label, value: formData?.product_category }}
                             className="select2" 
                             classNamePrefix="react-select"
                             options={productData}
@@ -1109,9 +1123,9 @@ const Leads = () => {
                           </label>
                           {/* <input type="text" name="state" value={formData?.state} onChange={handleChange} className="form-control" /> */}
                           <Select
-                            name="source"
+                            name="stage"
                             onChange={(value) => handleChange(value, "select", "stage")}
-                            value={{ label: stageData?.find((x: any) => x?.label == formData?.stage?._id)?.label, value: formData?.stage }}
+                            value={{ label: stageData?.find((x: any) => x?.label == formData?.stage)?.label, value: formData?.stage }}
                             className="select2" 
                             classNamePrefix="react-select"
                             options={stageData}
@@ -1132,9 +1146,9 @@ const Leads = () => {
                           <label className="col-form-label">Team Leader </label>
                           {/* <input type="text" name="city" value={formData?.city} onChange={handleChange} className="form-control" /> */}
                           <Select
-                            name="source"
+                            name="team_leader"
                             onChange={(value) => handleChange(value, "select", "team_leader")}
-                            value={{ label: usersData?.find((x: any) => x?.label == formData?.team_leader?._id)?.label, value: formData?.team_leader }}
+                            value={{ label: usersData?.find((x: any) => x?.label == formData?.team_leader)?.label, value: formData?.team_leader }}
                             className="select2" 
                             classNamePrefix="react-select"
                             options={usersData}

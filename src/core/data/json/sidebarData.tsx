@@ -29,15 +29,6 @@ export const SidebarData = [
         icon: "ti ti-page-break",
         submenuItems: [
           {
-            label: "Contacts",
-            link: route.contactList,
-            subLink1: route.contactGrid,
-            subLink2: route.contactDetails,
-            icon: "ti ti-user-up",
-            showSubRoute: false,
-            submenu: false,
-          },
-          {
             label: "Companies",
             link: route.companies,
             subLink1: route.companyDetails,
@@ -47,11 +38,11 @@ export const SidebarData = [
             submenu: false,
           },
           {
-            label: "Leads / Deals",
-            link: route.leads,
-            subLink1: route.leadsDetails,
-            subLink2: route.leadsKanban,
-            icon: "ti ti-chart-arcs",
+            label: "Contacts",
+            link: route.contactList,
+            subLink1: route.contactGrid,
+            subLink2: route.contactDetails,
+            icon: "ti ti-user-up",
             showSubRoute: false,
             submenu: false,
           },
@@ -59,6 +50,15 @@ export const SidebarData = [
             label: "Pipeline",
             link: route.pipeline,
             icon: "ti ti-timeline-event-exclamation",
+            showSubRoute: false,
+            submenu: false,
+          },
+          {
+            label: "Leads / Deals",
+            link: route.leads,
+            subLink1: route.leadsDetails,
+            subLink2: route.leadsKanban,
+            icon: "ti ti-chart-arcs",
             showSubRoute: false,
             submenu: false,
           },
@@ -86,6 +86,13 @@ export const SidebarData = [
         showSubRoute: false,
         icon: "ti ti-settings",
         submenuItems: [
+          {
+            label: "Opportunity Status",
+            link: route.opportunity_status,
+            icon: "ti ti-artboard",
+            showSubRoute: false,
+            submenu: false,
+          },
           {
             label: "Sources",
             link: route.sources,
@@ -124,13 +131,6 @@ export const SidebarData = [
           {
             label: "Sub Type",
             link: route.subType,
-            icon: "ti ti-artboard",
-            showSubRoute: false,
-            submenu: false,
-          },
-          {
-            label: "Tax",
-            link: route.tax,
             icon: "ti ti-artboard",
             showSubRoute: false,
             submenu: false,

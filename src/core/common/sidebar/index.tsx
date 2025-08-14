@@ -8,8 +8,10 @@ import { setExpandMenu } from "../../data/redux/commonSlice";
 import { all_routes } from "../../../feature-module/router/all_routes";
 import PrivateServer from "../../../helper/PrivateServer";
 import { endpoints } from "../../../helper/endpoints";
+import useAuth from "../../../hooks/useAuth";
 
 const Sidebar = () => {
+  const { values, setValues } = useAuth();
   const Location = useLocation();
   const expandMenu = useSelector((state: any) => state.expandMenu);
   const dispatch = useDispatch();
@@ -49,7 +51,14 @@ const Sidebar = () => {
       const { Profile } = endpoints;
       const response = await PrivateServer.getData(Profile.me);
 
-      if(response?.data) setProfileData(response?.data);
+      if(response?.data) {
+        setValues({
+          ...values,
+          roleId: response?.data?.roleId,
+          groupId: response?.data?.groupId,
+        })
+        setProfileData(response?.data);
+      }
     } catch(err) {
       console.log("Error while getting profile data E: ", err?.message);
     }
@@ -122,7 +131,7 @@ const Sidebar = () => {
               </ul>
 
               <ul>
-                {SidebarData?.map((mainLabel, index) => (
+                {SidebarData?.filter((x) => values?.roleId?.name?.toLowerCase() !== 'admin' ? (x?.label != 'Manage Source' && x?.label != 'USER MANAGEMENT') : x)?.map((mainLabel, index) => (
                   <li className="clinicdropdown" key={index}>
                     <h6 className="submenu-hdr">{mainLabel?.label}</h6>
                     <ul>

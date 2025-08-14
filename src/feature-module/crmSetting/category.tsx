@@ -136,6 +136,32 @@ const getSubCategories = async () => {
       width: "237px",
     },
     {
+      title: "Created By",
+      dataIndex: "profileId",
+      sorter: (a: any, b: any) => a.secondary_phone.length - b.secondary_phone.length,
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          <Link to={route.companies} className="d-flex flex-column">
+          {record?.profileId?.username}
+            <span className="text-default">{record?.profileId?.email}</span>
+          </Link>
+        </h2>
+      ),
+    },
+    {
+      title: "Team Leader",
+      dataIndex: "groupId",
+      sorter: (a: any, b: any) => a.secondary_phone.length - b.secondary_phone.length,
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          <Link to={route.companies} className="d-flex flex-column">
+          {record?.groupId?.group_manager?.username}
+            <span className="text-default">{record?.groupId?.group_manager?.team_leader?.email}</span>
+          </Link>
+        </h2>
+      ),
+    },
+    {
       title: "Action",
       dataIndex: "action",
       key: "action",

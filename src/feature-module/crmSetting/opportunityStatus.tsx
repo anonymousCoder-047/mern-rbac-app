@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Table from "../../core/common/dataTable/index";
 import { Link } from "react-router-dom";
-import Select from "react-select";
 import { all_routes } from "../router/all_routes";
 import CollapseHeader from "../../core/common/collapse-header";
 import PrivateServer from "../../helper/PrivateServer";
@@ -12,42 +11,42 @@ import { Modal } from "react-bootstrap";
 
 const route = all_routes;
 
-const SubType = () => {
+const OpportunityStatus = () => {
   const { values } = useAuth();
-  const [subTypeData, setSubTypeData] = useState([]);
+  const [opportunityStatusData, setOpportunityStatusData] = useState([]);
   const [searchData, setFilteredSearchData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showBulkActionButton, setShowBulkActionButton] = useState(false);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [selectedRows, setSelectedRows] = useState(0);
   const [selectedIds, setSelectedIds] = useState([]);
-  const [subTypeId, setSubTypeId] = useState("");
+  const [opportunityStatusId, setOpportunityStatusId] = useState("");
   const [formData, setFormData] = useState({
-    sub_type_name: "",
-    sub_type_code: "",
-    subTypeId: "",
+    opportunity_name: "",
+    opportunity_percentage: "",
+    opportunityId: "",
   });
 
-  const getSubType = async () => {
+  const getOpportunityStatus = async () => {
     try {
-      const { SubType } = endpoints;
-      const response = await PrivateServer.getData(SubType?.view)
+      const { OpportunityStatus } = endpoints;
+      const response = await PrivateServer.getData(OpportunityStatus?.view)
   
       if(response?.data) {
-        setSubTypeData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
+        setOpportunityStatusData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
         setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))])
       }
     } catch(error) {
-      console.log("Error while getting sub sub types -- E:", error?.message);
+      console.log("Error while getting opportunities -- E:", error?.message);
     }
   }
 
   const handleClose = () => {
-    setSubTypeId("")
+    setOpportunityStatusId("")
     setFormData({
-        sub_type_name: "",
-        sub_type_code: "",
-        subTypeId: "",
+        opportunity_name: "",
+        opportunity_percentage: "",
+        opportunityId: "",
     });
   }
 
@@ -64,49 +63,50 @@ const SubType = () => {
     }
   }
 
-  const handleDeleteSubType = async () => {
+  const handleDeleteSource = async () => {
     try {
-      const { SubType } = endpoints;
-      const response = await PrivateServer?.deleteData(SubType?.delete, subTypeId);
-      if(response) getSubType();
+      const { OpportunityStatus } = endpoints;
+      const response = await PrivateServer?.deleteData(OpportunityStatus?.delete, opportunityStatusId);
+      if(response) getOpportunityStatus();
     } catch(err) {
-      console.log("Error while deleting category -- E: ", err?.message);
+      console.log("Error while deleting opportunity -- E: ", err?.message);
     }
   }
 
-  const handleEditSubType = (values) => {
-    setFormData({ ...formData, ..._.omit(values, ["_id"]), subTypeId: values?._id });
+  const handleEditOpportunity = (values) => {
+    setFormData({ ...formData, ..._.omit(values, ["_id"]), opportunityId: values?._id });
   }
 
-  const handleAddOrUpdateSubType = async () => {
+  const handleAddOrUpdateOpportunity = async () => {
     try {
-      const { SubType } = endpoints;
-      const { status, data } = formData?.subTypeId !== "" ? await PrivateServer?.patchData(SubType.patch, formData?.subTypeId, formData) : await PrivateServer.postData(SubType.create, formData);
+      const { OpportunityStatus } = endpoints;
+      const { data } = formData?.opportunityId !== "" ? await PrivateServer?.patchData(OpportunityStatus.patch, formData?.opportunityId, formData) : await PrivateServer.postData(OpportunityStatus.create, formData);
 
-      if(status == 200) {
-        if(formData?.subTypeId == "") setFormData({ ...formData, subTypeId: data?.data?._id })
-        getSubType();
+      if(data) {
+        if(formData?.opportunityId == "") setFormData({ ...formData, opportunityId: data?.data?._id })
+        getOpportunityStatus();
+        handleClose();
       }
     } catch(err) {
-      console.log("Error while saving sub category -- E: ", err?.message);
+      console.log("Error while saving opportunity -- E: ", err?.message);
     }
   }
 
   const columns = [
     {
-      title: "Sub Type Code",
-      dataIndex: "sub_type_code",
+      title: "Opportunity Name",
+      dataIndex: "opportunity_name",
        sorter: (a: any, b: any) =>
-        a.sub_type_code.length - b.sub_type_code.length,
-      key: "source_name",
+        a.opportunity_name.length - b.opportunity_name.length,
+      key: "opportunity_name",
       width: "237px",
     },
     {
-      title: "Sub Type Name",
-      dataIndex: "sub_type_name",
+      title: "Opportunity Percentage",
+      dataIndex: "opportunity_percentage",
        sorter: (a: any, b: any) =>
-        a.sub_type_name.length - b.sub_type_name.length,
-      key: "sub_type_name",
+        a.opportunity_percentage.length - b.opportunity_percentage.length,
+      key: "opportunity_percentage",
       width: "235px",
     },
     {
@@ -156,7 +156,7 @@ const SubType = () => {
               to="#"
               data-bs-toggle="modal"
               data-bs-target="#edit_source"
-              onClick={() => handleEditSubType(record)}
+              onClick={() => handleEditOpportunity(record)}
             >
               <i className="ti ti-edit text-blue" /> Edit
             </Link>)}
@@ -165,7 +165,7 @@ const SubType = () => {
               to="#"
               data-bs-toggle="modal"
               data-bs-target="#delete_source"
-              onClick={() => setSubTypeId(record?._id)}
+              onClick={() => setOpportunityStatusId(record?._id)}
             >
               <i className="ti ti-trash text-danger" /> Delete
             </Link>)}
@@ -176,7 +176,7 @@ const SubType = () => {
   ];
 
   useEffect(() => {
-    getSubType();
+    getOpportunityStatus();
   }, [])
 
   const handleSearch = (e) => {
@@ -207,8 +207,8 @@ const SubType = () => {
   }
 
   const handleBulkDelete = async () => {
-    const { SubType } = endpoints;
-    const deleted = await PrivateServer.deleteBulkData(SubType?.delete_bulk, selectedIds)
+    const { OpportunityStatus } = endpoints;
+    const deleted = await PrivateServer.deleteBulkData(OpportunityStatus?.delete_bulk, selectedIds)
     if(deleted) {
       setShowBulkActionButton(false);
       setShowBulkDeleteModal(false);
@@ -227,7 +227,7 @@ const SubType = () => {
               <div className="row align-items-center">
                 <div className="col-8">
                   <h4 className="page-title">
-                    Sub Types<span className="count-title">{subTypeData?.length}</span>
+                    Opportunity<span className="count-title">{searchTerm != "" ? searchData?.length : opportunityStatusData?.length}</span>
                   </h4>
                 </div>
                 <div className="col-4 text-end">
@@ -250,7 +250,7 @@ const SubType = () => {
                       <input
                         type="text"
                         className="form-control"
-                        placeholder="Search Sub Type"
+                        placeholder="Search Source"
                         onChange={handleSearch}
                       />
                     </div>
@@ -264,7 +264,7 @@ const SubType = () => {
                         data-bs-target="#add_source"
                       >
                         <i className="ti ti-square-rounded-plus me-2" />
-                        Add New Sub Type
+                        Add New Opportunity
                       </Link>)}
                     </div>
                   </div>
@@ -272,7 +272,6 @@ const SubType = () => {
                 {/* /Search */}
               </div>
               <div className="card-body">
-                {/* Contact List */}
                 <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2 mb-4">
                   <div className="d-flex align-items-center flex-wrap row-gap-2">
                     {
@@ -290,8 +289,9 @@ const SubType = () => {
                     
                   </div>
                 </div>
+                {/* Contact List */}
                 <div className="table-responsive custom-table">
-                <Table columns={columns} dataSource={searchTerm != "" ? searchData : subTypeData} handleBulkAction={handleBulkOperation} />
+                <Table columns={columns} dataSource={searchTerm != "" ? searchData : opportunityStatusData} handleBulkAction={handleBulkOperation} />
                 </div>
                 <div className="row align-items-center">
                   <div className="col-md-6">
@@ -310,12 +310,12 @@ const SubType = () => {
     </div>
     {/* /Page Wrapper */}
 
-    {/* Add New Type */}
+    {/* Add New Source */}
     <div className="modal fade" id="add_source" role="dialog">
       <div className="modal-dialog modal-dialog-centered">
         <div className="modal-content">
           <div className="modal-header">
-            <h5 className="modal-title">Add New Sub Type</h5>
+            <h5 className="modal-title">Add New Opportunity</h5>
             <button
               className="btn-close custom-btn-close border p-1 me-0 text-dark"
               data-bs-dismiss="modal"
@@ -329,17 +329,15 @@ const SubType = () => {
             <div className="modal-body">
               <div className="mb-3">
                 <label className="col-form-label">
-                  Sub Type Code <span className="text-danger">*</span>
+                  Opportunity Name <span className="text-danger">*</span>
                 </label>
-                <input type="text" name="sub_type_code" value={formData?.sub_type_code} onChange={handleChange} className="form-control" />
+                <input type="text" name="opportunity_name" value={formData?.opportunity_name} onChange={handleChange} className="form-control" />
               </div>
-            </div>
-            <div className="modal-body">
               <div className="mb-3">
                 <label className="col-form-label">
-                  Sub Type Name <span className="text-danger">*</span>
+                  Opportunity Percentage <span className="text-danger">*</span>
                 </label>
-                <input type="text" name="sub_type_name" value={formData?.sub_type_name} onChange={handleChange} className="form-control" />
+                <input type="text" name="opportunity_percentage" value={formData?.opportunity_percentage} onChange={handleChange} className="form-control" />
               </div>
             </div>
             <div className="modal-footer">
@@ -352,7 +350,7 @@ const SubType = () => {
                 >
                   Cancel
                 </Link>
-                <button type="button" data-bs-dismiss="modal" onClick={handleAddOrUpdateSubType} className="btn btn-primary">
+                <button type="button" data-bs-dismiss="modal" onClick={handleAddOrUpdateOpportunity} className="btn btn-primary">
                   Create
                 </button>
               </div>
@@ -361,14 +359,14 @@ const SubType = () => {
         </div>
       </div>
     </div>
-    {/* /Add New Type */}
+    {/* /Add New Source */}
     
-    {/* Edit Type */}
+    {/* Edit Source */}
     <div className="modal fade" id="edit_source" role="dialog">
       <div className="modal-dialog modal-dialog-centered">
         <div className="modal-content">
           <div className="modal-header">
-            <h5 className="modal-title">Edit Sub Type</h5>
+            <h5 className="modal-title">Edit Opportunity</h5>
             <button
               className="btn-close custom-btn-close border p-1 me-0 text-dark"
               data-bs-dismiss="modal"
@@ -382,17 +380,15 @@ const SubType = () => {
             <div className="modal-body">
               <div className="mb-3">
                 <label className="col-form-label">
-                  Sub Type Code <span className="text-danger">*</span>
+                  Opportunity Name <span className="text-danger">*</span>
                 </label>
-                <input type="text" name="sub_type_code" value={formData?.sub_type_code} onChange={handleChange} className="form-control" />
+                <input type="text" name="opportunity_name" value={formData?.opportunity_name} onChange={handleChange} className="form-control" />
               </div>
-            </div>
-            <div className="modal-body">
               <div className="mb-3">
                 <label className="col-form-label">
-                  Sub Type Name <span className="text-danger">*</span>
+                  Opportunity Percentage <span className="text-danger">*</span>
                 </label>
-                <input type="text" name="sub_type_name" value={formData?.sub_type_name} onChange={handleChange} className="form-control" />
+                <input type="text" name="opportunity_percentage" value={formData?.opportunity_percentage} onChange={handleChange} className="form-control" />
               </div>
             </div>
             <div className="modal-footer">
@@ -405,7 +401,7 @@ const SubType = () => {
                 >
                   Cancel
                 </Link>
-                <button type="button" data-bs-dismiss="modal" onClick={handleAddOrUpdateSubType} className="btn btn-primary">
+                <button type="button" data-bs-dismiss="modal" onClick={handleAddOrUpdateOpportunity} className="btn btn-primary">
                   Update
                 </button>
               </div>
@@ -414,9 +410,9 @@ const SubType = () => {
         </div>
       </div>
     </div>
-    {/* /Edit Type */}
+    {/* /Edit Source */}
     
-    {/* Delete Type */}
+    {/* Delete Source */}
     <div className="modal fade" id="delete_source" role="dialog">
       <div className="modal-dialog modal-dialog-centered">
         <div className="modal-content">
@@ -425,7 +421,7 @@ const SubType = () => {
               <div className="avatar avatar-xl bg-danger-light rounded-circle mb-3">
                 <i className="ti ti-trash-x fs-36 text-danger" />
               </div>
-              <h4 className="mb-2">Remove Sub Type?</h4>
+              <h4 className="mb-2">Remove Opportunities?</h4>
               <p className="mb-0">AAre you sure you want to remove it.</p>
               <div className="d-flex align-items-center justify-content-center mt-4">
                 <Link
@@ -435,7 +431,7 @@ const SubType = () => {
                 >
                   Cancel
                 </Link>
-                <Link to="#" data-bs-dismiss="modal" className="btn btn-danger" onClick={handleDeleteSubType}>
+                <Link to="#" data-bs-dismiss="modal" className="btn btn-danger" onClick={handleDeleteSource}>
                   Yes, Delete it
                 </Link>
               </div>
@@ -444,47 +440,46 @@ const SubType = () => {
         </div>
       </div>
     </div>
-    {/* /Delete Type */}
-    
+    {/* /Delete Source */}
     {/** Bulk Delete Data */}
-    <Modal show={showBulkDeleteModal} onHide={() => setShowBulkDeleteModal(false)}>
-      <div className="modal-header border-0 m-0 justify-content-end">
-        <button
-          className="btn-close"
-          aria-label="Close"
-          onClick={() => {
-            setShowBulkDeleteModal(false)
-          }}
-        >
-          <i className="ti ti-x" />
-        </button>
-      </div>
-      <div className="modal-body">
-        <div className="success-message text-center">
-          <div className="success-popup-icon bg-light-blue">
-            <i className="ti ti-user-plus" />
-          </div>
-          <h3>Are you sure?</h3>
-          <p>delete ({selectedRows})selected rows</p>
-          <div className="col-lg-12 text-center modal-btn">
-            <Link
-              to="#"
-              className="btn btn-light"
-              onClick={() => setShowBulkDeleteModal(false)}
-            >
-              Cancel
-            </Link>
-            <Link to="#" className="btn btn-primary" onClick={handleBulkDelete}>
-              Delete
-            </Link>
-          </div>
+  <Modal show={showBulkDeleteModal} onHide={() => setShowBulkDeleteModal(false)}>
+    <div className="modal-header border-0 m-0 justify-content-end">
+      <button
+        className="btn-close"
+        aria-label="Close"
+        onClick={() => {
+          setShowBulkDeleteModal(false)
+        }}
+      >
+        <i className="ti ti-x" />
+      </button>
+    </div>
+    <div className="modal-body">
+      <div className="success-message text-center">
+        <div className="success-popup-icon bg-light-blue">
+          <i className="ti ti-user-plus" />
+        </div>
+        <h3>Are you sure?</h3>
+        <p>delete ({selectedRows})selected rows</p>
+        <div className="col-lg-12 text-center modal-btn">
+          <Link
+            to="#"
+            className="btn btn-light"
+            onClick={() => setShowBulkDeleteModal(false)}
+          >
+            Cancel
+          </Link>
+          <Link to="#" className="btn btn-primary" onClick={handleBulkDelete}>
+            Delete
+          </Link>
         </div>
       </div>
-    </Modal>
-    {/** Bulk Delete Data */}
+    </div>
+  </Modal>
+  {/** Bulk Delete Data */}
   </>
   
   );
 };
 
-export default SubType;
+export default OpportunityStatus;

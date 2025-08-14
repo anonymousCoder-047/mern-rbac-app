@@ -215,7 +215,6 @@ const Companies = () => {
         </div>
       ),
     },
-
     {
       title: "Name",
       dataIndex: "company_name",
@@ -245,11 +244,31 @@ const Companies = () => {
       sorter: (a: any, b: any) => a.primary_phone.length - b.primary_phone.length,
     },
     {
-      title: "Phone",
-      dataIndex: "secondary_phone",
+      title: "Created By",
+      dataIndex: "profileId",
       sorter: (a: any, b: any) => a.secondary_phone.length - b.secondary_phone.length,
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          <Link to={route.companies} className="d-flex flex-column">
+          {record?.profileId?.username}
+            <span className="text-default">{record?.profileId?.email}</span>
+          </Link>
+        </h2>
+      ),
     },
-
+    {
+      title: "Team Leader",
+      dataIndex: "groupId",
+      sorter: (a: any, b: any) => a.secondary_phone.length - b.secondary_phone.length,
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          <Link to={route.companies} className="d-flex flex-column">
+          {record?.groupId?.group_manager?.username}
+            <span className="text-default">{record?.groupId?.group_manager?.team_leader?.email}</span>
+          </Link>
+        </h2>
+      ),
+    },
     {
       title: "Email",
       dataIndex: "email",
@@ -387,7 +406,7 @@ const Companies = () => {
                     </div>
                     <div className="col-sm-8">
                       <div className="d-flex align-items-center flex-wrap row-gap-2 justify-content-sm-end">
-                        <div className="dropdown me-2">
+                        {values?.roleId?.name?.toLowerCase() == 'admin' && (<div className="dropdown me-2">
                           <Link
                             to="#"
                             className="dropdown-toggle"
@@ -406,7 +425,7 @@ const Companies = () => {
                               </li>
                             </ul>
                           </div>
-                        </div>
+                        </div>)}
                         {values?.permissions?.includes('create') && (<Link
                           to="#"
                           className="btn btn-primary"

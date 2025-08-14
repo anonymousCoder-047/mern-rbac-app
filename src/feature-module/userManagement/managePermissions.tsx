@@ -53,11 +53,11 @@ const ManagePermissions = () => {
   
   const getUsers = async () => {
     try {
-      const { Profile } = endpoints;
-      const response = await PrivateServer.getData(Profile.view);
+      const { User } = endpoints;
+      const response = await PrivateServer.getData(User.view);
   
       if(response?.data) {
-        const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.username, value: x?._id })))]
+        const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.username, value: x?.profileId?._id })))]
         setUsers(_data);
       }
     } catch(error) {

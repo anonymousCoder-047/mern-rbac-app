@@ -24,6 +24,10 @@ const route = all_routes;
 const Pipeline = () => {
   const { values } = useAuth();
   const [pipelineData, setPipelineData] = useState([]);
+  const [productCategory, setProductCategory] = useState([]);
+  const [companyName, setCompanyName] = useState([]);
+  const [opportunityData, setOpportunityData] = useState([]);
+  const [opportunities, setOpportunities] = useState([]);
   const [searchData, setFilteredSearchData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showBulkActionButton, setShowBulkActionButton] = useState(false);
@@ -32,17 +36,31 @@ const Pipeline = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [pipelineId, setPipelineId] = useState("");
   const [formData, setFormData] = useState({
-    pipeline_name: "",
+    started_date: moment(new Date()).format('YYYY-MM-DD'),
+    updated_date: "",
+    expected_closure_date: "",
+    product_category: "",
+    product_description: "",
+    sr_type: "",
+    qty: "",
+    mrc: "",
+    annual_rev: "",
+    company_name: "",
+    opportunity_status: "",
     stage_name: "",
-    stage_percentage: "",
-    created_date: moment(new Date()).format("YYYY-MM-DD"),
+    comments: "",
+    followup_date: "",
+    sales_id: "",
+    name: "",
+    contact_number: "",
+    email: "",
     pipelineId: "",
   });
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const handleDateChange = (date: Date | null) => {
     setSelectedDate(date);
-    setFormData({ ...formData, created_date: moment(date).format('YYYY-MM-DD') });
+    setFormData({ ...formData, started_date: moment(date).format('YYYY-MM-DD') });
   };
 
   const getPipelines = async () => {
@@ -59,13 +77,67 @@ const Pipeline = () => {
     }
   }
 
+  const getProductCategories = async () => {
+    try {
+      const { Categories } = endpoints;
+      const response = await PrivateServer.getData(Categories?.view)
+  
+      if(response?.data) {
+        setProductCategory([...new Set(response?.data?.map((x: any) => ({ label: x?.category_name, value: x?._id, key: x?.id?.toString() })))]);
+      }
+    } catch(error) {
+      console.log("Error while getting categories -- E:", error?.message);
+    }
+  }
+
+  const getCompanies = async () => {
+    try {
+      const { Companies } = endpoints;
+      const response = await PrivateServer.getData(Companies?.view)
+  
+      if(response?.data) {
+        setCompanyName([...new Set(response?.data?.map((x: any) => ({ label: x?.company_name, value: x?._id, key: x?.id?.toString() })))]);
+      }
+    } catch(error) {
+      console.log("Error while getting categories -- E:", error?.message);
+    }
+  }
+
+  const getOpporunityData = async () => {
+    try {
+      const { OpportunityStatus } = endpoints;
+      const response = await PrivateServer.getData(OpportunityStatus?.view)
+  
+      if(response?.data) {
+        setOpportunities(response?.data);
+        setOpportunityData([...new Set(response?.data?.map((x: any) => ({ label: x?.opportunity_name, value: x?._id, key: x?.id?.toString() })))]);
+      }
+    } catch(error) {
+      console.log("Error while getting opportunities -- E:", error?.message);
+    }
+  }
+
   const handleClose = () => {
     setPipelineId("");
     setFormData({
-      pipeline_name: "",
-      stage_name: [],
-      stage_percentage: [],
-      created_date: moment(new Date()).format("YYYY-MM-DD"),
+      started_date: moment(new Date()).format('YYYY-MM-DD'),
+      updated_date: "",
+      expected_closure_date: "",
+      product_category: "",
+      product_description: "",
+      sr_type: "",
+      qty: "",
+      mrc: "",
+      annual_rev: "",
+      company_name: "",
+      opportunity_status: "",
+      stage_name: "",
+      comments: "",
+      followup_date: "",
+      sales_id: "",
+      name: "",
+      contact_number: "",
+      email: "",
       pipelineId: "",
     });
   }
@@ -76,7 +148,7 @@ const Pipeline = () => {
       setFormData({ ...formData, [name]: e.target?.files[0] });
     }
     else if(type == "select") {
-      setFormData({ ...formData, [_name]: e?.value });
+      setFormData({ ...formData, [_name]: e?.label });
     } else {
       const { name, value } = e.target; 
       setFormData({ ...formData, [name]: value });
@@ -114,57 +186,118 @@ const Pipeline = () => {
 
   const columns = [
     {
-      title: "Pipeline Name",
-      dataIndex: "pipeline_name",
-      sorter: (a: any, b: any) => a.opportunity_name.length - b.opportunity_name.length,
+      title: "Started Date",
+      dataIndex: "started_date",
+      sorter: (a: any, b: any) => a.started_date.length - b.started_date.length,
     },
     {
-      title: "Stage Percentage",
-      dataIndex: "stage_percentage",
+      title: "Updated Date",
+      dataIndex: "updated_date",
       sorter: (a: any, b: any) =>
-        a.stage_percentage.length - b.stage_percentage.length,
+        a.updated_date.length - b.updated_date.length,
     },
     {
-      title: "Stages",
-      dataIndex: "stage",
-      render: (text: any, record: any) => (
+      title: "Expected Closure",
+      dataIndex: "expected_closure_date",
+      sorter: (a: any, b: any) =>
+        a.expected_closure_date.length - b.expected_closure_date.length,
+    },
+    {
+      title: "Product Category",
+      dataIndex: "product_category",
+      sorter: (a: any, b: any) =>
+        a.product_category.length - b.product_category.length,
+    },
+    {
+      title: "MRC",
+      dataIndex: "mrc",
+      sorter: (a: any, b: any) =>
+        a.mrc.length - b.mrc.length,
+    },
+    {
+      title: "QTY",
+      dataIndex: "qty",
+      sorter: (a: any, b: any) =>
+        a.qty.length - b.qty.length,
+    },
+    {
+      title: "Follow Up",
+      dataIndex: "followup_date",
+      sorter: (a: any, b: any) =>
+        a.follow_up_date.length - b.follow_up_date.length,
+    },
+    {
+      title: "Opportunity Status",
+      dataIndex: "opportunity_status",
+      render: (text: any, record: any) => {
+        const _stauts = opportunities?.find((x) => x?.opportunity_name == record?.opportunity_status);
+
+        return (
         <div className="pipeline-progress d-flex align-items-center">
           <div className="progress">
-            {(record?.stage_percentage > "0" && record?.stage_percentage <= "30") && (
+            {(_stauts?.opportunity_percentage > "0" && _stauts?.opportunity_percentage <= "30") && (
               <div
                 className="progress-bar progress-bar-violet"
                 role="progressbar"
               ></div>
             )}
-            {(record?.stage_percentage >= "30" && record?.stage_percentage <= "50") && (
+            {(_stauts?.opportunity_percentage >= "30" && _stauts?.opportunity_percentage <= "50") && (
               <div
                 className="progress-bar progress-bar-success"
                 role="progressbar"
               ></div>
             )}
-            {(record?.stage_percentage >= "50" && record?.stage_percentage <= "70") && (
+            {(_stauts?.opportunity_percentage >= "50" && _stauts?.opportunity_percentage <= "70") && (
               <div
                 className="progress-bar progress-bar-warning"
                 role="progressbar"
               ></div>
             )}
-            {(record?.stage_percentage >= "70" && record?.stage_percentage <= "100") && (
+            {(_stauts?.opportunity_percentage >= "70" && _stauts?.opportunity_percentage <= "100") && (
               <div
                 className="progress-bar progress-bar-violet"
                 role="progressbar"
               ></div>
             )}
           </div>
-          <span>({record?.stage_percentage} %)</span>
+          <span>({_stauts?.opportunity_percentage} %)</span>
         </div>
-      ),
-      sorter: (a: any, b: any) => a.stage_percentage.length - b.stage_percentage.length,
+      )},
+      sorter: (a: any, b: any) => a.opportunity_status.length - b.opportunity_status.length,
     },
     {
       title: "Created Date",
       dataIndex: "created_date",
       sorter: (a: any, b: any) =>
         a.created_date.length - b.created_date.length,
+    },
+    {
+      title: "Created By",
+      dataIndex: "profileId",
+      sorter: (a: any, b: any) => a.secondary_phone.length - b.secondary_phone.length,
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          <Link to={route.companies} className="d-flex flex-column">
+          {record?.profileId?.username}
+            <span className="text-default">{record?.profileId?.email}</span>
+          </Link>
+        </h2>
+      ),
+    },
+    {
+      title: "Team Lead",
+      dataIndex: "team_leader",
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          <Link to={route.leads}
+            className="d-flex flex-column fw-medium"
+          >
+            {record.team_leader}
+            <span className="text-default">{record?.groupId?.group_manager?.team_leader?.email}</span>
+          </Link>
+        </h2>
+      ),
+      sorter: (a: any, b: any) => a.team_leader.length - b.team_leader.length,
     },
     {
       title: "Actions",
@@ -250,6 +383,9 @@ const Pipeline = () => {
 
   useEffect(() => {
     getPipelines()
+    getProductCategories();
+    getCompanies();
+    getOpporunityData();
   }, [])
   
   const handleBulkOperation = (selectedRows: string | any[]) => {
@@ -333,7 +469,7 @@ const Pipeline = () => {
         </button> 
         : ""
       }
-      <div className="dropdown">
+      {values?.roleId?.name?.toLowerCase() == 'admin' && (<div className="dropdown">
         <Link
           to="#"
           className="dropdown-toggle"
@@ -352,7 +488,7 @@ const Pipeline = () => {
             </li>
           </ul>
         </div>
-      </div>
+      </div>)}
     </div>
     <div className="d-flex align-items-center flex-wrap row-gap-2">
       {values?.permissions?.includes('create') && (<Link
@@ -413,37 +549,149 @@ const Pipeline = () => {
         <div>
           <div className="mb-3">
             <label className="col-form-label">
-              Pipeline Name <span className="text-danger">*</span>
+              Started Date <span className="text-danger">*</span>
             </label>
-            <input className="form-control" type="text" name="pipeline_name" value={formData?.pipeline_name} onChange={handleChange} />
+            <DatePicker
+              className="form-control datetimepicker deals-details"
+              onChange={(date) => setFormData({ ...formData, started_date: moment(date)?.format("YYYY-MM-DD") })}
+              format="DD-MM-YYYY"
+            />
           </div>
           <div className="mb-3">
-            <div className="pipe-title d-flex align-items-center justify-content-between">
-              <h5 className="form-title">Pipeline Stages</h5>
-            </div>
+            <label className="col-form-label">
+              Updated Date <span className="text-danger">*</span>
+            </label>
+            <DatePicker
+              className="form-control datetimepicker deals-details"
+              onChange={(date) => setFormData({ ...formData, updated_date: moment(date)?.format("YYYY-MM-DD") })}
+              format="DD-MM-YYYY"
+            />
+          </div>
+          <div className="mb-3">
+            <label className="col-form-label">
+              Expected CLosure Date <span className="text-danger">*</span>
+            </label>
+            <DatePicker
+              className="form-control datetimepicker deals-details"
+              onChange={(date) => setFormData({ ...formData, expected_closure_date: moment(date)?.format("YYYY-MM-DD") })}
+              format="DD-MM-YYYY"
+            />
+          </div>
+          <div className="mb-3">
             <div className="pipeline-listing">
               <div className="modal-body">
                 <form >
                   <div className="mb-3">
-                    <label className="col-form-label">Stage Name *</label>
-                    <input
-                      name="stage_name"
-                      value={formData?.stage_name}
-                      onChange={handleChange}
-                      type="text"
-                      className="form-control"
-                      defaultValue="Inpipeline"
+                    <label className="col-form-label">Product Category *</label>
+                    <Select
+                      name="product_category"
+                      onChange={(value) => handleChange(value, "select", "product_category")}
+                      value={{ label: productCategory?.find((x: any) => x?.label == formData?.product_category)?.label, value: formData?.product_category }}
+                      className="select2" 
+                      classNamePrefix="react-select"
+                      options={productCategory}
+                      placeholder="Select an option"
                     />
                   </div>
                   <div className="mb-3">
-                    <label className="col-form-label">Stage Percentage *</label>
-                    <input
-                      name="stage_percentage"
-                      value={formData?.stage_percentage}
+                    <label className="col-form-label">Product Description *</label>
+                    <textarea
+                      name="product_description"
+                      value={formData?.product_description}
                       onChange={handleChange}
-                      type="text"
                       className="form-control"
                       defaultValue="Inpipeline"
+                      rows={5}
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="col-form-label">SR Type *</label>
+                    <input
+                      name="sr_type"
+                      type="text"
+                      value={formData?.sr_type}
+                      onChange={handleChange}
+                      className="form-control"
+                      defaultValue=""
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="col-form-label">QTY *</label>
+                    <input
+                      name="qty"
+                      type="number"
+                      value={formData?.qty}
+                      onChange={handleChange}
+                      className="form-control"
+                      defaultValue=""
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="col-form-label">MRC *</label>
+                    <input
+                      name="mrc"
+                      type="number"
+                      value={formData?.mrc}
+                      onChange={handleChange}
+                      className="form-control"
+                      defaultValue=""
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="col-form-label">Annual Rev *</label>
+                    <input
+                      name="annual_rev"
+                      type="number"
+                      value={formData?.annual_rev}
+                      onChange={handleChange}
+                      className="form-control"
+                      defaultValue=""
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="col-form-label">Company Name *</label>
+                    <Select
+                      name="company_name"
+                      onChange={(value) => handleChange(value, "select", "company_name")}
+                      value={{ label: companyName?.find((x: any) => x?.label == formData?.company_name)?.label, value: formData?.company_name }}
+                      className="select2" 
+                      classNamePrefix="react-select"
+                      options={companyName}
+                      placeholder="Select an option"
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="col-form-label">Opportunity Status *</label>
+                    <Select
+                      name="opportunity_status"
+                      onChange={(value) => handleChange(value, "select", "opportunity_status")}
+                      value={{ label: opportunityData?.find((x: any) => x?.label == formData?.opportunity_status)?.label, value: formData?.opportunity_status }}
+                      className="select2" 
+                      classNamePrefix="react-select"
+                      options={opportunityData}
+                      placeholder="Select an option"
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="col-form-label">Stage Name *</label>
+                    <input
+                      name="stage_name"
+                      type="text"
+                      value={formData?.stage_name}
+                      onChange={handleChange}
+                      className="form-control"
+                      defaultValue=""
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="col-form-label">Comments *</label>
+                    <textarea
+                      name="comments"
+                      rows={5}
+                      value={formData?.comments}
+                      onChange={handleChange}
+                      className="form-control"
+                      defaultValue=""
                     />
                   </div>
                 </form>
@@ -452,14 +700,61 @@ const Pipeline = () => {
           </div>
           <div className="mb-3">
             <label className="col-form-label">
-              Created Date <span className="text-danger">*</span>
+              Follow Up Date <span className="text-danger">*</span>
             </label>
             <DatePicker
-              value={selectedDate ? moment(selectedDate) : null}
               className="form-control datetimepicker deals-details"
-              name="created_date"
-              onChange={(date) => handleDateChange(date?.toDate() || null)}
+              name="followup_date"
+              onChange={(date) => setFormData({ ...formData, followup_date: moment(date)?.format("YYYY-MM-DD") })}
               format="DD-MM-YYYY"
+            />
+          </div>
+          <div className="mb-3">
+            <label className="col-form-label">
+              Sales Id <span className="text-danger">*</span>
+            </label>
+            <input 
+              type="text"
+              value={formData?.sales_id}
+              className="form-control"
+              onChange={handleChange}
+              name="sales_id"
+            />
+          </div>
+          <div className="mb-3">
+            <label className="col-form-label">
+              Name <span className="text-danger">*</span>
+            </label>
+            <input 
+              type="text"
+              value={formData?.name}
+              className="form-control"
+              onChange={handleChange}
+              name="name"
+            />
+          </div>
+          <div className="mb-3">
+            <label className="col-form-label">
+              Contact Number <span className="text-danger">*</span>
+            </label>
+            <input 
+              type="text"
+              value={formData?.contact_number}
+              className="form-control"
+              onChange={handleChange}
+              name="contact_number"
+            />
+          </div>
+          <div className="mb-3">
+            <label className="col-form-label">
+              Email <span className="text-danger">*</span>
+            </label>
+            <input 
+              type="email"
+              value={formData?.email}
+              className="form-control"
+              onChange={handleChange}
+              name="email"
             />
           </div>
         </div>
@@ -509,44 +804,149 @@ const Pipeline = () => {
         <div>
           <div className="mb-3">
             <label className="col-form-label">
-              Pipeline Name <span className="text-danger">*</span>
+              Started Date <span className="text-danger">*</span>
             </label>
-            <input
-              name="pipeline_name"
-              value={formData?.pipeline_name}
-              onChange={handleChange}
-              className="form-control"
-              type="text"
-              defaultValue="Inpipeline"
+            <DatePicker
+              className="form-control datetimepicker deals-details"
+              onChange={(date) => setFormData({ ...formData, started_date: moment(date)?.format("YYYY-MM-DD") })}
+              format="DD-MM-YYYY"
             />
           </div>
           <div className="mb-3">
-            <div className="pipe-title d-flex align-items-center justify-content-between">
-              <h5 className="form-title">Pipeline Stages</h5>
-            </div>
+            <label className="col-form-label">
+              Updated Date <span className="text-danger">*</span>
+            </label>
+            <DatePicker
+              className="form-control datetimepicker deals-details"
+              onChange={(date) => setFormData({ ...formData, updated_date: moment(date)?.format("YYYY-MM-DD") })}
+              format="DD-MM-YYYY"
+            />
+          </div>
+          <div className="mb-3">
+            <label className="col-form-label">
+              Expected CLosure Date <span className="text-danger">*</span>
+            </label>
+            <DatePicker
+              className="form-control datetimepicker deals-details"
+              onChange={(date) => setFormData({ ...formData, expected_closure_date: moment(date)?.format("YYYY-MM-DD") })}
+              format="DD-MM-YYYY"
+            />
+          </div>
+          <div className="mb-3">
             <div className="pipeline-listing">
               <div className="modal-body">
                 <form >
                   <div className="mb-3">
-                    <label className="col-form-label">Stage Name *</label>
-                    <input
-                      name="stage_name"
-                      value={formData?.stage_name}
-                      onChange={handleChange}
-                      type="text"
-                      className="form-control"
-                      defaultValue="Inpipeline"
+                    <label className="col-form-label">Product Category *</label>
+                    <Select
+                      name="product_category"
+                      onChange={(value) => handleChange(value, "select", "product_category")}
+                      value={{ label: productCategory?.find((x: any) => x?.label == formData?.product_category)?.label, value: formData?.product_category }}
+                      className="select2" 
+                      classNamePrefix="react-select"
+                      options={productCategory}
+                      placeholder="Select an option"
                     />
                   </div>
                   <div className="mb-3">
-                    <label className="col-form-label">Stage Percentage *</label>
-                    <input
-                      name="stage_percentage"
-                      value={formData?.stage_percentage}
+                    <label className="col-form-label">Product Description *</label>
+                    <textarea
+                      name="product_description"
+                      value={formData?.product_description}
                       onChange={handleChange}
-                      type="text"
                       className="form-control"
                       defaultValue="Inpipeline"
+                      rows={5}
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="col-form-label">SR Type *</label>
+                    <input
+                      name="sr_type"
+                      type="text"
+                      value={formData?.sr_type}
+                      onChange={handleChange}
+                      className="form-control"
+                      defaultValue=""
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="col-form-label">QTY *</label>
+                    <input
+                      name="qty"
+                      type="number"
+                      value={formData?.qty}
+                      onChange={handleChange}
+                      className="form-control"
+                      defaultValue=""
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="col-form-label">MRC *</label>
+                    <input
+                      name="mrc"
+                      type="number"
+                      value={formData?.mrc}
+                      onChange={handleChange}
+                      className="form-control"
+                      defaultValue=""
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="col-form-label">Annual Rev *</label>
+                    <input
+                      name="annual_rev"
+                      type="number"
+                      value={formData?.annual_rev}
+                      onChange={handleChange}
+                      className="form-control"
+                      defaultValue=""
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="col-form-label">Company Name *</label>
+                    <Select
+                      name="company_name"
+                      onChange={(value) => handleChange(value, "select", "company_name")}
+                      value={{ label: companyName?.find((x: any) => x?.label == formData?.company_name)?.label, value: formData?.company_name }}
+                      className="select2" 
+                      classNamePrefix="react-select"
+                      options={companyName}
+                      placeholder="Select an option"
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="col-form-label">Opportunity Status *</label>
+                    <Select
+                      name="opportunity_status"
+                      onChange={(value) => handleChange(value, "select", "opportunity_status")}
+                      value={{ label: opportunityData?.find((x: any) => x?.label == formData?.opportunity_status)?.label, value: formData?.opportunity_status }}
+                      className="select2" 
+                      classNamePrefix="react-select"
+                      options={opportunityData}
+                      placeholder="Select an option"
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="col-form-label">Stage Name *</label>
+                    <input
+                      name="stage_name"
+                      type="text"
+                      value={formData?.stage_name}
+                      onChange={handleChange}
+                      className="form-control"
+                      defaultValue=""
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="col-form-label">Comments *</label>
+                    <textarea
+                      name="comments"
+                      rows={5}
+                      value={formData?.comments}
+                      onChange={handleChange}
+                      className="form-control"
+                      defaultValue=""
                     />
                   </div>
                 </form>
@@ -555,14 +955,61 @@ const Pipeline = () => {
           </div>
           <div className="mb-3">
             <label className="col-form-label">
-              Created Date <span className="text-danger">*</span>
+              Follow Up Date <span className="text-danger">*</span>
             </label>
             <DatePicker
-              value={selectedDate ? moment(selectedDate) : null}
               className="form-control datetimepicker deals-details"
-              name="created_date"
-              onChange={(date) => handleDateChange(date?.toDate() || null)}
+              name="followup_date"
+              onChange={(date) => setFormData({ ...formData, followup_date: moment(date)?.format("YYYY-MM-DD") })}
               format="DD-MM-YYYY"
+            />
+          </div>
+          <div className="mb-3">
+            <label className="col-form-label">
+              Sales Id <span className="text-danger">*</span>
+            </label>
+            <input 
+              type="text"
+              value={formData?.sales_id}
+              className="form-control"
+              onChange={handleChange}
+              name="sales_id"
+            />
+          </div>
+          <div className="mb-3">
+            <label className="col-form-label">
+              Name <span className="text-danger">*</span>
+            </label>
+            <input 
+              type="text"
+              value={formData?.name}
+              className="form-control"
+              onChange={handleChange}
+              name="name"
+            />
+          </div>
+          <div className="mb-3">
+            <label className="col-form-label">
+              Contact Number <span className="text-danger">*</span>
+            </label>
+            <input 
+              type="text"
+              value={formData?.contact_number}
+              className="form-control"
+              onChange={handleChange}
+              name="contact_number"
+            />
+          </div>
+          <div className="mb-3">
+            <label className="col-form-label">
+              Email <span className="text-danger">*</span>
+            </label>
+            <input 
+              type="email"
+              value={formData?.email}
+              className="form-control"
+              onChange={handleChange}
+              name="email"
             />
           </div>
         </div>

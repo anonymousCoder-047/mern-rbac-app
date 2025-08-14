@@ -25,6 +25,7 @@ const Manageusers = () => {
   const [selectedRows, setSelectedRows] = useState(0);
   const [selectedIds, setSelectedIds] = useState([]);
   const [userId, setUserId] = useState("");
+  const [profileId, setProfileId] = useState("");
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -54,12 +55,12 @@ const Manageusers = () => {
 
   const getUsers = async () => {
     try {
-      const { Profile } = endpoints;
-      const response = await PrivateServer.getData(Profile.view);
+      const { User } = endpoints;
+      const response = await PrivateServer.getData(User.view);
   
       if(response?.data) {
-        setUsers([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
-        setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
+        setUsers([...new Set(response?.data?.map((x: any, idx) => ({ ...x, key: idx?.toString() })))]);
+        setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: idx?.toString() })))]);
       }
     } catch(error) {
       console.log("Error while getting Users -- E: ", error.message);
@@ -111,6 +112,7 @@ const Manageusers = () => {
   
   const handleClose = () => {
     setUserId("");
+    setProfileId("");
     setFormData({
       username: "",
       email: "",
@@ -139,8 +141,9 @@ const Manageusers = () => {
 
   const handleDeleteUser = async () => {
     try {
-      const { Profile } = endpoints;
-      const response = await PrivateServer?.deleteData(Profile?.delete, userId);
+      const { Profile, User } = endpoints;
+      const response_usr = await PrivateServer?.deleteData(User?.delete, userId);
+      const response = await PrivateServer?.deleteData(Profile?.delete, profileId);
       if(response) getUsers();
     } catch(err) {
       console.log("Error while deleting profile -- E: ", err?.message);
@@ -156,7 +159,7 @@ const Manageusers = () => {
       const { Profile } = endpoints;
       const { data } = formData?.userId !== "" ? await PrivateServer?.patchData(Profile.patch, formData?.userId, formData) : await PrivateServer.postData(Profile.create, formData);
 
-      if(data == 200) {
+      if(data) {
         if(formData?.userId == "") setFormData({ ...formData, userId: data?.data?._id })
         getUsers();
         handleClose();
@@ -211,6 +214,19 @@ const Manageusers = () => {
       sorter: true,
     },
     {
+      title: "Team Leader",
+      dataIndex: "groupId",
+      sorter: (a: any, b: any) => a.secondary_phone.length - b.secondary_phone.length,
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          <Link to="#" className="d-flex flex-column">
+          {record?.groupId?.group_manager?.username}
+            <span className="text-default">{record?.groupId?.group_manager?.team_leader?.email}</span>
+          </Link>
+        </h2>
+      ),
+    },
+    {
       title: "Date Created",
       dataIndex: "date_created",
       key: "date_created",
@@ -245,7 +261,11 @@ const Manageusers = () => {
               to="#"
               data-bs-toggle="modal"
               data-bs-target="#delete_contact"
-              onClick={() => setUserId(record?._id)}
+              onClick={() => {
+                setUserId(record?._id)
+                setProfileId(record?.profileId?._id)
+              }
+            }
             >
               <i className="ti ti-trash text-danger"></i> Delete
             </Link>)}
@@ -314,8 +334,8 @@ const Manageusers = () => {
   }
 
   const handleBulkDelete = async () => {
-    const { Profile } = endpoints;
-    const deleted = await PrivateServer.deleteBulkData(Profile?.delete_bulk, selectedIds)
+    const { User } = endpoints;
+    const deleted = await PrivateServer.deleteBulkData(User?.delete_bulk, selectedIds)
     if(deleted) {
       setShowBulkActionButton(false);
       setShowBulkDeleteModal(false);

@@ -31,6 +31,7 @@ import Manageusers from "../userManagement/manageusers";
 import Managegroups from "../userManagement/managegroups";
 import CompanyDetails from "../crm/companies";
 import ManagePermissions from "../userManagement/managePermissions";
+import OpportunityStatus from "../crmSetting/opportunityStatus";
 
 const route = all_routes;
 
@@ -83,6 +84,12 @@ export const publicRoutes = [
     element: <Sources />,
     route: Route,
     title: 'Sources'
+  },
+  {
+    path: route.opportunity_status,
+    element: <OpportunityStatus />,
+    route: Route,
+    title: 'Opportunity Status'
   },
   {
     path: route.products,

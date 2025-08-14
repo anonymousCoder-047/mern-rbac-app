@@ -344,11 +344,36 @@ const Products = () => {
       sorter: (a: { [key: string]: string }, b: { [key: string]: string }) => a?.product_type?.toLowerCase().localeCompare(b?.product_type?.toLowerCase()),
     },
     {
+      title: "Created By",
+      dataIndex: "profileId",
+      sorter: (a: any, b: any) => a.secondary_phone.length - b.secondary_phone.length,
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          <Link to={route.companies} className="d-flex flex-column">
+          {record?.profileId?.username}
+            <span className="text-default">{record?.profileId?.email}</span>
+          </Link>
+        </h2>
+      ),
+    },
+    {
+      title: "Team Leader",
+      dataIndex: "groupId",
+      sorter: (a: any, b: any) => a.secondary_phone.length - b.secondary_phone.length,
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          <Link to={route.companies} className="d-flex flex-column">
+          {record?.groupId?.group_manager?.username}
+            <span className="text-default">{record?.groupId?.group_manager?.team_leader?.email}</span>
+          </Link>
+        </h2>
+      ),
+    },
+    {
       title: "QTY Ordered",
       dataIndex: "qty_ordered",
       sorter: (a: { [key: string]: string }, b: { [key: string]: string }) => a.qty_ordered.length - b.qty_ordered.length,
     },
-
     {
       title: "Unit Price",
       dataIndex: "unit_price",
@@ -513,7 +538,7 @@ const Products = () => {
                             Import
                           </Link>
                         </div> */}
-                        <div className="dropdown me-2">
+                        {values?.roleId?.name?.toLowerCase() == 'admin' && (<div className="dropdown me-2">
                           <Link
                             to="#"
                             className="dropdown-toggle"
@@ -532,7 +557,7 @@ const Products = () => {
                               </li>
                             </ul>
                           </div>
-                        </div>
+                        </div>)}
                         {values?.permissions?.includes('create') && (<Link
                           to="#"
                           className="btn btn-primary"

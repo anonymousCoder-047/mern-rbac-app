@@ -18,6 +18,19 @@ export const endpoints = {
         delete: '/group/delete',
         delete_bulk: '/group/bulk-delete',
     },
+    OpportunityStatus: {
+        view: '/opportunity-status/view',
+        create: '/opportunity-status/create',
+        update: '/opportunity-status/update',
+        patch: '/opportunity-status/update',
+        delete: '/opportunity-status/delete',
+        delete_bulk: '/opportunity-status/bulk-delete',
+    },
+    User: {
+        view: '/user/view',
+        delete: '/user/delete',
+        delete_bulk: '/user/bulk-delete',
+    },
     Profile: {
         view: '/profile/view',
         me: '/profile/me',

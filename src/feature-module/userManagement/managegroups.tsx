@@ -44,8 +44,8 @@ const Managegroups = () => {
 
   const getUsers = async () => {
     try {
-      const { Profile } = endpoints;
-      const response = await PrivateServer.getData(Profile.view);
+      const { User } = endpoints;
+      const response = await PrivateServer.getData(User.view);
   
       if(response?.data) {
         const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.email, value: x?._id })))]
@@ -343,7 +343,7 @@ const Managegroups = () => {
                 <div className="row align-items-center">
                   <div className="col-8">
                     <h4 className="page-title">
-                      Group<span className="count-title">{users?.length}</span>
+                      Group<span className="count-title">{groups?.length}</span>
                     </h4>
                   </div>
                   <div className="col-4 text-end">

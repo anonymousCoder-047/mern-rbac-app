@@ -37,7 +37,14 @@ const Login = () => {
   
       if(data && data?.token) {
         localStorage.setItem("token", data?.token);
-        setValues({ ...values, permissions: data?.permissions, profileId: data?.profileId, currentUserId: data?._id });
+        setValues({ 
+          ...values, 
+          permissions: data?.permissions, 
+          profileId: data?.profileId, 
+          currentUserId: data?._id, 
+          roleId: data?.roleId,
+          groupId: data?.groupId,
+        });
         navigate(route.leadsDashboard);
       } else {
         console.log("something went wrong!!!", status);

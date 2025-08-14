@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Table from "../../../core/common/dataTable/index";
 import { Link } from "react-router-dom";
 import { all_routes } from "../../router/all_routes";
@@ -22,48 +22,23 @@ const BillSummary = () => {
     number: "",
     filename: "",
   });
-
-  const handleClose = () => {
-    setFormData({
-      bill_file: "",
-      number: "",
-      filename: "",
-    });
-  }
-
-  const handleChange = (e) => {    
-    const { type } = e.target;
-    if(type == "file") {
-      const { name, value } = e.target;
-      setFormData({ ...formData, bill_file: e.target?.files[0], [name]: value });
-    } else if(type == "select") {
-      setFormData({ ...formData, [_name]: e?.value });
-    } else {
-      const { name, value } = e.target; 
-      setFormData({ ...formData, [name]: value });
-    }
-  }
-
-  const handleAddOrUpdateSources = async () => {
-    try {
-      const { Bill } = endpoints;
-      const _formData = new FormData();
-      _formData.append('bill_file', formData.bill_file);
-
-      const { data } = await PrivateServer.postData(Bill.find, formData.bill_file != "" ? _formData : formData, (formData.bill_file != "" ? {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      } : {}));
-
-      if(data) {
-        setBillData([...new Set(data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))])
-        setFilteredSearchData([...new Set(data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))])
-      }
-    } catch(err) {
-      console.log("Error while saving bill summary -- E: ", err?.message);
-    }
-  }
-
-  const columns = [
+  const [columns, setColumns] = useState([
+    {
+      title: "Account #",
+      dataIndex: "invoiceId",
+       sorter: (a: any, b: any) =>
+        a.billingAccountId.length - b.billingAccountId.length,
+      key: "invoiceId",
+      width: "237px",
+    },
+    {
+      title: "Party Id",
+      dataIndex: "partyId",
+       sorter: (a: any, b: any) =>
+        a.billingAccountId.length - b.billingAccountId.length,
+      key: "partyId",
+      width: "237px",
+    },
     {
       title: "Account Id",
       dataIndex: "billingAccountId",
@@ -120,7 +95,80 @@ const BillSummary = () => {
       key: "invoiceDate",
       width: "235px",
     },
-  ];
+  ]);
+
+  const handleClose = () => {
+    setFormData({
+      bill_file: "",
+      number: "",
+      filename: "",
+    });
+  }
+
+  const handleChange = (e) => {    
+    const { type } = e.target;
+    if(type == "file") {
+      const { name, value } = e.target;
+      setFormData({ ...formData, bill_file: e.target?.files[0], [name]: value });
+    } else if(type == "select") {
+      setFormData({ ...formData, [_name]: e?.value });
+    } else {
+      const { name, value } = e.target; 
+      setFormData({ ...formData, [name]: value });
+    }
+  }
+
+  function buildAntdColumns(staticColumns: Record<string, any>[], data: Record<string, any>[]) {
+    if (!Array.isArray(data) || data.length === 0) return [];
+
+    // 2. Extract all keys from data
+    const allKeys = _.uniq(_.flatMap(data, (row) => Object.keys(row)));
+
+    // 3. Filter out static keys
+    const staticKeys = staticColumns.map((col) => col.dataIndex);
+    const dynamicKeys = _.difference(allKeys, staticKeys);
+
+    // 4. Build dynamic columns
+    const dynamicColumns = dynamicKeys.map((key) => ({
+      title: _.startCase(key),
+      dataIndex: key,
+      key,
+      width: "200px",
+      sorter: (a: any, b: any) => _.toString(a[key]).localeCompare(_.toString(b[key])),
+      render: (text: any) => {
+        if (_.isNumber(text)) {
+          return text.toFixed(2);
+        }
+        return text;
+      },
+    }));
+
+    // 5. Combine and return
+    return [...dynamicColumns, ...staticColumns];
+  }
+
+  const handleAddOrUpdateSources = async () => {
+    try {
+      const { Bill } = endpoints;
+      const _formData = new FormData();
+      _formData.append('bill_file', formData.bill_file);
+
+      const { data } = await PrivateServer.postData(Bill.find, formData.bill_file != "" ? _formData : formData, (formData.bill_file != "" ? {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      } : {}));
+
+      if(data) {
+        const _colms = buildAntdColumns(columns, data)
+        setColumns(_colms);
+        setBillData([...new Set(data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))])
+        setFilteredSearchData([...new Set(data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))])
+
+        localStorage.setItem("billData", JSON.stringify([...new Set(data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]));
+      }
+    } catch(err) {
+      console.log("Error while saving bill summary -- E: ", err?.message);
+    }
+  }
 
   const handleSearch = (e) => {
     const { value: _searchTerm } = e?.target;
@@ -134,7 +182,12 @@ const BillSummary = () => {
         )
       );
       setFilteredSearchData(searchResults)
-    } else setFilteredSearchData(searchData);
+      localStorage.setItem("billSearchData", JSON.stringify(searchResults));
+    } else {
+      localStorage.removeItem('billSearchData');
+      localStorage.setItem("billData", JSON.stringify(billData));
+      setFilteredSearchData(searchData);
+    }
   }
 
   const handleExport = () => {
@@ -150,11 +203,18 @@ const BillSummary = () => {
     XLSX.writeFile(workbook, `etisalat_invoice_summary_${moment(new Date()).format('YYYY-MM-DD HH:mm:i')}.xlsx`);
 
     } catch(err) {
-    console.log("Error == ", err);
+      console.log("Error == ", err);
     }
 }
 
   const handleBulkOperation = (selectedRows: string | any[]) => {}
+
+  useEffect(() => {
+    const _bill_summary = localStorage.getItem('billData');
+    const _bill_search_summary = localStorage.getItem('billSearchData');
+    if(JSON.parse(_bill_search_summary)?.length > 0) setBillData(JSON.parse(_bill_search_summary));
+    else setBillData(JSON.parse(_bill_summary));
+  }, [])
 
   return (
     <>
@@ -198,32 +258,36 @@ const BillSummary = () => {
                   </div>
                   <div className="col-sm-8">
                     <div className="d-flex align-items-center flex-wrap row-gap-2 justify-content-sm-end">
-                        <div className="dropdown me-2">
-                            <Link
-                            to="#"
-                            className="dropdown-toggle"
-                            data-bs-toggle="dropdown"
-                            >
-                            <i className="ti ti-package-export me-2" />
-                            Export
-                            </Link>
-                            <div className="dropdown-menu  dropdown-menu-end">
-                            <ul>
-                                <li>
-                                <Link to="#" className="dropdown-item" onClick={handleExport}>
-                                    <i className="ti ti-file-type-xls text-green me-1" />
-                                    Export as Excel{" "}
-                                </Link>
-                                </li>
-                            </ul>
-                            </div>
+                      {values?.roleId?.name?.toLowerCase() == 'admin' && (<div className="dropdown me-2">
+                        <Link
+                          to="#"
+                          className="dropdown-toggle"
+                          data-bs-toggle="dropdown"
+                        >
+                          <i className="ti ti-package-export me-2" />
+                          Export
+                        </Link>
+                        <div className="dropdown-menu  dropdown-menu-end">
+                          <ul>
+                              <li>
+                              <Link to="#" className="dropdown-item" onClick={handleExport}>
+                                  <i className="ti ti-file-type-xls text-green me-1" />
+                                  Export as Excel{" "}
+                              </Link>
+                              </li>
+                          </ul>
                         </div>
-                        <div className="text-sm-end">
+                      </div>)}
+                      <div className="text-sm-end">
                         <Link
                             to="#"
                             className="btn btn-primary "
                             data-bs-toggle="modal"
                             data-bs-target="#add_source"
+                            onClick={() => {
+                              localStorage.removeItem('billSearchData');
+                              localStorage.removeItem('billData');
+                            }}
                         >
                             <i className="ti ti-square-rounded-plus me-2" />
                             Search Invoice

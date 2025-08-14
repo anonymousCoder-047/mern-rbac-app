@@ -24,7 +24,9 @@ const AuthProvider = ({ children }) => {
                 currentUser: response?.data?.username, 
                 currentUserEmail: response?.data?.email, 
                 permissions: response?.data?.permissions,
-                profileId: response?.data?.profileId
+                profileId: response?.data?.profileId,
+                roleId: response?.data?.roleId,
+                groupId: response?.data?.groupId,
             });
         }
 
