@@ -282,8 +282,8 @@ const ContactList = () => {
           />
         </Link> */}
         <Link to={route.contactDetails} className="d-flex flex-column">
-        {record?.team_leader}
-        <span className="text-default">{record?.groupId?.group_manager?.team_leader?.email}</span>
+        {record?.groupId?.group_manager?.username}
+        <span className="text-default">{record?.team_leader ? record?.team_leader : record?.groupId?.group_manager?.email}</span>
         </Link>
       </h2>
       ),

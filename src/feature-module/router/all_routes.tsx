@@ -35,6 +35,8 @@ export const all_routes = {
   // crmsetting routes
   sources: "/crm-setting/sources",
   opportunity_status: "/crm-setting/opportunity-status",
+  opportunity_category: "/crm-setting/opportunity-category",
+  sr_type: "/crm-setting/sr-type",
   products: "/crm-setting/product",
   category: "/crm-setting/category",
   subcategory: "/crm-setting/sub-category",

@@ -87,8 +87,22 @@ export const SidebarData = [
         icon: "ti ti-settings",
         submenuItems: [
           {
+            label: "Opportunity Category",
+            link: route.opportunity_category,
+            icon: "ti ti-artboard",
+            showSubRoute: false,
+            submenu: false,
+          },
+          {
             label: "Opportunity Status",
             link: route.opportunity_status,
+            icon: "ti ti-artboard",
+            showSubRoute: false,
+            submenu: false,
+          },
+          {
+            label: "SR Type",
+            link: route.sr_type,
             icon: "ti ti-artboard",
             showSubRoute: false,
             submenu: false,

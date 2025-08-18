@@ -214,19 +214,6 @@ const Manageusers = () => {
       sorter: true,
     },
     {
-      title: "Team Leader",
-      dataIndex: "groupId",
-      sorter: (a: any, b: any) => a.secondary_phone.length - b.secondary_phone.length,
-      render: (text: any, record: any) => (
-        <h2 className="d-flex align-items-center">
-          <Link to="#" className="d-flex flex-column">
-          {record?.groupId?.group_manager?.username}
-            <span className="text-default">{record?.groupId?.group_manager?.team_leader?.email}</span>
-          </Link>
-        </h2>
-      ),
-    },
-    {
       title: "Date Created",
       dataIndex: "date_created",
       key: "date_created",

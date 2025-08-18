@@ -152,7 +152,7 @@ const Leads = () => {
       const response = await PrivateServer.getData(Products?.view)
   
       if(response?.data) {
-        const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.description, value: x?._id })))]  
+        const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.product_name, value: x?._id })))]  
         setProductData(_data);
       }
     } catch(error) {
@@ -313,8 +313,8 @@ const Leads = () => {
           <Link to={route.leads}
             className="d-flex flex-column fw-medium"
           >
-            {record.team_leader}
-            <span className="text-default">{record?.groupId?.group_manager?.team_leader?.email}</span>
+            {record?.groupId?.group_manager?.team_leader?.username}
+            <span className="text-default">{record?.team_leader ? record?.team_leader : record?.groupId?.group_manager?.team_leader?.email}</span>
           </Link>
         </h2>
       ),

@@ -25,7 +25,10 @@ const Pipeline = () => {
   const { values } = useAuth();
   const [pipelineData, setPipelineData] = useState([]);
   const [productCategory, setProductCategory] = useState([]);
+  const [productCategoryData, setProductCategoryData] = useState([]);
+  const [SRType, setSRType] = useState([]);
   const [companyName, setCompanyName] = useState([]);
+  const [contactData, setContactData] = useState([]);
   const [opportunityData, setOpportunityData] = useState([]);
   const [opportunities, setOpportunities] = useState([]);
   const [searchData, setFilteredSearchData] = useState([]);
@@ -57,11 +60,11 @@ const Pipeline = () => {
     pipelineId: "",
   });
 
-  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
-  const handleDateChange = (date: Date | null) => {
-    setSelectedDate(date);
-    setFormData({ ...formData, started_date: moment(date).format('YYYY-MM-DD') });
-  };
+  // const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  // const handleDateChange = (date: Date | null) => {
+  //   setSelectedDate(date);
+  //   setFormData({ ...formData, started_date: moment(date).format('YYYY-MM-DD') });
+  // };
 
   const getPipelines = async () => {
     try {
@@ -84,6 +87,45 @@ const Pipeline = () => {
   
       if(response?.data) {
         setProductCategory([...new Set(response?.data?.map((x: any) => ({ label: x?.category_name, value: x?._id, key: x?.id?.toString() })))]);
+      }
+    } catch(error) {
+      console.log("Error while getting categories -- E:", error?.message);
+    }
+  }
+
+  const getOpportunityCategoriesData = async () => {
+    try {
+      const { OpportunityCategory } = endpoints;
+      const response = await PrivateServer.getData(OpportunityCategory?.view)
+  
+      if(response?.data) {
+        setProductCategoryData([...new Set(response?.data?.map((x: any) => ({ label: x?.opportunity_type_name, value: x?._id, key: x?.id?.toString() })))]);
+      }
+    } catch(error) {
+      console.log("Error while getting opportunity category -- E:", error?.message);
+    }
+  }
+
+  const getSRTypeData = async () => {
+    try {
+      const { SRType } = endpoints;
+      const response = await PrivateServer.getData(SRType?.view)
+  
+      if(response?.data) {
+        setSRType([...new Set(response?.data?.map((x: any) => ({ label: x?.sr_name, value: x?._id, key: x?.id?.toString() })))]);
+      }
+    } catch(error) {
+      console.log("Error while getting sr type -- E:", error?.message);
+    }
+  }
+
+  const getContacts = async () => {
+    try {
+      const { Contact } = endpoints;
+      const response = await PrivateServer.getData(Contact?.view)
+  
+      if(response?.data) {
+        setContactData(response?.data);
       }
     } catch(error) {
       console.log("Error while getting categories -- E:", error?.message);
@@ -148,7 +190,13 @@ const Pipeline = () => {
       setFormData({ ...formData, [name]: e.target?.files[0] });
     }
     else if(type == "select") {
-      setFormData({ ...formData, [_name]: e?.label });
+      if(_name == "company_name") {
+        const _contact = contactData?.find((x) => x?.company_name == e?.label);
+        setFormData({ ...formData, [_name]: e?.label, email: _contact?.email, contact_number: _contact?.primary_phone, name: _contact?.first_name });
+      } else if(_name == "opportunity_status") {
+        const _opportunity = opportunities?.find((x) => x?.opportunity_name == e?.label);
+        setFormData({ ...formData, [_name]: e?.label, stage_name: _opportunity?.opportunity_name });
+      } else setFormData({ ...formData, [_name]: e?.label });
     } else {
       const { name, value } = e.target; 
       setFormData({ ...formData, [name]: value });
@@ -209,6 +257,12 @@ const Pipeline = () => {
         a.product_category.length - b.product_category.length,
     },
     {
+      title: "Company Name",
+      dataIndex: "company_name",
+      sorter: (a: any, b: any) =>
+        a.company_name.length - b.company_name.length,
+    },
+    {
       title: "MRC",
       dataIndex: "mrc",
       sorter: (a: any, b: any) =>
@@ -260,6 +314,7 @@ const Pipeline = () => {
               ></div>
             )}
           </div>
+          <span>({_stauts?.opportunity_name})</span>
           <span>({_stauts?.opportunity_percentage} %)</span>
         </div>
       )},
@@ -384,8 +439,11 @@ const Pipeline = () => {
   useEffect(() => {
     getPipelines()
     getProductCategories();
+    getContacts();
     getCompanies();
     getOpporunityData();
+    getOpportunityCategoriesData();
+    getSRTypeData();
   }, [])
   
   const handleBulkOperation = (selectedRows: string | any[]) => {
@@ -595,24 +653,26 @@ const Pipeline = () => {
                   </div>
                   <div className="mb-3">
                     <label className="col-form-label">Product Description *</label>
-                    <textarea
+                    <Select
                       name="product_description"
-                      value={formData?.product_description}
-                      onChange={handleChange}
-                      className="form-control"
-                      defaultValue="Inpipeline"
-                      rows={5}
+                      onChange={(value) => handleChange(value, "select", "product_description")}
+                      value={{ label: productCategoryData?.find((x: any) => x?.label == formData?.product_description)?.label, value: formData?.product_description }}
+                      className="select2" 
+                      classNamePrefix="react-select"
+                      options={productCategoryData}
+                      placeholder="Select an option"
                     />
                   </div>
                   <div className="mb-3">
                     <label className="col-form-label">SR Type *</label>
-                    <input
+                    <Select
                       name="sr_type"
-                      type="text"
-                      value={formData?.sr_type}
-                      onChange={handleChange}
-                      className="form-control"
-                      defaultValue=""
+                      onChange={(value) => handleChange(value, "select", "sr_type")}
+                      value={{ label: SRType?.find((x: any) => x?.label == formData?.sr_type)?.label, value: formData?.sr_type }}
+                      className="select2" 
+                      classNamePrefix="react-select"
+                      options={SRType}
+                      placeholder="Select an option"
                     />
                   </div>
                   <div className="mb-3">
@@ -633,6 +693,7 @@ const Pipeline = () => {
                       type="number"
                       value={formData?.mrc}
                       onChange={handleChange}
+                      onBlur={(e) => setFormData({ ...formData, annual_rev: (parseInt(formData?.mrc) * 12)?.toString() })}
                       className="form-control"
                       defaultValue=""
                     />
@@ -850,24 +911,26 @@ const Pipeline = () => {
                   </div>
                   <div className="mb-3">
                     <label className="col-form-label">Product Description *</label>
-                    <textarea
+                    <Select
                       name="product_description"
-                      value={formData?.product_description}
-                      onChange={handleChange}
-                      className="form-control"
-                      defaultValue="Inpipeline"
-                      rows={5}
+                      onChange={(value) => handleChange(value, "select", "product_description")}
+                      value={{ label: productCategoryData?.find((x: any) => x?.label == formData?.product_description)?.label, value: formData?.product_description }}
+                      className="select2" 
+                      classNamePrefix="react-select"
+                      options={productCategoryData}
+                      placeholder="Select an option"
                     />
                   </div>
                   <div className="mb-3">
                     <label className="col-form-label">SR Type *</label>
-                    <input
+                    <Select
                       name="sr_type"
-                      type="text"
-                      value={formData?.sr_type}
-                      onChange={handleChange}
-                      className="form-control"
-                      defaultValue=""
+                      onChange={(value) => handleChange(value, "select", "sr_type")}
+                      value={{ label: SRType?.find((x: any) => x?.label == formData?.sr_type)?.label, value: formData?.sr_type }}
+                      className="select2" 
+                      classNamePrefix="react-select"
+                      options={SRType}
+                      placeholder="Select an option"
                     />
                   </div>
                   <div className="mb-3">
@@ -888,6 +951,7 @@ const Pipeline = () => {
                       type="number"
                       value={formData?.mrc}
                       onChange={handleChange}
+                      onBlur={(e) => setFormData({ ...formData, annual_rev: (parseInt(formData?.mrc) * 12)?.toString() })}
                       className="form-control"
                       defaultValue=""
                     />

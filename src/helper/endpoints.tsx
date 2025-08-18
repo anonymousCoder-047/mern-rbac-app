@@ -26,6 +26,22 @@ export const endpoints = {
         delete: '/opportunity-status/delete',
         delete_bulk: '/opportunity-status/bulk-delete',
     },
+    OpportunityCategory: {
+        view: '/opportunity-category/view',
+        create: '/opportunity-category/create',
+        update: '/opportunity-category/update',
+        patch: '/opportunity-category/update',
+        delete: '/opportunity-category/delete',
+        delete_bulk: '/opportunity-category/bulk-delete',
+    },
+    SRType: {
+        view: '/sr-type/view',
+        create: '/sr-type/create',
+        update: '/sr-type/update',
+        patch: '/sr-type/update',
+        delete: '/sr-type/delete',
+        delete_bulk: '/sr-type/bulk-delete',
+    },
     User: {
         view: '/user/view',
         delete: '/user/delete',

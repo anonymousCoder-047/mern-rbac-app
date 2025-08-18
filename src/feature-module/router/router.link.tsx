@@ -32,6 +32,8 @@ import Managegroups from "../userManagement/managegroups";
 import CompanyDetails from "../crm/companies";
 import ManagePermissions from "../userManagement/managePermissions";
 import OpportunityStatus from "../crmSetting/opportunityStatus";
+import OpportunityCategory from "../crmSetting/opportunityCategory";
+import SRType from "../crmSetting/srTypeStatus";
 
 const route = all_routes;
 
@@ -92,6 +94,12 @@ export const publicRoutes = [
     title: 'Opportunity Status'
   },
   {
+    path: route.opportunity_category,
+    element: <OpportunityCategory />,
+    route: Route,
+    title: 'Opportunity Category'
+  },
+  {
     path: route.products,
     element: <Products />,
     route: Route,
@@ -108,6 +116,12 @@ export const publicRoutes = [
     element: <SubCategory />,
     route: Route,
     title: 'subcategory'
+  },
+  {
+    path: route.sr_type,
+    element: <SRType />,
+    route: Route,
+    title: 'SR Type'
   },
   {
     path: route.type,

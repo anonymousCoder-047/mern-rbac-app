@@ -11,6 +11,8 @@ const AuthProvider = ({ children }) => {
         currentUserEmail: "",
         currentUserId: "",
         profileId: "",
+        roleId: "",
+        groupId: "",
         permissions: []
     });
     
