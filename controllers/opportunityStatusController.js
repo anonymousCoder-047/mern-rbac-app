@@ -43,7 +43,7 @@ app.post('/create', canCreate('create'), async (req, res) => {
         const profile_data = await get_profile_by_id(profileId);
     
         if(!_.isEmpty(opportunity_status_data)) {
-            const [_existing_opportunity_status] = await get_opportunity_status({ opportunity_status_code: opportunity_status_data?.opportunity_status_code });
+            const [_existing_opportunity_status] = await get_opportunity_status({ opportunity_name: opportunity_status_data?.opportunity_name });
             if(_.isEmpty(_existing_opportunity_status)) { 
                 opportunity_status_data['id'] = await getNextSequence('opportunity status');
                 opportunity_status_data['profileId'] = profile_data?._id;

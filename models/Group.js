@@ -25,11 +25,13 @@ const groupSchema = mongoose.Schema({
     },
     group_manager: {
         type: ObjectId,
-        required: false
+        required: false,
+        ref: 'users',
     },
     group_members: [{
         type: ObjectId,
-        required: false
+        required: false,
+        ref: 'users',
     }]
 });
 

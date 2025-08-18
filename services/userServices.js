@@ -22,9 +22,9 @@ class UserServices {
 
     async get_users(_filters={}) {
         return await Users.find({..._filters})
-        .populate({ path: 'profileId', model: 'profile', populate: [
-            { path: 'groupId', model: 'group', populate: [{ path: 'group_manager', model: 'users' }]}
-        ]})
+        // .populate({ path: 'profileId', model: 'profile', populate: [
+        //     { path: 'groupId', model: 'group', populate: [{ path: 'group_manager', model: 'users' }]}
+        // ]})
     }
     
     async delete_Many(_filters={}) {

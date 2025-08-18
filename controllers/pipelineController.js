@@ -24,8 +24,8 @@ app.get('/view', canRead('read'), async (req, res) => {
         const { profileId } = extractToken(req?.headers?.authorization?.split('Bearer ')[1]);
         const profile_data = await get_profile_by_id(profileId);
         const _is_admin = await isAdmin(req, res);
-        // const pipeline_data = _is_admin == true ? await get_pipeline({}) : await get_pipeline({ groupId: profile_data?.groupId?._id });
-        const pipeline_data = await get_pipeline({});
+        const pipeline_data = _is_admin == true ? await get_pipeline({}) : await get_pipeline({ groupId: profile_data?.groupId?._id });
+        // const pipeline_data = await get_pipeline({});
     
         if(!_.isEmpty(pipeline_data)) return apiResponse.successResponseWithData(res, "Pipeline information", pipeline_data);
         else return apiResponse.ErrorResponse(res, "Sorry, no Pipeline data exists");

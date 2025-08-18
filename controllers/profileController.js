@@ -34,7 +34,14 @@ app.get('/view', canRead('read'), async (req, res) => {
         
             if(!_.isEmpty(profile_data)) return apiResponse.successResponseWithData(res, "Profile information", profile_data);
             else return apiResponse.notFoundResponse(res, "Sorry, no profile data exists");
-        } else return apiResponse.forbiddenResponse(res, "Sorry, Access Denied");
+        } else {
+            const { profileId } = extractToken(req?.headers?.authorization?.split('Bearer ')[1]);
+            const profile_data = await get_profile_by_id(profileId);
+            const _profile_data = await get_profile({ groupId: profile_data?.groupId?._id });
+
+            if(!_.isEmpty(_profile_data)) return apiResponse.successResponseWithData(res, "Profile information", _profile_data);
+            else return apiResponse.notFoundResponse(res, "Sorry, no profile data exists");
+        }
     } catch(err) {
         console.log("Internal server error: ", err);
 
@@ -69,6 +76,7 @@ app.post('/create', validateCreateProfile, canCreate('create'), async (req, res)
                 const _new_profile = await create(profile_data);
                 const hashedPassword = await bcrypt.hash(profile_data.password, 10);
                 let _user_data = {
+                    id: await getNextSequence('users'),
                     username: profile_data?.email?.split("@")?.[0] ?? "",
                     email: profile_data?.email,
                     password: hashedPassword,
@@ -76,6 +84,7 @@ app.post('/create', validateCreateProfile, canCreate('create'), async (req, res)
                 }
     
                 let _permissions_data = {
+                    id: await getNextSequence('permissions'),
                     action: profile_data?.action,
                     profileId: _new_profile?._id
                 }

@@ -26,6 +26,8 @@ const contactsRouter = require('../controllers/contactsController').contactsCont
 const taxRouter = require('../controllers/taxController').taxController;
 const billRouter = require('../controllers/billSummaryController').billController;
 const opportunityStatusRouter = require('../controllers/opportunityStatusController').opportunityStatusController;
+const SRTypeRouter = require('../controllers/srTypeController').SRTypeController;
+const OpportunityCategoryRouter = require('../controllers/opportunityCategoryController').OpportunityCategoryController;
 
 // loading middleware
 const {
@@ -55,6 +57,8 @@ app.use(apiPrefix + '/source', validateToken, checkLoggedIn, sourceRouter);
 app.use(apiPrefix + '/contact', validateToken, checkLoggedIn, contactsRouter);
 app.use(apiPrefix + '/tax', validateToken, checkLoggedIn, taxRouter);
 app.use(apiPrefix + '/opportunity-status', validateToken, checkLoggedIn, opportunityStatusRouter);
+app.use(apiPrefix + '/sr-type', validateToken, checkLoggedIn, SRTypeRouter);
+app.use(apiPrefix + '/opportunity-category', validateToken, checkLoggedIn, OpportunityCategoryRouter);
 app.use(apiPrefix + '/bill', billRouter);
 
 module.exports = app;

@@ -36,11 +36,13 @@ const profileSchema = mongoose.Schema({
     },
     roleId: {
         type: ObjectId,
-        required: false
+        required: false,
+        ref: 'role',
     },
     groupId: {
         type: ObjectId,
-        required: false
+        required: false,
+        ref: 'group',
     },
 });
 

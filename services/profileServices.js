@@ -21,10 +21,10 @@ class ProfileServices {
     }
 
     async get_profile(_filters={}) {
-        return await Profile.find({..._filters}).populate({ path: 'roleId', model: 'role' })
-        .populate({ path: 'groupId', model: 'group', populate: [
-            { path: 'group_manager', model: 'users' }
-        ]});
+        return await Profile.find({..._filters}).populate('roleId')
+        .populate({ path: 'groupId', populate: {
+            path: 'group_manager' 
+        }});
     }
 
     async delete_Many(_filters={}) {
