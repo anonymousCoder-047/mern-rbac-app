@@ -9,19 +9,30 @@ import _ from "lodash";
 import useAuth from "../../../hooks/useAuth";
 import * as XLSX from "xlsx";
 import moment from "moment";
-
+import { Toast, ToastContainer } from "react-bootstrap";
+import { EventSourcePolyfill } from 'event-source-polyfill';
+import { env_data } from '../../../config/config';
 const route = all_routes;
 
+const { server_url, dev_server_url, env } = env_data;
+const serverUrl = env == "dev" ? dev_server_url : server_url;
 const BillSummary = () => {
   const { values } = useAuth();
   const [billData, setBillData] = useState([]);
   const [searchData, setFilteredSearchData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0); // 0 to 100
   const [formData, setFormData] = useState({
     bill_file: "",
     number: "",
     filename: "",
   });
+  const [error, setError] = useState({
+    type: "primary",
+    message: ""
+  });
+  const [showToast, setShowToast] = useState(false);
   const [columns, setColumns] = useState([
     {
       title: "Account #",
@@ -147,46 +158,127 @@ const BillSummary = () => {
     return [...dynamicColumns, ...staticColumns];
   }
 
+  // const handleAddOrUpdateSources = async () => {
+  //   try {
+  //     setLoading(true);
+  //     setProgress(0); // reset
+
+  //     const { Bill } = endpoints;
+  //     const _formData = new FormData();
+  //     _formData.append('bill_file', formData.bill_file);
+
+  //     setShowToast(true);
+  //     setError({ type: "info", message: `Fetching bills data, please wait it takes few mins...` })
+
+  //     const { data } = await PrivateServer.postData(
+  //       Bill.find,
+  //       formData.bill_file !== "" ? _formData : formData,
+  //       formData.bill_file !== "" ? { headers: { 'Content-Type': 'multipart/form-data' } } : {}
+  //     );
+
+  //     // Simulate progress for UX
+  //     let simulatedProgress = 0;
+  //     const interval = setInterval(() => {
+  //       simulatedProgress += 10; // increment 10%
+  //       setProgress(Math.min(simulatedProgress, 100));
+  //       if (simulatedProgress >= 100) clearInterval(interval);
+  //     }, 200); // every 200ms
+
+  //     if (data) {
+  //       const _colms = buildAntdColumns(columns, data);
+  //       setColumns(_colms);
+
+  //       const uniqueData = [...new Set(data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))];
+  //       setBillData(uniqueData);
+  //       setFilteredSearchData(uniqueData);
+
+  //       localStorage.setItem("billData", JSON.stringify(uniqueData));
+
+  //       setShowToast(true);
+  //       setError({ type: "success", message: `(${data?.length}) Bills found` });
+  //     }
+
+  //   } catch (err) {
+  //     setShowToast(true);
+  //     setError({ type: "danger", message: `No bills found` });
+  //     console.log("Error while saving bill summary -- E: ", err?.message);
+  //   } finally {
+  //     setLoading(false);
+  //     setProgress(0);
+  //   }
+  // };
+
   const handleAddOrUpdateSources = async () => {
     try {
+      setLoading(true);
+      setProgress(0);
+
       const { Bill } = endpoints;
       const _formData = new FormData();
-      _formData.append('bill_file', formData.bill_file);
+      if (formData.bill_file) _formData.append('bill_file', formData.bill_file);
+      if (formData.number) _formData.append('number', formData.number);
 
-      const { data } = await PrivateServer.postData(Bill.find, formData.bill_file != "" ? _formData : formData, (formData.bill_file != "" ? {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      } : {}));
+      // 1️⃣ Start job
+      const { jobId } = await fetch(`${serverUrl}${Bill.find}`, {
+        method: 'POST',
+        body: _formData,
+      }).then(res => res.json());
 
-      if(data) {
-        const _colms = buildAntdColumns(columns, data)
-        setColumns(_colms);
-        setBillData([...new Set(data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))])
-        setFilteredSearchData([...new Set(data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))])
+      // 2️⃣ Connect to SSE to get live progress
+      const sse = new EventSource(`${serverUrl}/bill/search-stream/${jobId}`);
+      sse.onmessage = (event) => {
+        const { progress, results } = JSON.parse(event.data);
+        setProgress(progress);
 
-        localStorage.setItem("billData", JSON.stringify([...new Set(data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]));
-      }
-    } catch(err) {
-      console.log("Error while saving bill summary -- E: ", err?.message);
+        // Optional: update table with partial results
+        if (results?.length) {
+          const _colms = buildAntdColumns(columns, results);
+          setColumns(_colms);
+          const uniqueData = results.map((x: any) => ({ ...x, key: x?.invoiceId?.toString() }));
+          setBillData(uniqueData);
+          setFilteredSearchData(uniqueData);
+        }
+
+        if (progress >= 100) {
+          setLoading(false);
+          sse.close();
+        }
+      };
+
+    } catch (err) {
+      console.error(err);
+      setLoading(false);
     }
-  }
+  };
 
   const handleSearch = (e) => {
     const { value: _searchTerm } = e?.target;
     setSearchTerm(_searchTerm);
     const _searchData = [...searchData];
 
-    if(searchTerm != "") {
-      const searchResults = _.filter(_searchData, (obj) =>
-        _.some(obj, (value) =>
-          _.isString(value) && _.includes(value.toLowerCase(), searchTerm?.toLowerCase())
-        )
-      );
-      setFilteredSearchData(searchResults)
-      localStorage.setItem("billSearchData", JSON.stringify(searchResults));
-    } else {
-      localStorage.removeItem('billSearchData');
-      localStorage.setItem("billData", JSON.stringify(billData));
-      setFilteredSearchData(searchData);
+    if(_searchTerm != "") {
+      const _searchTerm = e?.target?.value?.toLowerCase() || "";
+      setSearchTerm(_searchTerm);
+
+      if (_searchTerm.trim() !== "") {  
+        const searchResults = billData.filter((obj) =>
+          Object.values(obj).some(
+            (val) =>
+              typeof val === "string" &&
+              val.toLowerCase().includes(_searchTerm)
+          )
+        );
+        setShowToast(true);
+        setError({ type: "success", message: `bills found` })
+        setFilteredSearchData(searchResults)
+        localStorage.setItem("billSearchData", JSON.stringify(searchResults));
+      } else {
+        setShowToast(true);
+        setError({ type: "danger", message: `No Leads found` })
+        localStorage.removeItem('billSearchData');
+        localStorage.setItem("billData", JSON.stringify(billData));
+        setFilteredSearchData(searchData);
+      }
     }
   }
 
@@ -212,8 +304,16 @@ const BillSummary = () => {
   useEffect(() => {
     const _bill_summary = localStorage.getItem('billData');
     const _bill_search_summary = localStorage.getItem('billSearchData');
-    if(JSON.parse(_bill_search_summary)?.length > 0) setBillData(JSON.parse(_bill_search_summary));
-    else setBillData(JSON.parse(_bill_summary));
+    
+    if(JSON.parse(_bill_search_summary)?.length > 0) {
+      setShowToast(true);
+      setError({ type: "success", message: `Bills found` })
+      setBillData(JSON.parse(_bill_search_summary));
+    } else {
+      setShowToast(true);
+      setError({ type: "info", message: `Bill summary found` })
+      setBillData(JSON.parse(_bill_summary));
+    }
   }, [])
 
   return (
@@ -237,6 +337,17 @@ const BillSummary = () => {
                   </div>
                 </div>
               </div>
+                {
+                  showToast ? 
+                  <ToastContainer position="top-end">
+                    <Toast show={showToast} onClose={() => setShowToast((prev) => !prev)} bg={error?.type?.toLowerCase()} delay={3000} autohide>
+                      <Toast.Header>
+                        <strong className="me-auto">Request {error?.type}</strong>
+                      </Toast.Header>
+                      <Toast.Body>{error?.message}</Toast.Body>
+                    </Toast>
+                  </ToastContainer> : ""
+                }
             </div>
             {/* /Page Header */}
             <div className="card">
@@ -299,19 +410,30 @@ const BillSummary = () => {
                 {/* /Search */}
               </div>
               <div className="card-body">
-                {/* Contact List */}
+                {loading && (
+                  <div className="mb-3">
+                    <div className="progress">
+                      <div
+                        className="progress-bar progress-bar-striped progress-bar-animated"
+                        role="progressbar"
+                        style={{ width: `${progress}%` }}
+                        aria-valuenow={progress}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                      >
+                        {progress}%
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="table-responsive custom-table">
-                <Table columns={columns} dataSource={searchTerm != "" ? searchData : billData} handleBulkAction={handleBulkOperation} />
+                  <Table
+                    columns={columns}
+                    dataSource={loading ? [] : (searchTerm !== "" ? searchData : billData)}
+                    handleBulkAction={handleBulkOperation}
+                  />
                 </div>
-                <div className="row align-items-center">
-                  <div className="col-md-6">
-                    <div className="datatable-length" />
-                  </div>
-                  <div className="col-md-6">
-                    <div className="datatable-paginate" />
-                  </div>
-                </div>
-                {/* /Contact List */}
               </div>
             </div>
           </div>

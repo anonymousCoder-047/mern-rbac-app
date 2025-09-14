@@ -15,6 +15,16 @@ class PrivateServer {
             throw error;
         }
     }
+
+    async getDataById(endpoint="", _id="") {
+        try {
+            const { status, data } = await axiosPrivate.get(`${endpoint}/${_id}`);
+        
+            if(status == 200) return data;
+        } catch(error) {
+            throw error;
+        }
+    }
     
     async postData(endpoint="", _data={}, params={}) {
         try {

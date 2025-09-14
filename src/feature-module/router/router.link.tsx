@@ -5,7 +5,9 @@ import ContactDetails from "../crm/contacts";
 import LeadsDetails from "../crm/leads/index";
 import Leads from "../crm/leads/leads";
 import Companies from "../crm/companies/companies";
+import CompaniesArchive from "../crm/companies-archive/companiesArchive";
 import BillSummary from "../crm/bill/billSummary";
+import SiteLocator from "../crm/site-locator/SiteLocator";
 import Sources from "../crmSetting/sources";
 import Login from "../auth/login";
 import Register from "../auth/register";
@@ -24,7 +26,6 @@ import Category from "../crmSetting/category";
 import SubCategory from "../crmSetting/subCategory";
 import ProductType from "../crmSetting/productType";
 import SubType from "../crmSetting/subType";
-import Tax from "../crmSetting/tax";
 import ContactGrid from "../crm/contacts/contactGrid";
 import Pipeline from "../crm/pipeline";
 import Manageusers from "../userManagement/manageusers";
@@ -33,7 +34,9 @@ import CompanyDetails from "../crm/companies";
 import ManagePermissions from "../userManagement/managePermissions";
 import OpportunityStatus from "../crmSetting/opportunityStatus";
 import OpportunityCategory from "../crmSetting/opportunityCategory";
+import OpportunitySubCategory from "../crmSetting/opportunitySubCategory";
 import SRType from "../crmSetting/srTypeStatus";
+import CustomerData from "../crm/customerData/customerData";
 
 const route = all_routes;
 
@@ -62,6 +65,12 @@ export const publicRoutes = [
     element: <Companies />,
     route: Route,
     title: 'Companies'
+  },
+  {
+    path: route.companies_archive,
+    element: <CompaniesArchive />,
+    route: Route,
+    title: 'Companies Archive'
   },
   {
     path: route.companyDetails,
@@ -100,6 +109,12 @@ export const publicRoutes = [
     title: 'Opportunity Category'
   },
   {
+    path: route.opportunity_sub_category,
+    element: <OpportunitySubCategory />,
+    route: Route,
+    title: 'Opportunity Sub Category'
+  },
+  {
     path: route.products,
     element: <Products />,
     route: Route,
@@ -134,12 +149,6 @@ export const publicRoutes = [
     element: <SubType />,
     route: Route,
     title: 'subtype'
-  },
-  {
-    path: route.tax,
-    element: <Tax />,
-    route: Route,
-    title: 'tax'
   },
   {
     path: route.companies,
@@ -190,6 +199,12 @@ export const publicRoutes = [
     title: 'Manage Permissions'
   },
   {
+    path: route.search_customers,
+    element: <CustomerData />,
+    route: Route,
+    title: 'Search Customers'
+  },
+  {
     path: route.contactGrid,
     element: <ContactGrid />,
     route: Route,
@@ -206,6 +221,12 @@ export const publicRoutes = [
     element: <BillSummary />,
     route: Route,
     title: 'Bill Summary'
+  },
+  {
+    path: route.site_locator,
+    element: <SiteLocator />,
+    route: Route,
+    title: 'Site Locator'
   },
 ];
 

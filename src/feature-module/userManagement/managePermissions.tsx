@@ -57,7 +57,7 @@ const ManagePermissions = () => {
       const response = await PrivateServer.getData(User.view);
   
       if(response?.data) {
-        const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.username, value: x?.profileId?._id })))]
+        const _data: any = [...new Set(response?.data?.map((x) => ({ label: x?.username, value: x?.profileId })))]
         setUsers(_data);
       }
     } catch(error) {
@@ -85,6 +85,7 @@ const ManagePermissions = () => {
       setFormData({ ...formData, [name]: e.target?.files[0] });
     }
     else if(type == "select") {
+      console.log("profile data -- ", type, _name, e?.value, e)
       if(_multiple) {
         const _perms = _.map(e, 'value')
         setFormData({ ...formData, [_name]: _perms });

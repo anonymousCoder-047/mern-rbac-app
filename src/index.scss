@@ -36,6 +36,15 @@ a {
   color: #262a2a;
 }
 
+.truncate-text {
+  display: inline-block;       /* or block if needed */
+  max-width: 200px;            /* adjust to your layout */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
 .ant-tooltip {
   display: none;
 }

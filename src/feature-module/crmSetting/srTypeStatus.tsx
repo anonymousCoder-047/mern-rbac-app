@@ -7,7 +7,7 @@ import PrivateServer from "../../helper/PrivateServer";
 import { endpoints } from "../../helper/endpoints";
 import _ from "lodash";
 import useAuth from "../../hooks/useAuth";
-import { Modal } from "react-bootstrap";
+import { Modal, Toast, ToastContainer } from "react-bootstrap";
 
 const route = all_routes;
 
@@ -25,6 +25,11 @@ const SRType = () => {
     sr_name: "",
     srTypeId: "",
   });
+  const [error, setError] = useState({
+    type: "primary",
+    message: ""
+  });
+  const [showToast, setShowToast] = useState(false);
 
   const getSRType = async () => {
     try {
@@ -32,10 +37,14 @@ const SRType = () => {
       const response = await PrivateServer.getData(SRType?.view)
   
       if(response?.data) {
+        setShowToast(true);
+        setError({ type: "success", message: `(${response?.data?.length}) SR Types found` })
         setSRTypeData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
         setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))])
       }
     } catch(error) {
+      setShowToast(true);
+      setError({ type: "danger", message: `No SR Types found` })
       console.log("Error while getting opportunities -- E:", error?.message);
     }
   }
@@ -66,7 +75,11 @@ const SRType = () => {
       const { SRType } = endpoints;
       const response = await PrivateServer?.deleteData(SRType?.delete, SRTypeId);
       if(response) getSRType();
+      setShowToast(true);
+      setError({ type: "danger", message: "deleted successfully" })
     } catch(err) {
+      setShowToast(true);
+      setError({ type: "danger", message: err?.message })
       console.log("Error while deleting opportunity -- E: ", err?.message);
     }
   }
@@ -81,11 +94,15 @@ const SRType = () => {
       const { data } = formData?.srTypeId !== "" ? await PrivateServer?.patchData(SRType.patch, formData?.srTypeId, formData) : await PrivateServer.postData(SRType.create, formData);
 
       if(data) {
+        setShowToast(true);
+        setError({ type: "danger", message: `SR Type ${formData?.srTypeId ? "updated" : "added"}` })
         if(formData?.srTypeId == "") setFormData({ ...formData, srTypeId: data?.data?._id })
         getSRType();
         handleClose();
       }
     } catch(err) {
+      setShowToast(true);
+      setError({ type: "danger", message: err?.message })
       console.log("Error while saving opportunity -- E: ", err?.message);
     }
   }
@@ -120,7 +137,7 @@ const SRType = () => {
         <h2 className="d-flex align-items-center">
           <Link to={route.companies} className="d-flex flex-column">
           {record?.groupId?.group_manager?.username}
-            <span className="text-default">{record?.groupId?.group_manager?.team_leader?.email}</span>
+            <span className="text-default">{record?.groupId?.group_manager?.email}</span>
           </Link>
         </h2>
       ),
@@ -226,6 +243,17 @@ const SRType = () => {
                   </div>
                 </div>
               </div>
+                {
+                  showToast ? 
+                  <ToastContainer position="top-end">
+                    <Toast show={showToast} onClose={() => setShowToast((prev) => !prev)} bg={error?.type?.toLowerCase()} delay={3000} autohide>
+                      <Toast.Header>
+                        <strong className="me-auto">Request {error?.type}</strong>
+                      </Toast.Header>
+                      <Toast.Body>{error?.message}</Toast.Body>
+                    </Toast>
+                  </ToastContainer> : ""
+                }
             </div>
             {/* /Page Header */}
             <div className="card">

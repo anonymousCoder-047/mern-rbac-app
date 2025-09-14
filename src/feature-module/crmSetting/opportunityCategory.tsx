@@ -7,7 +7,7 @@ import PrivateServer from "../../helper/PrivateServer";
 import { endpoints } from "../../helper/endpoints";
 import _ from "lodash";
 import useAuth from "../../hooks/useAuth";
-import { Modal } from "react-bootstrap";
+import { Modal, Toast, ToastContainer } from "react-bootstrap";
 
 const route = all_routes;
 
@@ -25,6 +25,11 @@ const OpportunityCategory = () => {
     opportunity_type_name: "",
     opportunityCategoryId: "",
   });
+  const [error, setError] = useState({
+    type: "primary",
+    message: ""
+  });
+  const [showToast, setShowToast] = useState(false);
 
   const getOpportunityCategory = async () => {
     try {
@@ -32,10 +37,14 @@ const OpportunityCategory = () => {
       const response = await PrivateServer.getData(OpportunityCategory?.view)
   
       if(response?.data) {
+        setShowToast(true);
+        setError({ type: "success", message: `(${response?.data?.length}) Opportunity categories found` })
         setOpportunityCategoryData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
         setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))])
       }
     } catch(error) {
+      setShowToast(true);
+      setError({ type: "danger", message: `No Opportunty categories found` })
       console.log("Error while getting opportunities -- E:", error?.message);
     }
   }
@@ -66,7 +75,11 @@ const OpportunityCategory = () => {
       const { OpportunityCategory } = endpoints;
       const response = await PrivateServer?.deleteData(OpportunityCategory?.delete, OpportunityCategoryId);
       if(response) getOpportunityCategory();
+      setShowToast(true);
+      setError({ type: "danger", message: "deleted successfully" })
     } catch(err) {
+      setShowToast(true);
+      setError({ type: "danger", message: err?.message })
       console.log("Error while deleting opportunity -- E: ", err?.message);
     }
   }
@@ -81,11 +94,15 @@ const OpportunityCategory = () => {
       const { data } = formData?.opportunityCategoryId !== "" ? await PrivateServer?.patchData(OpportunityCategory.patch, formData?.opportunityCategoryId, formData) : await PrivateServer.postData(OpportunityCategory.create, formData);
 
       if(data) {
+        setShowToast(true);
+        setError({ type: "danger", message: `Opportunity Category ${formData?.opportunityCategoryId ? "updated" : "added"}` })
         if(formData?.opportunityCategoryId == "") setFormData({ ...formData, opportunityCategoryId: data?.data?._id })
         getOpportunityCategory();
         handleClose();
       }
     } catch(err) {
+      setShowToast(true);
+      setError({ type: "danger", message: err?.message })
       console.log("Error while saving opportunity -- E: ", err?.message);
     }
   }
@@ -120,7 +137,7 @@ const OpportunityCategory = () => {
         <h2 className="d-flex align-items-center">
           <Link to={route.companies} className="d-flex flex-column">
           {record?.groupId?.group_manager?.username}
-            <span className="text-default">{record?.groupId?.group_manager?.team_leader?.email}</span>
+            <span className="text-default">{record?.groupId?.group_manager?.email}</span>
           </Link>
         </h2>
       ),
@@ -226,6 +243,17 @@ const OpportunityCategory = () => {
                   </div>
                 </div>
               </div>
+                {
+                  showToast ? 
+                  <ToastContainer position="top-end">
+                    <Toast show={showToast} onClose={() => setShowToast((prev) => !prev)} bg={error?.type?.toLowerCase()} delay={3000} autohide>
+                      <Toast.Header>
+                        <strong className="me-auto">Request {error?.type}</strong>
+                      </Toast.Header>
+                      <Toast.Body>{error?.message}</Toast.Body>
+                    </Toast>
+                  </ToastContainer> : ""
+                }
             </div>
             {/* /Page Header */}
             <div className="card">

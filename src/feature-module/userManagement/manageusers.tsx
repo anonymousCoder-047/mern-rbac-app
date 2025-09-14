@@ -60,7 +60,7 @@ const Manageusers = () => {
   
       if(response?.data) {
         setUsers([...new Set(response?.data?.map((x: any, idx) => ({ ...x, key: idx?.toString() })))]);
-        setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: idx?.toString() })))]);
+        setFilteredSearchData([...new Set(response?.data?.map((x: any, idx) => ({ ...x, key: idx?.toString() })))]);
       }
     } catch(error) {
       console.log("Error while getting Users -- E: ", error.message);
@@ -150,8 +150,26 @@ const Manageusers = () => {
     }
   }
 
-  const handleEditUser = (values) => {
-    setFormData({ ...formData, ..._.omit(values, ["_id"]), userId: values?._id, roleId: values?.roleId?._id, groupId: values?.groupId?._id });
+  const getProfileData = async (_id) => {
+    try {
+      const { Profile } = endpoints;
+      const response = await PrivateServer?.getDataById(Profile?.view, _id);
+
+      return response?.data;
+    } catch(err) {
+      console.log("Error while deleting profile -- E: ", err?.message);
+    }
+  }
+
+  const handleEditUser = async (values) => {
+    const _profile_data = await getProfileData(values?.profileId);
+    setFormData({ 
+      ...formData, 
+      ..._.omit(values, ["_id", "password"]), 
+      userId: values?._id, 
+      roleId: _profile_data?.roleId?._id, 
+      groupId: _profile_data?.groupId?._id,
+    });
   }
 
   const handleAddOrUpdateUser = async () => {

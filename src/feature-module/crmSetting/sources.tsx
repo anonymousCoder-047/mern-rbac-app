@@ -7,7 +7,7 @@ import PrivateServer from "../../helper/PrivateServer";
 import { endpoints } from "../../helper/endpoints";
 import _ from "lodash";
 import useAuth from "../../hooks/useAuth";
-import { Modal } from "react-bootstrap";
+import { Modal, Toast, ToastContainer } from "react-bootstrap";
 
 const route = all_routes;
 
@@ -26,6 +26,11 @@ const Sources = () => {
     created_date: "",
     sourceId: "",
   });
+  const [error, setError] = useState({
+    type: "primary",
+    message: ""
+  });
+  const [showToast, setShowToast] = useState(false);
 
   const getSources = async () => {
     try {
@@ -33,10 +38,14 @@ const Sources = () => {
       const response = await PrivateServer.getData(Sources?.view)
   
       if(response?.data) {
+        setShowToast(true);
+        setError({ type: "success", message: `(${response?.data?.length}) Sources found` })
         setSourceData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
         setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))])
       }
     } catch(error) {
+      setShowToast(true);
+      setError({ type: "danger", message: `No Sources found` })
       console.log("Error while getting contacts -- E:", error?.message);
     }
   }
@@ -68,7 +77,11 @@ const Sources = () => {
       const { Sources } = endpoints;
       const response = await PrivateServer?.deleteData(Sources?.delete, sourceId);
       if(response) getSources();
+      setShowToast(true);
+      setError({ type: "danger", message: "deleted successfully" })
     } catch(err) {
+      setShowToast(true);
+      setError({ type: "danger", message: err?.message })
       console.log("Error while deleting contact -- E: ", err?.message);
     }
   }
@@ -82,11 +95,15 @@ const Sources = () => {
       const { Sources } = endpoints;
       const { status, data } = formData?.sourceId !== "" ? await PrivateServer?.patchData(Sources.patch, formData?.sourceId, formData) : await PrivateServer.postData(Sources.create, formData);
 
-      if(status == 200) {
+      if(status == 200 || !_.isEmpty(data)) {
+      setShowToast(true);
+      setError({ type: "danger", message: `Source ${formData?.sourceId ? "updated" : "added"}` })
         if(formData?.sourceId == "") setFormData({ ...formData, sourceId: data?.data?._id })
         getSources();
       }
     } catch(err) {
+      setShowToast(true);
+      setError({ type: "danger", message: err?.message })
       console.log("Error while saving contact -- E: ", err?.message);
     }
   }
@@ -129,7 +146,7 @@ const Sources = () => {
         <h2 className="d-flex align-items-center">
           <Link to={route.companies} className="d-flex flex-column">
           {record?.groupId?.group_manager?.username}
-            <span className="text-default">{record?.groupId?.group_manager?.team_leader?.email}</span>
+            <span className="text-default">{record?.groupId?.group_manager?.email}</span>
           </Link>
         </h2>
       ),
@@ -235,6 +252,17 @@ const Sources = () => {
                   </div>
                 </div>
               </div>
+                {
+                  showToast ? 
+                  <ToastContainer position="top-end">
+                    <Toast show={showToast} onClose={() => setShowToast((prev) => !prev)} bg={error?.type?.toLowerCase()} delay={3000} autohide>
+                      <Toast.Header>
+                        <strong className="me-auto">Request {error?.type}</strong>
+                      </Toast.Header>
+                      <Toast.Body>{error?.message}</Toast.Body>
+                    </Toast>
+                  </ToastContainer> : ""
+                }
             </div>
             {/* /Page Header */}
             <div className="card">

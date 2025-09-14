@@ -336,10 +336,13 @@ const LeadsDashboard = () => {
       <div className="col-md-6">
         <div className="card text-white bg-primary mb-3">
           <div className="card-header border-0 pb-0">
-            <h4>Total Contacts</h4>
+            <h4 className="text-white">Total Contacts</h4>
           </div>
           <div className="card-body">
-            <p>{totalContacts}</p>
+            <Link to={route.contactList} className="d-flex flex-column text-white">
+              {totalContacts}
+            </Link>
+            {/* <p>{totalContacts}</p> */}
           </div>
         </div>
       </div>
@@ -347,10 +350,13 @@ const LeadsDashboard = () => {
       <div className="col-md-6">
         <div className="card text-white bg-success mb-3">
           <div className="card-header border-0 pb-0">
-            <h4>Total Leads</h4>
+            <h4 className="text-white">Total Leads</h4>
           </div>
           <div className="card-body">
-            <p>{totalLeads}</p>
+            {/* <p>{totalLeads}</p> */}
+            <Link to={route.leads} className="d-flex flex-column text-white">
+              {totalLeads}
+            </Link>
           </div>
         </div>
       </div>
@@ -358,10 +364,13 @@ const LeadsDashboard = () => {
       <div className="col-md-6">
         <div className="card text-white bg-warning mb-3">
           <div className="card-header border-0 pb-0">
-            <h4>Total Companies</h4>
+            <h4 className="text-white">Total Companies</h4>
           </div>
           <div className="card-body">
-            <p>{totalCompanies}</p>
+            {/* <p>{totalCompanies}</p> */}
+            <Link to={route.companies} className="d-flex flex-column text-white">
+              {totalCompanies}
+            </Link>
           </div>
         </div>
       </div>
@@ -369,10 +378,13 @@ const LeadsDashboard = () => {
       <div className="col-md-6">
         <div className="card text-white bg-info mb-3">
           <div className="card-header border-0 pb-0">
-            <h4>Total Users</h4>
+            <h4 className="text-white">Total Users</h4>
           </div>
           <div className="card-body">
-            <p>{totalUsers}</p>
+            {/* <p>{totalUsers}</p> */}
+            <Link to={route.manageusers} className="d-flex flex-column text-white">
+              {totalUsers}
+            </Link>
           </div>
         </div>
       </div>
@@ -417,8 +429,8 @@ const LeadsDashboard = () => {
                   <tr>
                     <th>Lead Name</th>
                     <th>Company Name</th>
-                    <th>Phone</th>
-                    <th>Lead Status</th>
+                    <th>Contact Name</th>
+                    <th>Created By</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -426,7 +438,7 @@ const LeadsDashboard = () => {
                     ?.filter((_, i) => i < 5)
                     ?.map((_lead) => (
                       <tr key={_lead?._id}>
-                        <td>{_lead?.description}</td>
+                        <td>{_lead?.opportunity_name}</td>
                         <td>
                           <h2 className="d-flex align-items-center">
                             <Link
@@ -437,17 +449,12 @@ const LeadsDashboard = () => {
                               }}
                               className="d-flex flex-column"
                             >
-                              {_lead?.company_name?.company_name}
-                              <span className="text-default">
-                                {_lead?.company_name?.city},{" "}
-                                {_lead?.company_name?.country}
-                              </span>
+                              {_lead?.company_name}
                             </Link>
                           </h2>
                         </td>
                         <td>
-                          {_lead?.contact_name?.first_name} -{" "}
-                          {_lead?.contact_name?.primary_phone}
+                          {_lead?.contact_name}
                         </td>
                         <td>
                           <span
@@ -461,8 +468,7 @@ const LeadsDashboard = () => {
                                 : "bg-pending"
                             }`}
                           >
-                            {_lead?.stage?.pipeline_name} (
-                            {_lead?.stage?.stage_percentage?.[0]})
+                            {_lead?.profileId?.username}
                           </span>
                         </td>
                       </tr>

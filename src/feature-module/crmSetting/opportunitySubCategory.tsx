@@ -1,53 +1,78 @@
 import React, { useEffect, useState } from "react";
 import Table from "../../core/common/dataTable/index";
 import { Link } from "react-router-dom";
-import Select from "react-select";
 import { all_routes } from "../router/all_routes";
 import CollapseHeader from "../../core/common/collapse-header";
 import PrivateServer from "../../helper/PrivateServer";
 import { endpoints } from "../../helper/endpoints";
 import _ from "lodash";
 import useAuth from "../../hooks/useAuth";
-import { Modal } from "react-bootstrap";
+import { Modal, Toast, ToastContainer } from "react-bootstrap";
+import Select from "react-select";
 
 const route = all_routes;
 
-const Tax = () => {
-  const { values } = useAuth()
-  const [taxData, setTaxData] = useState([]);
+const OpportunitySubCategory = () => {
+  const { values } = useAuth();
+  const [OpportunityCategoryData, setOpportunityCategoryData] = useState([]);
+  const [OpportunitySubCategoryData, setOpportunitySubCategoryData] = useState([]);
   const [searchData, setFilteredSearchData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showBulkActionButton, setShowBulkActionButton] = useState(false);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [selectedRows, setSelectedRows] = useState(0);
   const [selectedIds, setSelectedIds] = useState([]);
-  const [taxId, setTaxId] = useState("");
+  const [OpportunitySubCategoryId, setOpportunitySubCategoryId] = useState("");
   const [formData, setFormData] = useState({
-    tax_name: "",
-    tax_percentage: "",
-    taxId: "",
+    opportunity_name: "",
+    opportunity_sub_type_name: "",
+    mrc: "",
+    opportunitySubCategoryId: "",
   });
+  const [error, setError] = useState({
+    type: "primary",
+    message: ""
+  });
+  const [showToast, setShowToast] = useState(false);
 
-  const getTaxes = async () => {
+  const getOpportunitySubCategory = async () => {
     try {
-      const { Tax } = endpoints;
-      const response = await PrivateServer.getData(Tax?.view)
+      const { OpportunitySubCategory } = endpoints;
+      const response = await PrivateServer.getData(OpportunitySubCategory?.view)
   
       if(response?.data) {
-        setTaxData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
+        setShowToast(true);
+        setError({ type: "success", message: `(${response?.data?.length}) Opportunity Sub Categories found` })
+        setOpportunitySubCategoryData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
         setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))])
       }
     } catch(error) {
-      console.log("Error while getting sub sub types -- E:", error?.message);
+      setShowToast(true);
+      setError({ type: "danger", message: `No Opportunity Sub Categories found` })
+      console.log("Error while getting opportunities -- E:", error?.message);
+    }
+  }
+  
+  const getOpportunitCategory = async () => {
+    try {
+      const { OpportunityCategory } = endpoints;
+      const response = await PrivateServer.getData(OpportunityCategory?.view)
+  
+      if(response?.data) {
+        setOpportunityCategoryData([...new Set(response?.data?.map((x: any) => ({ label: x?.opportunity_type_name, value: x?.opportunity_type_name })))]);
+      }
+    } catch(error) {
+      console.log("Error while getting opportunities -- E:", error?.message);
     }
   }
 
   const handleClose = () => {
-    setTaxId("")
+    setOpportunitySubCategoryId("")
     setFormData({
-        tax_name: "",
-        tax_percentage: "",
-        taxId: "",
+        opportunity_name: "",
+        opportunity_sub_type_name: "",
+        mrc: "",
+        opportunitySubCategoryId: "",
     });
   }
 
@@ -55,8 +80,7 @@ const Tax = () => {
     if(type == "file") {
       const { name } = e.target;
       setFormData({ ...formData, [name]: e.target?.files[0] });
-    }
-    else if(type == "select") {
+    } else if(type == "select") {
       setFormData({ ...formData, [_name]: e?.value });
     } else {
       const { name, value } = e.target; 
@@ -64,50 +88,93 @@ const Tax = () => {
     }
   }
 
-  const handleDeleteTax = async () => {
+  const handleDeleteSource = async () => {
     try {
-      const { Tax } = endpoints;
-      const response = await PrivateServer?.deleteData(Tax?.delete, taxId);
-      if(response) getTaxes();
+      const { OpportunitySubCategory } = endpoints;
+      const response = await PrivateServer?.deleteData(OpportunitySubCategory?.delete, OpportunitySubCategoryId);
+      if(response) getOpportunitySubCategory();
+      setShowToast(true);
+      setError({ type: "success", message: "deleted successfully" })
     } catch(err) {
-      console.log("Error while deleting tax -- E: ", err?.message);
+      setShowToast(true);
+      setError({ type: "danger", message: err?.message })
+      console.log("Error while deleting opportunity -- E: ", err?.message);
     }
   }
 
-  const handleEditTax = (values) => {
-    setFormData({ ...formData, ..._.omit(values, ["_id"]), taxId: values?._id });
+  const handleEditOpportunity = (values) => {
+    setFormData({ ...formData, ..._.omit(values, ["_id"]), opportunitySubCategoryId: values?._id });
   }
 
-  const handleAddOrUpdateTax = async () => {
+  const handleAddOrUpdateOpportunity = async () => {
     try {
-      const { Tax } = endpoints;
-      const { status, data } = formData?.taxId !== "" ? await PrivateServer?.patchData(Tax.patch, formData?.taxId, formData) : await PrivateServer.postData(Tax.create, formData);
+      const { OpportunitySubCategory } = endpoints;
+      const { data } = formData?.opportunitySubCategoryId !== "" ? await PrivateServer?.patchData(OpportunitySubCategory.patch, formData?.opportunitySubCategoryId, formData) : await PrivateServer.postData(OpportunitySubCategory.create, formData);
 
-      if(status == 200) {
-        if(formData?.taxId == "") setFormData({ ...formData, taxId: data?.data?._id })
-        getTaxes();
+      if(data) {
+        setShowToast(true);
+        setError({ type: "danger", message: `Opportunity Sub Category ${formData?.opportunitySubCategoryId ? "updated" : "added"}` })
+        if(formData?.opportunitySubCategoryId == "") setFormData({ ...formData, opportunitySubCategoryId: data?.data?._id })
+        getOpportunitySubCategory();
+        handleClose();
       }
     } catch(err) {
-      console.log("Error while saving sub tax -- E: ", err?.message);
+      setShowToast(true);
+      setError({ type: "danger", message: err?.message })
+      console.log("Error while saving opportunity -- E: ", err?.message);
     }
   }
 
   const columns = [
     {
-      title: "Tax Name",
-      dataIndex: "tax_name",
+      title: "Opportunity Category Name",
+      dataIndex: "opportunity_name",
        sorter: (a: any, b: any) =>
-        a.tax_name.length - b.tax_name.length,
-      key: "tax_name",
+        a.opportunity_name.length - b.opportunity_name.length,
+      key: "opportunity_name",
       width: "237px",
     },
     {
-      title: "Tax Percentage",
-      dataIndex: "tax_percentage",
+      title: "Opportunity Sub Category Name",
+      dataIndex: "opportunity_sub_type_name",
        sorter: (a: any, b: any) =>
-        a.tax_percentage.length - b.tax_percentage.length,
-      key: "tax_percentage",
+        a.opportunity_sub_type_name.length - b.opportunity_sub_type_name.length,
+      key: "opportunity_sub_type_name",
       width: "237px",
+    },
+    {
+      title: "MRC",
+      dataIndex: "mrc",
+       sorter: (a: any, b: any) =>
+        a.mrc.length - b.mrc.length,
+      key: "mrc",
+      width: "237px",
+    },
+    {
+      title: "Created By",
+      dataIndex: "profileId",
+      sorter: (a: any, b: any) => a.secondary_phone.length - b.secondary_phone.length,
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          <Link to={route.companies} className="d-flex flex-column">
+          {record?.profileId?.username}
+            <span className="text-default">{record?.profileId?.email}</span>
+          </Link>
+        </h2>
+      ),
+    },
+    {
+      title: "Team Leader",
+      dataIndex: "groupId",
+      sorter: (a: any, b: any) => a.secondary_phone.length - b.secondary_phone.length,
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          <Link to={route.companies} className="d-flex flex-column">
+          {record?.groupId?.group_manager?.username}
+            <span className="text-default">{record?.groupId?.group_manager?.email}</span>
+          </Link>
+        </h2>
+      ),
     },
     {
       title: "Action",
@@ -130,7 +197,7 @@ const Tax = () => {
               to="#"
               data-bs-toggle="modal"
               data-bs-target="#edit_source"
-              onClick={() => handleEditTax(record)}
+              onClick={() => handleEditOpportunity(record)}
             >
               <i className="ti ti-edit text-blue" /> Edit
             </Link>)}
@@ -139,7 +206,7 @@ const Tax = () => {
               to="#"
               data-bs-toggle="modal"
               data-bs-target="#delete_source"
-              onClick={() => setTaxId(record?._id)}
+              onClick={() => setOpportunitySubCategoryId(record?._id)}
             >
               <i className="ti ti-trash text-danger" /> Delete
             </Link>)}
@@ -150,7 +217,8 @@ const Tax = () => {
   ];
 
   useEffect(() => {
-    getTaxes();
+    getOpportunitySubCategory();
+    getOpportunitCategory();
   }, [])
 
   const handleSearch = (e) => {
@@ -181,8 +249,8 @@ const Tax = () => {
   }
 
   const handleBulkDelete = async () => {
-    const { Tax } = endpoints;
-    const deleted = await PrivateServer.deleteBulkData(Tax?.delete_bulk, selectedIds)
+    const { OpportunitySubCategory } = endpoints;
+    const deleted = await PrivateServer.deleteBulkData(OpportunitySubCategory?.delete_bulk, selectedIds)
     if(deleted) {
       setShowBulkActionButton(false);
       setShowBulkDeleteModal(false);
@@ -201,7 +269,7 @@ const Tax = () => {
               <div className="row align-items-center">
                 <div className="col-8">
                   <h4 className="page-title">
-                    Taxes<span className="count-title">{taxData?.length}</span>
+                    Opportunity Sub Category<span className="count-title">{searchTerm != "" ? searchData?.length : OpportunitySubCategoryData?.length}</span>
                   </h4>
                 </div>
                 <div className="col-4 text-end">
@@ -210,6 +278,17 @@ const Tax = () => {
                   </div>
                 </div>
               </div>
+                {
+                  showToast ? 
+                  <ToastContainer position="top-end">
+                    <Toast show={showToast} onClose={() => setShowToast((prev) => !prev)} bg={error?.type?.toLowerCase()} delay={3000} autohide>
+                      <Toast.Header>
+                        <strong className="me-auto">Request {error?.type}</strong>
+                      </Toast.Header>
+                      <Toast.Body>{error?.message}</Toast.Body>
+                    </Toast>
+                  </ToastContainer> : ""
+                }
             </div>
             {/* /Page Header */}
             <div className="card">
@@ -224,7 +303,7 @@ const Tax = () => {
                       <input
                         type="text"
                         className="form-control"
-                        placeholder="Search Tax"
+                        placeholder="Search Source"
                         onChange={handleSearch}
                       />
                     </div>
@@ -238,7 +317,7 @@ const Tax = () => {
                         data-bs-target="#add_source"
                       >
                         <i className="ti ti-square-rounded-plus me-2" />
-                        Add New Tax
+                        Add New Opportunity Sub Category
                       </Link>)}
                     </div>
                   </div>
@@ -246,7 +325,6 @@ const Tax = () => {
                 {/* /Search */}
               </div>
               <div className="card-body">
-                {/* Contact List */}
                 <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2 mb-4">
                   <div className="d-flex align-items-center flex-wrap row-gap-2">
                     {
@@ -264,8 +342,9 @@ const Tax = () => {
                     
                   </div>
                 </div>
+                {/* Contact List */}
                 <div className="table-responsive custom-table">
-                <Table columns={columns} dataSource={searchTerm != "" ? searchData : taxData} handleBulkAction={handleBulkOperation} />
+                <Table columns={columns} dataSource={searchTerm != "" ? searchData : OpportunitySubCategoryData} handleBulkAction={handleBulkOperation} />
                 </div>
                 <div className="row align-items-center">
                   <div className="col-md-6">
@@ -284,12 +363,12 @@ const Tax = () => {
     </div>
     {/* /Page Wrapper */}
 
-    {/* Add New Type */}
+    {/* Add New Source */}
     <div className="modal fade" id="add_source" role="dialog">
       <div className="modal-dialog modal-dialog-centered">
         <div className="modal-content">
           <div className="modal-header">
-            <h5 className="modal-title">Add New Tax</h5>
+            <h5 className="modal-title">Add New Opportunity Sub Category</h5>
             <button
               className="btn-close custom-btn-close border p-1 me-0 text-dark"
               data-bs-dismiss="modal"
@@ -303,17 +382,29 @@ const Tax = () => {
             <div className="modal-body">
               <div className="mb-3">
                 <label className="col-form-label">
-                  Tax Name <span className="text-danger">*</span>
+                  Category Name <span className="text-danger">*</span>
                 </label>
-                <input type="text" name="tax_name" value={formData?.tax_name} onChange={handleChange} className="form-control" />
+                <Select
+                  name="opportunity_name"
+                  onChange={(value) => handleChange(value, "select", "opportunity_name")}
+                  value={{ label: OpportunityCategoryData?.find((x: any) => x?.label == formData?.opportunity_name)?.label, value: formData?.opportunity_name }}
+                  className="select2" 
+                  classNamePrefix="react-select"
+                  options={OpportunityCategoryData}
+                  placeholder="Choose"
+                />
               </div>
-            </div>
-            <div className="modal-body">
               <div className="mb-3">
                 <label className="col-form-label">
-                  Tax Percentage <span className="text-danger">*</span>
+                  Sub Category Name <span className="text-danger">*</span>
                 </label>
-                <input type="text" name="tax_percentage" value={formData?.tax_percentage} onChange={handleChange} className="form-control" />
+                <input type="text" name="opportunity_sub_type_name" value={formData?.opportunity_sub_type_name} onChange={handleChange} className="form-control" />
+              </div>
+              <div className="mb-3">
+                <label className="col-form-label">
+                  MRC <span className="text-danger">*</span>
+                </label>
+                <input type="text" name="mrc" value={formData?.mrc} onChange={handleChange} className="form-control" />
               </div>
             </div>
             <div className="modal-footer">
@@ -326,7 +417,7 @@ const Tax = () => {
                 >
                   Cancel
                 </Link>
-                <button type="button" data-bs-dismiss="modal" onClick={handleAddOrUpdateTax} className="btn btn-primary">
+                <button type="button" data-bs-dismiss="modal" onClick={handleAddOrUpdateOpportunity} className="btn btn-primary">
                   Create
                 </button>
               </div>
@@ -335,14 +426,14 @@ const Tax = () => {
         </div>
       </div>
     </div>
-    {/* /Add New Type */}
+    {/* /Add New Source */}
     
-    {/* Edit Type */}
+    {/* Edit Source */}
     <div className="modal fade" id="edit_source" role="dialog">
       <div className="modal-dialog modal-dialog-centered">
         <div className="modal-content">
           <div className="modal-header">
-            <h5 className="modal-title">Edit Sub Type</h5>
+            <h5 className="modal-title">Edit Opportunity Category</h5>
             <button
               className="btn-close custom-btn-close border p-1 me-0 text-dark"
               data-bs-dismiss="modal"
@@ -356,17 +447,29 @@ const Tax = () => {
             <div className="modal-body">
               <div className="mb-3">
                 <label className="col-form-label">
-                  Tax Name <span className="text-danger">*</span>
+                  Category Name <span className="text-danger">*</span>
                 </label>
-                <input type="text" name="tax_name" value={formData?.tax_name} onChange={handleChange} className="form-control" />
+                <Select
+                  name="opportunity_name"
+                  onChange={(value) => handleChange(value, "select", "opportunity_name")}
+                  value={{ label: OpportunityCategoryData?.find((x: any) => x?.label == formData?.opportunity_name)?.label, value: formData?.opportunity_name }}
+                  className="select2" 
+                  classNamePrefix="react-select"
+                  options={OpportunityCategoryData}
+                  placeholder="Choose"
+                />
               </div>
-            </div>
-            <div className="modal-body">
               <div className="mb-3">
                 <label className="col-form-label">
-                  Tax Percentage <span className="text-danger">*</span>
+                  Sub Category Name <span className="text-danger">*</span>
                 </label>
-                <input type="text" name="tax_percentage" value={formData?.tax_percentage} onChange={handleChange} className="form-control" />
+                <input type="text" name="opportunity_sub_type_name" value={formData?.opportunity_sub_type_name} onChange={handleChange} className="form-control" />
+              </div>
+              <div className="mb-3">
+                <label className="col-form-label">
+                  MRC <span className="text-danger">*</span>
+                </label>
+                <input type="text" name="mrc" value={formData?.mrc} onChange={handleChange} className="form-control" />
               </div>
             </div>
             <div className="modal-footer">
@@ -379,8 +482,8 @@ const Tax = () => {
                 >
                   Cancel
                 </Link>
-                <button type="button" data-bs-dismiss="modal" onClick={handleAddOrUpdateTax} className="btn btn-primary">
-                  Save Changes
+                <button type="button" data-bs-dismiss="modal" onClick={handleAddOrUpdateOpportunity} className="btn btn-primary">
+                  Update
                 </button>
               </div>
             </div>
@@ -388,9 +491,9 @@ const Tax = () => {
         </div>
       </div>
     </div>
-    {/* /Edit Type */}
+    {/* /Edit Source */}
     
-    {/* Delete Type */}
+    {/* Delete Source */}
     <div className="modal fade" id="delete_source" role="dialog">
       <div className="modal-dialog modal-dialog-centered">
         <div className="modal-content">
@@ -399,8 +502,8 @@ const Tax = () => {
               <div className="avatar avatar-xl bg-danger-light rounded-circle mb-3">
                 <i className="ti ti-trash-x fs-36 text-danger" />
               </div>
-              <h4 className="mb-2">Remove Tax?</h4>
-              <p className="mb-0">AAre you sure you want to remove it.</p>
+              <h4 className="mb-2">Remove Opportunities?</h4>
+              <p className="mb-0">Are you sure you want to remove it.</p>
               <div className="d-flex align-items-center justify-content-center mt-4">
                 <Link
                   to="#"
@@ -409,7 +512,7 @@ const Tax = () => {
                 >
                   Cancel
                 </Link>
-                <Link to="#" data-bs-dismiss="modal" className="btn btn-danger" onClick={handleDeleteTax}>
+                <Link to="#" data-bs-dismiss="modal" className="btn btn-danger" onClick={handleDeleteSource}>
                   Yes, Delete it
                 </Link>
               </div>
@@ -418,46 +521,46 @@ const Tax = () => {
         </div>
       </div>
     </div>
-    {/* /Delete Type */}
-
+    {/* /Delete Source */}
     {/** Bulk Delete Data */}
-    <Modal show={showBulkDeleteModal} onHide={() => setShowBulkDeleteModal(false)}>
-      <div className="modal-header border-0 m-0 justify-content-end">
-        <button
-          className="btn-close"
-          aria-label="Close"
-          onClick={() => {
-            setShowBulkDeleteModal(false)
-          }}
-        >
-          <i className="ti ti-x" />
-        </button>
-      </div>
-      <div className="modal-body">
-        <div className="success-message text-center">
-          <div className="success-popup-icon bg-light-blue">
-            <i className="ti ti-user-plus" />
-          </div>
-          <h3>Are you sure?</h3>
-          <p>delete ({selectedRows})selected rows</p>
-          <div className="col-lg-12 text-center modal-btn">
-            <Link
-              to="#"
-              className="btn btn-light"
-              onClick={() => setShowBulkDeleteModal(false)}
-            >
-              Cancel
-            </Link>
-            <Link to="#" className="btn btn-primary" onClick={handleBulkDelete}>
-              Delete
-            </Link>
-          </div>
+  <Modal show={showBulkDeleteModal} onHide={() => setShowBulkDeleteModal(false)}>
+    <div className="modal-header border-0 m-0 justify-content-end">
+      <button
+        className="btn-close"
+        aria-label="Close"
+        onClick={() => {
+          setShowBulkDeleteModal(false)
+        }}
+      >
+        <i className="ti ti-x" />
+      </button>
+    </div>
+    <div className="modal-body">
+      <div className="success-message text-center">
+        <div className="success-popup-icon bg-light-blue">
+          <i className="ti ti-user-plus" />
+        </div>
+        <h3>Are you sure?</h3>
+        <p>delete ({selectedRows})selected rows</p>
+        <div className="col-lg-12 text-center modal-btn">
+          <Link
+            to="#"
+            className="btn btn-light"
+            onClick={() => setShowBulkDeleteModal(false)}
+          >
+            Cancel
+          </Link>
+          <Link to="#" className="btn btn-primary" onClick={handleBulkDelete}>
+            Delete
+          </Link>
         </div>
       </div>
-    </Modal>
-    {/** Bulk Delete Data */}
+    </div>
+  </Modal>
+  {/** Bulk Delete Data */}
   </>
+  
   );
 };
 
-export default Tax;
+export default OpportunitySubCategory;

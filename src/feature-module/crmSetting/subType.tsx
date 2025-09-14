@@ -8,7 +8,7 @@ import PrivateServer from "../../helper/PrivateServer";
 import { endpoints } from "../../helper/endpoints";
 import _ from "lodash";
 import useAuth from "../../hooks/useAuth";
-import { Modal } from "react-bootstrap";
+import { Modal, Toast, ToastContainer } from "react-bootstrap";
 
 const route = all_routes;
 
@@ -27,6 +27,11 @@ const SubType = () => {
     sub_type_code: "",
     subTypeId: "",
   });
+  const [error, setError] = useState({
+    type: "primary",
+    message: ""
+  });
+  const [showToast, setShowToast] = useState(false);
 
   const getSubType = async () => {
     try {
@@ -34,10 +39,14 @@ const SubType = () => {
       const response = await PrivateServer.getData(SubType?.view)
   
       if(response?.data) {
+        setShowToast(true);
+        setError({ type: "success", message: `(${response?.data?.length}) Sub Types found` })
         setSubTypeData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
         setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))])
       }
     } catch(error) {
+      setShowToast(true);
+      setError({ type: "danger", message: `No Sub Types found` })
       console.log("Error while getting sub sub types -- E:", error?.message);
     }
   }
@@ -69,7 +78,11 @@ const SubType = () => {
       const { SubType } = endpoints;
       const response = await PrivateServer?.deleteData(SubType?.delete, subTypeId);
       if(response) getSubType();
+      setShowToast(true);
+      setError({ type: "success", message: "deleted successfully" })
     } catch(err) {
+      setShowToast(true);
+      setError({ type: "danger", message: err?.message })
       console.log("Error while deleting category -- E: ", err?.message);
     }
   }
@@ -84,10 +97,14 @@ const SubType = () => {
       const { status, data } = formData?.subTypeId !== "" ? await PrivateServer?.patchData(SubType.patch, formData?.subTypeId, formData) : await PrivateServer.postData(SubType.create, formData);
 
       if(status == 200) {
+        setShowToast(true);
+        setError({ type: "danger", message: `Sub Type ${formData?.subTypeId ? "updated" : "added"}` })
         if(formData?.subTypeId == "") setFormData({ ...formData, subTypeId: data?.data?._id })
         getSubType();
       }
     } catch(err) {
+      setShowToast(true);
+      setError({ type: "danger", message: err?.message })
       console.log("Error while saving sub category -- E: ", err?.message);
     }
   }
@@ -130,7 +147,7 @@ const SubType = () => {
         <h2 className="d-flex align-items-center">
           <Link to={route.companies} className="d-flex flex-column">
           {record?.groupId?.group_manager?.username}
-            <span className="text-default">{record?.groupId?.group_manager?.team_leader?.email}</span>
+            <span className="text-default">{record?.groupId?.group_manager?.email}</span>
           </Link>
         </h2>
       ),
@@ -236,6 +253,17 @@ const SubType = () => {
                   </div>
                 </div>
               </div>
+                {
+                  showToast ? 
+                  <ToastContainer position="top-end">
+                    <Toast show={showToast} onClose={() => setShowToast((prev) => !prev)} bg={error?.type?.toLowerCase()} delay={3000} autohide>
+                      <Toast.Header>
+                        <strong className="me-auto">Request {error?.type}</strong>
+                      </Toast.Header>
+                      <Toast.Body>{error?.message}</Toast.Body>
+                    </Toast>
+                  </ToastContainer> : ""
+                }
             </div>
             {/* /Page Header */}
             <div className="card">

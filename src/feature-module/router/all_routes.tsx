@@ -9,9 +9,11 @@ export const all_routes = {
   contactList: "/crm/contact-list",
   pipeline: "/crm/pipeline",
   bill_summary: "/crm/bills",
+  site_locator: "/crm/site-locator",
   companyDetails: "/crm/company-details",
   contactGrid: "/crm/contact-grid",
   companies: "/companies",
+  companies_archive: "/company-archive",
   leadsDetails: "/leads-details",
   leads: "/leads",
 
@@ -36,6 +38,7 @@ export const all_routes = {
   sources: "/crm-setting/sources",
   opportunity_status: "/crm-setting/opportunity-status",
   opportunity_category: "/crm-setting/opportunity-category",
+  opportunity_sub_category: "/crm-setting/opportunity-sub-category",
   sr_type: "/crm-setting/sr-type",
   products: "/crm-setting/product",
   category: "/crm-setting/category",
@@ -47,6 +50,7 @@ export const all_routes = {
   //userManagement routes
   roles: "/user-management/roles",
   managePermissions: "/user-management/manage-permissions",
+  search_customers: "/user-management/customer-data",
   manageusers: "/user-management/manage-users",
   managegroups: "/user-management/manage-groups",
 };

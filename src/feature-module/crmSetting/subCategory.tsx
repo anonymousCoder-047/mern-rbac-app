@@ -8,7 +8,7 @@ import PrivateServer from "../../helper/PrivateServer";
 import { endpoints } from "../../helper/endpoints";
 import _ from "lodash";
 import useAuth from "../../hooks/useAuth";
-import { Modal } from "react-bootstrap";
+import { Modal, Toast, ToastContainer } from "react-bootstrap";
 
 const route = all_routes;
 
@@ -27,6 +27,11 @@ const SubCategory = () => {
     sub_category_code: "",
     subCategoryId: "",
   });
+  const [error, setError] = useState({
+    type: "primary",
+    message: ""
+  });
+  const [showToast, setShowToast] = useState(false);
 
   const getSubCategory = async () => {
     try {
@@ -34,10 +39,14 @@ const SubCategory = () => {
       const response = await PrivateServer.getData(SubCategory?.view)
   
       if(response?.data) { 
+        setShowToast(true);
+        setError({ type: "success", message: `(${response?.data?.length}) Sub Categories found` })
         setSubCategoryData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
         setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))])
       }
     } catch(error) {
+      setShowToast(true);
+      setError({ type: "danger", message: `No Sub Categories found` })
       console.log("Error while getting sub categories -- E:", error?.message);
     }
   }
@@ -69,7 +78,11 @@ const SubCategory = () => {
       const { SubCategory } = endpoints;
       const response = await PrivateServer?.deleteData(SubCategory?.delete, subCategoryId);
       if(response) getSubCategory();
+      setShowToast(true);
+      setError({ type: "success", message: "deleted successfully" })
     } catch(err) {
+      setShowToast(true);
+      setError({ type: "danger", message: err?.message })
       console.log("Error while deleting category -- E: ", err?.message);
     }
   }
@@ -84,10 +97,14 @@ const SubCategory = () => {
       const { status, data } = formData?.subCategoryId !== "" ? await PrivateServer?.patchData(SubCategory.patch, formData?.subCategoryId, formData) : await PrivateServer.postData(SubCategory.create, formData);
 
       if(status == 200) {
+        setShowToast(true);
+        setError({ type: "danger", message: `Sub Category ${formData?.subCategoryId ? "updated" : "added"}` })
         if(formData?.subCategoryId == "") setFormData({ ...formData, subCategoryId: data?.data?._id })
         getSubCategory();
       }
     } catch(err) {
+      setShowToast(true);
+      setError({ type: "danger", message: err?.message })
       console.log("Error while saving sub category -- E: ", err?.message);
     }
   }
@@ -130,7 +147,7 @@ const SubCategory = () => {
         <h2 className="d-flex align-items-center">
           <Link to={route.companies} className="d-flex flex-column">
           {record?.groupId?.group_manager?.username}
-            <span className="text-default">{record?.groupId?.group_manager?.team_leader?.email}</span>
+            <span className="text-default">{record?.groupId?.group_manager?.email}</span>
           </Link>
         </h2>
       ),
@@ -236,6 +253,17 @@ const SubCategory = () => {
                   </div>
                 </div>
               </div>
+                {
+                  showToast ? 
+                  <ToastContainer position="top-end">
+                    <Toast show={showToast} onClose={() => setShowToast((prev) => !prev)} bg={error?.type?.toLowerCase()} delay={3000} autohide>
+                      <Toast.Header>
+                        <strong className="me-auto">Request {error?.type}</strong>
+                      </Toast.Header>
+                      <Toast.Body>{error?.message}</Toast.Body>
+                    </Toast>
+                  </ToastContainer> : ""
+                }
             </div>
             {/* /Page Header */}
             <div className="card">

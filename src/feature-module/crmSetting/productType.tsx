@@ -8,7 +8,7 @@ import PrivateServer from "../../helper/PrivateServer";
 import { endpoints } from "../../helper/endpoints";
 import _ from "lodash";
 import useAuth from "../../hooks/useAuth";
-import { Modal } from "react-bootstrap";
+import { Modal, Toast, ToastContainer } from "react-bootstrap";
 
 const route = all_routes;
 
@@ -29,6 +29,11 @@ const ProductType = () => {
     sub_type: "",
     typeId: "",
   });
+  const [error, setError] = useState({
+    type: "primary",
+    message: ""
+  });
+  const [showToast, setShowToast] = useState(false);
 
   const getType = async () => {
     try {
@@ -36,10 +41,14 @@ const ProductType = () => {
       const response = await PrivateServer.getData(Types?.view)
   
       if(response?.data) {
+        setShowToast(true);
+        setError({ type: "success", message: `(${response?.data?.length}) Types found` })
         setTypeData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
         setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
       }
     } catch(error) {
+      setShowToast(true);
+      setError({ type: "danger", message: `No Types found` })
       console.log("Error while getting types -- E:", error?.message);
     }
   }
@@ -86,7 +95,11 @@ const getSubTypes = async () => {
       const { Types } = endpoints;
       const response = await PrivateServer?.deleteData(Types?.delete, typeId);
       if(response) getType();
+      setShowToast(true);
+      setError({ type: "danger", message: "deleted successfully" })
     } catch(err) {
+      setShowToast(true);
+      setError({ type: "danger", message: err?.message })
       console.log("Error while deleting category -- E: ", err?.message);
     }
   }
@@ -101,11 +114,15 @@ const getSubTypes = async () => {
       const { data } = formData?.typeId !== "" ? await PrivateServer?.patchData(Types.patch, formData?.typeId, formData) : await PrivateServer.postData(Types.create, formData);
 
       if(data) {
+        setShowToast(true);
+        setError({ type: "danger", message: `Type ${formData?.typeId ? "updated" : "added"}` })
         if(formData?.typeId == "") setFormData({ ...formData, typeId: data?.data?._id })
         getType();
         handleClose();
       }
     } catch(err) {
+      setShowToast(true);
+      setError({ type: "danger", message: err?.message })
       console.log("Error while saving category -- E: ", err?.message);
     }
   }
@@ -156,7 +173,7 @@ const getSubTypes = async () => {
         <h2 className="d-flex align-items-center">
           <Link to={route.companies} className="d-flex flex-column">
           {record?.groupId?.group_manager?.username}
-            <span className="text-default">{record?.groupId?.group_manager?.team_leader?.email}</span>
+            <span className="text-default">{record?.groupId?.group_manager?.email}</span>
           </Link>
         </h2>
       ),
@@ -263,6 +280,17 @@ const getSubTypes = async () => {
                   </div>
                 </div>
               </div>
+                {
+                  showToast ? 
+                  <ToastContainer position="top-end">
+                    <Toast show={showToast} onClose={() => setShowToast((prev) => !prev)} bg={error?.type?.toLowerCase()} delay={3000} autohide>
+                      <Toast.Header>
+                        <strong className="me-auto">Request {error?.type}</strong>
+                      </Toast.Header>
+                      <Toast.Body>{error?.message}</Toast.Body>
+                    </Toast>
+                  </ToastContainer> : ""
+                }
             </div>
             {/* /Page Header */}
             <div className="card">

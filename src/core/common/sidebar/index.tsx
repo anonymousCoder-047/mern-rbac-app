@@ -16,8 +16,8 @@ const Sidebar = () => {
   const expandMenu = useSelector((state: any) => state.expandMenu);
   const dispatch = useDispatch();
   const [profileData, setProfileData] = useState({
-    username: "CRM Admin",
-    email: "admin@mustandlinksmb.com"
+    username: "CRM User",
+    email: "default@mustanglinksmb.com"
   })
 
   const [subOpen, setSubopen] = useState<any>('');
@@ -124,7 +124,11 @@ const Sidebar = () => {
                     /> */}
                     <div className="user-names">
                       <h5>{profileData?.username}</h5>
-                      <h6>{profileData?.email}</h6>
+                      <div className="d-inline-block text-truncate" style={{ maxWidth: "200px"}}>
+                        <h6 className="mb-0" title={`${profileData?.email }`}>
+                          { profileData?.email }
+                        </h6>
+                      </div>
                     </div>
                   </Link>
                 </li>

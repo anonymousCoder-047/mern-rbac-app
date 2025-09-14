@@ -15,20 +15,24 @@ import PrivateServer from "../../../helper/PrivateServer";
 import { endpoints } from "../../../helper/endpoints";
 import _ from "lodash";
 import moment from "moment";
-import { DatePicker } from "antd";
+import { Alert, DatePicker } from "antd";
 import useAuth from "../../../hooks/useAuth";
 import * as XLSX from "xlsx";
-import { Modal } from "react-bootstrap";
+import { Modal, Toast, ToastContainer } from "react-bootstrap";
+import dayjs from 'dayjs';
 
 const route = all_routes;
 const Pipeline = () => {
   const { values } = useAuth();
   const [pipelineData, setPipelineData] = useState([]);
+  const [usersData, setUsersData] = useState([]);
   const [productCategory, setProductCategory] = useState([]);
   const [productCategoryData, setProductCategoryData] = useState([]);
   const [SRType, setSRType] = useState([]);
   const [companyName, setCompanyName] = useState([]);
   const [contactData, setContactData] = useState([]);
+  const [opportunitySubCategoryData, setOpportunitySubCategoryData] = useState([]);
+  const [opportunitySubCategoryFilterData, setOpportunitySubCategoryFilterData] = useState([]);
   const [opportunityData, setOpportunityData] = useState([]);
   const [opportunities, setOpportunities] = useState([]);
   const [searchData, setFilteredSearchData] = useState([]);
@@ -39,12 +43,14 @@ const Pipeline = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [pipelineId, setPipelineId] = useState("");
   const [formData, setFormData] = useState({
-    started_date: moment(new Date()).format('YYYY-MM-DD'),
+    started_date: dayjs(new Date()),
     updated_date: "",
     expected_closure_date: "",
     product_category: "",
     product_description: "",
+    pipeline_name: "",
     sr_type: "",
+    opportunity_sub_type_name: "",
     qty: "",
     mrc: "",
     annual_rev: "",
@@ -59,6 +65,15 @@ const Pipeline = () => {
     email: "",
     pipelineId: "",
   });
+  const [error, setError] = useState({
+    type: "primary",
+    message: ""
+  });
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+  });
+  const [showToast, setShowToast] = useState(false);
 
   // const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   // const handleDateChange = (date: Date | null) => {
@@ -72,10 +87,14 @@ const Pipeline = () => {
       const response = await PrivateServer.getData(Pipeline?.view)
   
       if(response?.data) {
+        setShowToast(true);
+        setError({ type: "success", message: `(${response?.data?.length}) Pipelines found` })
         setPipelineData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
         setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))])
       }
     } catch(error) {
+      setShowToast(true);
+      setError({ type: "danger", message: `No Pipelines found` })
       console.log("Error while getting pipeline -- E:", error?.message);
     }
   }
@@ -159,15 +178,45 @@ const Pipeline = () => {
     }
   }
 
+  const getOpporunitySubCategoryData = async () => {
+    try {
+      const { OpportunitySubCategory } = endpoints;
+      const response = await PrivateServer.getData(OpportunitySubCategory?.view)
+  
+      if(response?.data) {
+        setOpportunitySubCategoryData(response?.data);
+        setOpportunitySubCategoryFilterData(response?.data);
+      }
+    } catch(error) {
+      console.log("Error while getting opportunities sub categories -- E:", error?.message);
+    }
+  }
+
+  const getUsers = async () => {
+    try {
+      const { Profile } = endpoints;
+      const response = await PrivateServer.getData(Profile?.view)
+  
+      if(response?.data) {
+        setUsersData(response?.data);
+      }
+    } catch(error) {
+      console.log("Error while getting users -- E:", error?.message);
+    }
+  }
+
   const handleClose = () => {
+    resetToFirstPage();
     setPipelineId("");
     setFormData({
-      started_date: moment(new Date()).format('YYYY-MM-DD'),
+      started_date: dayjs(new Date()),
       updated_date: "",
       expected_closure_date: "",
       product_category: "",
       product_description: "",
+      pipeline_name: "",
       sr_type: "",
+      opportunity_sub_type_name: "",
       qty: "",
       mrc: "",
       annual_rev: "",
@@ -188,15 +237,26 @@ const Pipeline = () => {
     if(type == "file") {
       const { name } = e.target;
       setFormData({ ...formData, [name]: e.target?.files[0] });
-    }
-    else if(type == "select") {
+    } else if(type == "select") {
       if(_name == "company_name") {
         const _contact = contactData?.find((x) => x?.company_name == e?.label);
         setFormData({ ...formData, [_name]: e?.label, email: _contact?.email, contact_number: _contact?.primary_phone, name: _contact?.first_name });
+      } else if(_name == "pipeline_name") {
+        const _opportunity = productCategoryData?.find((x) => x?.label == e?.label);
+        setFormData({ ...formData, [_name]: e?.label, product_description: _opportunity?.label, stage_name: _opportunity?.label });
+      } else if(_name == "product_description") {
+        setOpportunitySubCategoryData(opportunitySubCategoryFilterData?.filter((x) => x?.opportunity_name == e?.label));
+        const _opportunity = productCategoryData?.find((x) => x?.label == e?.label);
+        setFormData({ ...formData, [_name]: e?.label, pipeline_name: _opportunity?.label });
+      } else if(_name == "opportunity_sub_type_name") {
+        const _opportunity = opportunitySubCategoryData?.find((x) => x?.opportunity_sub_type_name == e?.label);
+        setFormData({ ...formData, [_name]: e?.label, opportunity_status: _opportunity?.opportunity_name, stage_name: _opportunity?.opportunity_name, qty: "1", mrc: _opportunity?.mrc, annual_rev: (1 * parseInt(_opportunity?.mrc) * 12)?.toString() });
       } else if(_name == "opportunity_status") {
         const _opportunity = opportunities?.find((x) => x?.opportunity_name == e?.label);
         setFormData({ ...formData, [_name]: e?.label, stage_name: _opportunity?.opportunity_name });
       } else setFormData({ ...formData, [_name]: e?.label });
+    } else if(type == 'date') {
+      setFormData({ ...formData, [_name]: e });
     } else {
       const { name, value } = e.target; 
       setFormData({ ...formData, [name]: value });
@@ -208,7 +268,11 @@ const Pipeline = () => {
       const { Pipeline } = endpoints;
       const response = await PrivateServer?.deleteData(Pipeline?.delete, pipelineId);
       if(response) getPipelines();
+      setShowToast(true);
+      setError({ type: "success", message: "Pipeline deleted" })
     } catch(err) {
+      setShowToast(true);
+      setError({ type: "danger", message: err?.message })
       console.log("Error while deleting pipeline -- E: ", err?.message);
     }
   }
@@ -223,30 +287,85 @@ const Pipeline = () => {
       const { data } = formData?.pipelineId !== "" ? await PrivateServer?.patchData(Pipeline.patch, formData?.pipelineId, formData) : await PrivateServer.postData(Pipeline.create, formData);
 
       if(data) {
+        setShowToast(true);
+        setError({ type: "success", message: `Pipeline ${formData?.pipelineId ? "updated" : "added"}` })
         if(formData?.pipelineId == "") setFormData({ ...formData, pipelineId: data?.data?._id })
         getPipelines();
         handleClose();
       }
     } catch(err) {
+      setShowToast(true);
+      setError({ type: "danger", message: err?.message })
       console.log("Error while saving pipeline -- E: ", err?.message);
     }
   }
 
   const columns = [
     {
+      title: "Pipeline Name",
+      dataIndex: "pipeline_name",
+      sorter: (a: any, b: any) => a.pipeline_name.length - b.pipeline_name.length,
+      filters: pipelineData
+      ? [...new Set(pipelineData.map((item) => item.pipeline_name))].map((val) => ({
+          text: val,
+          value: val,
+        }))
+      : [],
+      onFilter: (value, record) => record.pipeline_name.includes(value),
+    },
+    {
       title: "Started Date",
       dataIndex: "started_date",
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          <Link to={route.leads}
+            className="d-flex flex-column fw-medium"
+          >
+            <span className="text-default">
+              {
+                moment(record?.started_date).format('YYYY-MM-DD')
+              }  
+            </span>
+          </Link>
+        </h2>
+      ),
       sorter: (a: any, b: any) => a.started_date.length - b.started_date.length,
     },
     {
       title: "Updated Date",
       dataIndex: "updated_date",
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          <Link to={route.leads}
+            className="d-flex flex-column fw-medium"
+          >
+            <span className="text-default">
+              {
+                moment(record?.updated_date).format('YYYY-MM-DD')
+              }
+            </span>
+          </Link>
+        </h2>
+      ),
       sorter: (a: any, b: any) =>
         a.updated_date.length - b.updated_date.length,
     },
     {
       title: "Expected Closure",
       dataIndex: "expected_closure_date",
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          <Link to={route.leads}
+            className="d-flex flex-column fw-medium"
+          >
+            <span className="text-default">
+              {
+                moment(record?.expected_closure_date).format('YYYY-MM-DD')
+              }
+            </span>
+          </Link>
+        </h2>
+      ),
       sorter: (a: any, b: any) =>
         a.expected_closure_date.length - b.expected_closure_date.length,
     },
@@ -255,12 +374,26 @@ const Pipeline = () => {
       dataIndex: "product_category",
       sorter: (a: any, b: any) =>
         a.product_category.length - b.product_category.length,
+      filters: productCategoryData
+      ? [...new Set(productCategoryData.map((item) => item.product_category))].map((val) => ({
+          text: val,
+          value: val,
+        }))
+      : [],
+      onFilter: (value, record) => record.product_category.includes(value),
     },
     {
       title: "Company Name",
       dataIndex: "company_name",
       sorter: (a: any, b: any) =>
         a.company_name.length - b.company_name.length,
+      filters: companyName
+      ? [...new Set(companyName.map((item) => item.label))].map((val) => ({
+          text: val,
+          value: val,
+        }))
+      : [],
+      onFilter: (value, record) => record.company_name.includes(value),
     },
     {
       title: "MRC",
@@ -277,8 +410,21 @@ const Pipeline = () => {
     {
       title: "Follow Up",
       dataIndex: "followup_date",
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          <Link to={route.leads}
+            className="d-flex flex-column fw-medium"
+          >
+            <span className="text-default">
+              {
+                moment(record?.followup_date).format('YYYY-MM-DD')
+              }
+            </span>
+          </Link>
+        </h2>
+      ),
       sorter: (a: any, b: any) =>
-        a.follow_up_date.length - b.follow_up_date.length,
+        a.followup_date.length - b.followup_date.length,
     },
     {
       title: "Opportunity Status",
@@ -323,13 +469,26 @@ const Pipeline = () => {
     {
       title: "Created Date",
       dataIndex: "created_date",
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          <Link to={route.leads}
+            className="d-flex flex-column fw-medium"
+          >
+            <span className="text-default">
+              {
+                moment(record?.created_date).format('YYYY-MM-DD')
+              }
+            </span>
+          </Link>
+        </h2>
+      ),
       sorter: (a: any, b: any) =>
         a.created_date.length - b.created_date.length,
     },
     {
       title: "Created By",
       dataIndex: "profileId",
-      sorter: (a: any, b: any) => a.secondary_phone.length - b.secondary_phone.length,
+      sorter: (a: any, b: any) => a.profileId.length - b.profileId.length,
       render: (text: any, record: any) => (
         <h2 className="d-flex align-items-center">
           <Link to={route.companies} className="d-flex flex-column">
@@ -338,6 +497,13 @@ const Pipeline = () => {
           </Link>
         </h2>
       ),
+      filters: usersData
+      ? [...new Set(usersData?.map((item) => item?.username))].map((val) => ({
+          text: val,
+          value: val,
+        }))
+      : [],
+      onFilter: (value, record) => record?.profileId?.username?.includes(value),
     },
     {
       title: "Team Lead",
@@ -348,7 +514,7 @@ const Pipeline = () => {
             className="d-flex flex-column fw-medium"
           >
             {record.team_leader}
-            <span className="text-default">{record?.groupId?.group_manager?.team_leader?.email}</span>
+            <span className="text-default">{record?.groupId?.group_manager?.email}</span>
           </Link>
         </h2>
       ),
@@ -422,29 +588,52 @@ const Pipeline = () => {
   }
 
   const handleSearch = (e) => {
-    const { value: _searchTerm } = e?.target;
+    resetToFirstPage();
+    const _searchTerm = e?.target?.value?.toLowerCase() || "";
     setSearchTerm(_searchTerm);
-    const _searchData = [...searchData];
 
-    if(searchTerm != "") {
-      const searchResults = _.filter(_searchData, (obj) =>
-        _.some(obj, (value) =>
-          _.isString(value) && _.includes(value.toLowerCase(), searchTerm?.toLowerCase())
+    if (_searchTerm.trim() !== "") {  
+      const searchResults = pipelineData.filter((obj) =>
+        Object.values(obj).some(
+          (val) =>
+            typeof val === "string" &&
+            val.toLowerCase().includes(_searchTerm)
         )
       );
-      setFilteredSearchData(searchResults)
-    } else setFilteredSearchData(searchData);
+      setFilteredSearchData(searchResults);
+    } else {
+      setFilteredSearchData(pipelineData);
+    }
   }
 
   useEffect(() => {
-    getPipelines()
+    getPipelines();
     getProductCategories();
     getContacts();
     getCompanies();
     getOpporunityData();
+    getOpporunitySubCategoryData();
     getOpportunityCategoriesData();
     getSRTypeData();
-  }, [])
+    getUsers();
+    
+    setFormData({ ...formData, sales_id: values?.currentUser });
+    
+    const savedPage = Number(localStorage.getItem("pipelineTablePage")) || 1;
+    setPagination((prev) => ({ ...prev, current: savedPage }));
+  }, [values?.currentUser])
+
+  // 🔹 Save page to localStorage on change
+  const handleTableChange = (newPagination, filters, sorter) => {
+    setPagination(newPagination);
+    localStorage.setItem("pipelineTablePage", newPagination.current.toString());
+  };
+
+  // 🔹 Reset to page 1 when refreshing/searching/filtering
+  const resetToFirstPage = () => {
+    setPagination((prev) => ({ ...prev, current: 1 }));
+    localStorage.setItem("pipelineTablePage", "1");
+  };
   
   const handleBulkOperation = (selectedRows: string | any[]) => {
     if(selectedRows?.length > 0) {
@@ -488,6 +677,17 @@ const Pipeline = () => {
                     </div>
                   </div>
                 </div>
+                {
+                  showToast ? 
+                  <ToastContainer position="top-end">
+                    <Toast show={showToast} onClose={() => setShowToast((prev) => !prev)} bg={error?.type?.toLowerCase()} delay={3000} autohide>
+                      <Toast.Header>
+                        <strong className="me-auto">Request {error?.type}</strong>
+                      </Toast.Header>
+                      <Toast.Body>{error?.message}</Toast.Body>
+                    </Toast>
+                  </ToastContainer> : ""
+                }
               </div>
               {/* /Page Header */}
               <div className="card">
@@ -565,7 +765,20 @@ const Pipeline = () => {
 
                   {/* Pipeline List */}
                   <div className="table-responsive custom-table">
-                    <Table dataSource={searchTerm != "" ? searchData : pipelineData} columns={columns} handleBulkAction={handleBulkOperation} />
+                    <Table 
+                      dataSource={searchTerm != "" ? searchData : pipelineData} 
+                      columns={columns} 
+                      handleBulkAction={handleBulkOperation} 
+                      rowKey="_id"
+                      pagination={{
+                        current: pagination.current,
+                        pageSize: pagination.pageSize,
+                        total: searchTerm != "" ? searchData?.length : pipelineData?.length,
+                        showSizeChanger: true,
+                        showQuickJumper: true,
+                      }}
+                      onChange={handleTableChange} 
+                    />
                   </div>
                   <div className="row align-items-center">
                     <div className="col-md-6">
@@ -606,12 +819,25 @@ const Pipeline = () => {
       <form>
         <div>
           <div className="mb-3">
+            <label className="col-form-label">Pipeline Name *</label>
+            <Select
+              name="pipeline_name"
+              onChange={(value) => handleChange(value, "select", "pipeline_name")}
+              value={{ label: productCategoryData?.find((x: any) => x?.label == formData?.pipeline_name)?.label, value: formData?.pipeline_name }}
+              className="select2" 
+              classNamePrefix="react-select"
+              options={productCategoryData}
+              placeholder="Select an option"
+            />
+          </div>
+          <div className="mb-3">
             <label className="col-form-label">
               Started Date <span className="text-danger">*</span>
             </label>
             <DatePicker
               className="form-control datetimepicker deals-details"
-              onChange={(date) => setFormData({ ...formData, started_date: moment(date)?.format("YYYY-MM-DD") })}
+              value={formData?.started_date ? dayjs(formData.started_date) : null}
+              onChange={(date) => handleChange(date, 'date', 'started_date')}
               format="DD-MM-YYYY"
             />
           </div>
@@ -621,18 +847,26 @@ const Pipeline = () => {
             </label>
             <DatePicker
               className="form-control datetimepicker deals-details"
-              onChange={(date) => setFormData({ ...formData, updated_date: moment(date)?.format("YYYY-MM-DD") })}
+              value={formData?.updated_date ? dayjs(formData.updated_date) : null}
+              onChange={(date) => handleChange(date, 'date', 'updated_date')}
               format="DD-MM-YYYY"
+              disabledDate={(current) =>
+                current && current < dayjs(formData?.started_date).endOf('day')
+              }
             />
           </div>
           <div className="mb-3">
             <label className="col-form-label">
-              Expected CLosure Date <span className="text-danger">*</span>
+              Expected Closure Date <span className="text-danger">*</span>
             </label>
             <DatePicker
               className="form-control datetimepicker deals-details"
-              onChange={(date) => setFormData({ ...formData, expected_closure_date: moment(date)?.format("YYYY-MM-DD") })}
+              value={formData?.expected_closure_date ? dayjs(formData.expected_closure_date) : null}
+              onChange={(date) => handleChange(date, 'date', 'expected_closure_date')}
               format="DD-MM-YYYY"
+              disabledDate={(current) =>
+                current && current < dayjs(formData?.started_date).endOf('day')
+              }
             />
           </div>
           <div className="mb-3">
@@ -652,7 +886,7 @@ const Pipeline = () => {
                     />
                   </div>
                   <div className="mb-3">
-                    <label className="col-form-label">Product Description *</label>
+                    <label className="col-form-label">Product Category *</label>
                     <Select
                       name="product_description"
                       onChange={(value) => handleChange(value, "select", "product_description")}
@@ -660,6 +894,18 @@ const Pipeline = () => {
                       className="select2" 
                       classNamePrefix="react-select"
                       options={productCategoryData}
+                      placeholder="Select an option"
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="col-form-label">Product Sub Category *</label>
+                    <Select
+                      name="opportunity_sub_type_name"
+                      onChange={(value) => handleChange(value, "select", "opportunity_sub_type_name")}
+                      value={{ label: formData?.opportunity_sub_type_name, value: formData?.opportunity_sub_type_name }}
+                      className="select2" 
+                      classNamePrefix="react-select"
+                      options={[...new Set(opportunitySubCategoryData?.map((x) => ({ ...x, label: x?.opportunity_sub_type_name, value: x?.opportunity_sub_type_name })))]}
                       placeholder="Select an option"
                     />
                   </div>
@@ -682,6 +928,7 @@ const Pipeline = () => {
                       type="number"
                       value={formData?.qty}
                       onChange={handleChange}
+                      onBlur={(e) => setFormData({ ...formData, annual_rev: (formData.qty ? parseInt(formData.qty) * parseInt(formData?.mrc) * 12 : parseInt(formData?.mrc) * 12)?.toString() })}
                       className="form-control"
                       defaultValue=""
                     />
@@ -693,7 +940,7 @@ const Pipeline = () => {
                       type="number"
                       value={formData?.mrc}
                       onChange={handleChange}
-                      onBlur={(e) => setFormData({ ...formData, annual_rev: (parseInt(formData?.mrc) * 12)?.toString() })}
+                      onBlur={(e) => setFormData({ ...formData, annual_rev: (formData.qty ? parseInt(formData.qty) * parseInt(formData?.mrc) * 12 : parseInt(formData?.mrc) * 12)?.toString() })}
                       className="form-control"
                       defaultValue=""
                     />
@@ -766,8 +1013,12 @@ const Pipeline = () => {
             <DatePicker
               className="form-control datetimepicker deals-details"
               name="followup_date"
-              onChange={(date) => setFormData({ ...formData, followup_date: moment(date)?.format("YYYY-MM-DD") })}
+              value={formData?.followup_date ? dayjs(formData?.followup_date) : null}
+              onChange={(date) => handleChange(date, 'date', 'followup_date')}
               format="DD-MM-YYYY"
+              disabledDate={(current) =>
+                current && current < dayjs(formData?.updated_date).endOf('day')
+              }
             />
           </div>
           <div className="mb-3">
@@ -780,6 +1031,7 @@ const Pipeline = () => {
               className="form-control"
               onChange={handleChange}
               name="sales_id"
+              disabled
             />
           </div>
           <div className="mb-3">
@@ -819,6 +1071,11 @@ const Pipeline = () => {
             />
           </div>
         </div>
+        {
+          !(formData?.started_date && formData?.updated_date) && (<div className="w-full mb-4">
+            <Alert showIcon message="Start Date and Updated date is required." type="warning" />
+          </div>)
+        }
         <div className="d-flex align-items-center justify-content-end">
           <button
             type="button"
@@ -832,6 +1089,7 @@ const Pipeline = () => {
             className="btn btn-primary"
             data-bs-dismiss="offcanvas"
             onClick={handleAddOrUpdatePipeline}
+            disabled={(formData?.started_date && formData?.updated_date) ? false : true}
           >
             Create
           </button>
@@ -864,12 +1122,25 @@ const Pipeline = () => {
       <form>
         <div>
           <div className="mb-3">
+            <label className="col-form-label">Pipeline Name *</label>
+            <Select
+              name="pipeline_name"
+              onChange={(value) => handleChange(value, "select", "pipeline_name")}
+              value={{ label: productCategoryData?.find((x: any) => x?.label == formData?.pipeline_name)?.label, value: formData?.pipeline_name }}
+              className="select2" 
+              classNamePrefix="react-select"
+              options={productCategoryData}
+              placeholder="Select an option"
+            />
+          </div>
+          <div className="mb-3">
             <label className="col-form-label">
               Started Date <span className="text-danger">*</span>
             </label>
             <DatePicker
               className="form-control datetimepicker deals-details"
-              onChange={(date) => setFormData({ ...formData, started_date: moment(date)?.format("YYYY-MM-DD") })}
+              value={formData?.started_date ? dayjs(formData.started_date) : null}
+              onChange={(date) => handleChange(date, 'date', 'started_date')}
               format="DD-MM-YYYY"
             />
           </div>
@@ -879,18 +1150,26 @@ const Pipeline = () => {
             </label>
             <DatePicker
               className="form-control datetimepicker deals-details"
-              onChange={(date) => setFormData({ ...formData, updated_date: moment(date)?.format("YYYY-MM-DD") })}
+              value={formData?.updated_date ? dayjs(formData.updated_date) : null}
+              onChange={(date) => handleChange(date, 'date', 'updated_date')}
               format="DD-MM-YYYY"
+              disabledDate={(current) =>
+                current && current < dayjs(formData?.started_date).endOf('day')
+              }
             />
           </div>
           <div className="mb-3">
             <label className="col-form-label">
-              Expected CLosure Date <span className="text-danger">*</span>
+              Expected Closure Date <span className="text-danger">*</span>
             </label>
             <DatePicker
               className="form-control datetimepicker deals-details"
-              onChange={(date) => setFormData({ ...formData, expected_closure_date: moment(date)?.format("YYYY-MM-DD") })}
+              value={formData?.expected_closure_date ? dayjs(formData.expected_closure_date) : null}
+              onChange={(date) => handleChange(date, 'date', 'expected_closure_date')}
               format="DD-MM-YYYY"
+              disabledDate={(current) =>
+                current && current < dayjs(formData?.started_date).endOf('day')
+              }
             />
           </div>
           <div className="mb-3">
@@ -918,6 +1197,18 @@ const Pipeline = () => {
                       className="select2" 
                       classNamePrefix="react-select"
                       options={productCategoryData}
+                      placeholder="Select an option"
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="col-form-label">Product Sub Category *</label>
+                    <Select
+                      name="opportunity_sub_type_name"
+                      onChange={(value) => handleChange(value, "select", "opportunity_sub_type_name")}
+                      value={{ label: formData?.opportunity_sub_type_name, value: formData?.opportunity_sub_type_name }}
+                      className="select2" 
+                      classNamePrefix="react-select"
+                      options={[...new Set(opportunitySubCategoryData?.map((x) => ({ ...x, label: x?.opportunity_sub_type_name, value: x?.opportunity_sub_type_name })))]}
                       placeholder="Select an option"
                     />
                   </div>
@@ -1024,8 +1315,12 @@ const Pipeline = () => {
             <DatePicker
               className="form-control datetimepicker deals-details"
               name="followup_date"
-              onChange={(date) => setFormData({ ...formData, followup_date: moment(date)?.format("YYYY-MM-DD") })}
+              value={formData?.followup_date ? dayjs(formData.followup_date) : null}
+              onChange={(date) => handleChange(date, 'date', 'followup_date')}
               format="DD-MM-YYYY"
+              disabledDate={(current) =>
+                current && current < dayjs(formData?.updated_date).endOf('day')
+              }
             />
           </div>
           <div className="mb-3">
@@ -1038,6 +1333,7 @@ const Pipeline = () => {
               className="form-control"
               onChange={handleChange}
               name="sales_id"
+              disabled
             />
           </div>
           <div className="mb-3">
@@ -1077,6 +1373,11 @@ const Pipeline = () => {
             />
           </div>
         </div>
+        {
+          !(formData?.updated_date && formData?.followup_date) && (<div className="w-full mb-4">
+            <Alert showIcon message="Updated Date and Follow up date is required." type="warning" />
+          </div>)
+        }
         <div className="d-flex align-items-center justify-content-end">
           <button
            type="submit"
@@ -1087,7 +1388,9 @@ const Pipeline = () => {
           </button>
           <button type="submit" className="btn btn-primary"  
             onClick={handleAddOrUpdatePipeline}
-          data-bs-dismiss="offcanvas">
+            data-bs-dismiss="offcanvas"
+            disabled={(formData?.updated_date && formData?.followup_date) ? false : true}
+          >
             Update
           </button>
         </div>

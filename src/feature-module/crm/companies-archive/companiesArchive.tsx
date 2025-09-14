@@ -1,26 +1,34 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 
 import { Link } from "react-router-dom";
 import { all_routes } from "../../router/all_routes";
 import { useDispatch, useSelector } from "react-redux";
 import CollapseHeader from "../../../core/common/collapse-header";
+import Select from "react-select";
 import Table from "../../../core/common/dataTable/index";
 import { Toast, Modal, ToastContainer } from "react-bootstrap";
 import PrivateServer from "../../../helper/PrivateServer";
 import { endpoints } from "../../../helper/endpoints";
 import useAuth from "../../../hooks/useAuth";
 import _ from "lodash";
+import { useDropzone } from "react-dropzone";
 import * as XLSX from "xlsx";
+import dayjs from "dayjs";
+import { DatePicker } from "antd";
+import moment from "moment";
 
-const Companies = () => {
+const CompaniesArchive = () => {
+  const token = localStorage.getItem("token");
   const { values } = useAuth();
+  
   const [openModal, setOpenModal] = useState(false);
   const [openModal2, setOpenModal2] = useState(false);
   const [companyData, setCompanyData] = useState([]);
+  const [companyArchiveData, setCompanyArchiveData] = useState([]);
   const [usersData, setUsersData] = useState([]);
   const [searchData, setFilteredSearchData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [companyId, setCompanyId] = useState("");
+  const [companyArchiveId, setCompanyArchiveId] = useState("");
   const [showBulkActionButton, setShowBulkActionButton] = useState(false);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [selectedRows, setSelectedRows] = useState(0);
@@ -30,18 +38,13 @@ const Companies = () => {
     pageSize: 10,
   });
   const [formData, setFormData] = useState({
-    company_name: "",
-    email: "",
-    primary_phone: "",
-    secondary_phone: "",
+    companyArchiveId: "",
     companyId: "",
-    website: "",
+    company_name: "",
+    file_paths: [],
+    uploaded_date: dayjs(new Date()),
+    updated_date: "",
     description: "",
-    street: "",
-    country: "",
-    state: "",
-    city: "",
-    code: "",
   });
   const [error, setError] = useState({
     type: "primary",
@@ -72,7 +75,25 @@ const Companies = () => {
 
   const route = all_routes;
 
-  const getCompanies = async () => {
+  const getCompaniesArchives = async () => {
+    try {
+      const { CompaniesArchive } = endpoints;
+      const response = await PrivateServer.getData(CompaniesArchive?.view)
+  
+      if(response?.data) {
+        setShowToast(true);
+        setError({ type: "success", message: `(${response?.data?.length}) Companies archive found` })
+        setCompanyArchiveData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
+        setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
+      }
+    } catch(error) {
+      setShowToast(true);
+      setError({ type: "danger", message: `No Companies archive found` })
+      console.log("Error while getting companies -- E:", error?.message);
+    }
+  }
+  
+  const getCompaniesData = async () => {
     try {
       const { Companies } = endpoints;
       const response = await PrivateServer.getData(Companies?.view)
@@ -80,8 +101,7 @@ const Companies = () => {
       if(response?.data) {
         setShowToast(true);
         setError({ type: "success", message: `(${response?.data?.length}) Companies found` })
-        setCompanyData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
-        setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
+        setCompanyData(response?.data);
       }
     } catch(error) {
       setShowToast(true);
@@ -106,62 +126,92 @@ const Companies = () => {
 
   // Call initializeStarsState once when the component mounts
   React.useEffect(() => {
-    getCompanies();
-    getUsersData();
+    getCompaniesData();
+    getCompaniesArchives();
+    getUsersData();    
 
-    const savedPage = Number(localStorage.getItem("companyTablePage")) || 1;
+    const savedPage = Number(localStorage.getItem("companyArchiveTablePage")) || 1;
     setPagination((prev) => ({ ...prev, current: savedPage }));
   }, []);
 
   const handleClose = () => {
     resetToFirstPage();
-    setCompanyId("")
+    setCompanyArchiveId("")
     setFormData({
-      company_name: "",
-      email: "",
-      primary_phone: "",
-      secondary_phone: "",
-      companyId: "",
-      website: "",
-      description: "",
-      street: "",
-      country: "",
-      state: "",
-      city: "",
-      code: "",
+        companyArchiveId: "",
+        companyId: "",
+        company_name: "",
+        file_paths: [],
+        uploaded_date: dayjs(new Date()),
+        updated_date: "",
+        description: "",
     });
   }
 
   // 🔹 Save page to localStorage on change
   const handleTableChange = (newPagination, filters, sorter) => {
     setPagination(newPagination);
-    localStorage.setItem("companyTablePage", newPagination.current.toString());
+    localStorage.setItem("companyArchiveTablePage", newPagination.current.toString());
   };
 
   // 🔹 Reset to page 1 when refreshing/searching/filtering
   const resetToFirstPage = () => {
-    setPagination((prev) => ({ ...prev, current: 1 }));
-    localStorage.setItem("companyTablePage", "1");
-  };
+      setPagination((prev) => ({ ...prev, current: 1 }));
+      localStorage.setItem("companyArchiveTablePage", "1");
+    };
+    
+   const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any) => {
+    // Save selected files to formData
+    if (rejectedFiles.length > 0) {
+      rejectedFiles.forEach((file: any) => {
+        alert(
+          `❌ ${file.file.name} was rejected. Reason: ${file.errors
+            .map((e: any) => e.message)
+            .join(", ")}`
+        );
+      });
+    }
+
+    // ✅ Restrict to max 5 total files
+    let updatedFiles = [...(formData?.file_paths || []), ...acceptedFiles];
+    if (updatedFiles.length > 5) {
+      alert("❌ You can only upload up to 5 files.");
+      updatedFiles = updatedFiles.slice(0, 5); // keep only first 5
+    }
+
+    handleChange(acceptedFiles, "file", "file_paths");
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    multiple: true, // allow multiple
+    maxFiles: 5, // ✅ restrict dropzone itself
+    accept: {
+      "image/*": [], // allow all images
+      "application/pdf": [], // allow PDFs
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [], // docx
+    },
+    maxSize: 50 * 1024 * 1024, // 50 MB per file
+  });
 
   const handleChange = (e, type="", _name="") => {    
     if(type == "file") {
-      const { name } = e.target;
-      setFormData({ ...formData, [name]: e.target?.files[0] });
-    }
-    else if(type == "select") {
-      setFormData({ ...formData, [_name]: e?.value });
+      setFormData({ ...formData, file_paths: e });
+    } else if(type == "select") {
+      setFormData({ ...formData, [_name]: e?.value, company_name: e?.label });
+    } else if(type == 'date') {
+      setFormData({ ...formData, [_name]: e });
     } else {
       const { name, value } = e.target; 
       setFormData({ ...formData, [name]: value });
     }
   }
 
-  const handleDeleteCompany = async () => {
+  const handleDeleteCompanyArchive = async () => {
     try {
-      const { Companies } = endpoints;
-      const response = await PrivateServer?.deleteData(Companies?.delete, companyId);
-      if(response) getCompanies();
+      const { CompaniesArchive } = endpoints;
+      const response = await PrivateServer?.deleteData(CompaniesArchive?.delete, companyArchiveId);
+      if(response) getCompaniesArchives();
       setShowToast(true);
       setError({ type: "success", message: `Companie deleted` })
     } catch(err) {
@@ -171,28 +221,109 @@ const Companies = () => {
     }
   }
 
-  const handleEditContact = (values) => {
-    setFormData({ ...formData, ..._.omit(values, ["_id"]), companyId: values?._id });
-  }
+  const handleDownloadZip = async (_record) => {
+  try {
+    setCompanyArchiveId(_record?._id);
+    const { CompaniesArchive } = endpoints;
 
-  const handleAddOrUpdateCompanies = async () => {
-    try {
-      const { Companies } = endpoints;
-      const { status, data } = formData?.companyId !== "" ? await PrivateServer?.patchData(Companies.patch, formData?.companyId, formData) : await PrivateServer.postData(Companies.create, formData);
+    // Step 1: Request backend to prepare the archive
+    const res = await PrivateServer?.getData(`${CompaniesArchive?.download_archieve}/${_record?._id}`);
 
-      if(status == 200 || !_.isEmpty(data)) {
-        setShowToast(true);
-        setError({ type: "success", message: `Company ${formData?.companyId ? "updated" : "added"}` })
+    if (res?.downloadUrl) {
+      // Step 2: Fetch the file with JWT headers
+      const fileRes = await fetch(res.downloadUrl, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`, // Replace with your actual token logic
+        }
+      });
 
-        if(formData?.companyId == "") setFormData({ ...formData, companyId: data?.data?._id })
-        getCompanies();
-      }
-    } catch(err) {
+      if (!fileRes.ok) throw new Error("Failed to fetch file");
+
+      const blob = await fileRes.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "company_archive.zip");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
       setShowToast(true);
-      setError({ type: "danger", message: err?.message })
-      console.log("Error while saving contact -- E: ", err?.message);
+      setError({ type: "success", message: `Downloading files` });
+    } else {
+      setShowToast(true);
+      setError({ type: "danger", message: `File not found or expired` });
     }
+
+  } catch (err) {
+    setShowToast(true);
+    setError({ type: "danger", message: `Error while preparing archive` });
+    console.log("Error while preparing archive -- E:", err?.message);
   }
+};
+
+  const handleEditContact = (values) => {
+    setFormData({ ...formData, ..._.omit(values, ["_id"]), companyArchiveId: values?._id });
+  }
+
+  const handleAddOrUpdateCompaniesArchive = async () => {
+    try {
+        const { CompaniesArchive } = endpoints;
+
+        // Build FormData
+        const fd = new FormData();
+
+        // Append scalar values (convert objects/arrays to JSON if needed)
+        fd.append("companyArchiveId", formData.companyArchiveId);
+        fd.append("companyId", formData.companyId);
+        fd.append("company_name", formData.company_name);
+        fd.append("updated_date", formData.updated_date);
+        fd.append("uploaded_date", formData.uploaded_date ? dayjs(formData.uploaded_date).toISOString() : "");
+        fd.append("description", formData.description);
+
+        formData.file_paths.forEach((file: File) => {
+            fd.append("file_paths", file); // append actual File object
+        });
+
+        // Call API
+        const { status, data } =
+        formData?.companyArchiveId !== ""
+            ? await PrivateServer.patchData(
+                CompaniesArchive.patch,
+                formData?.companyArchiveId,
+                formData,
+            )
+            : await PrivateServer.postData(CompaniesArchive.create, fd, {
+                    headers: {
+                        "Content-Type": "multipart/form-data", // ✅ You can include it, Axios will handle boundary
+                    },
+                });
+
+        if (status === 200 || !_.isEmpty(data)) {
+        setShowToast(true);
+        setError({
+                type: "success",
+                message: `Company ${
+                formData?.companyArchiveId ? "updated" : "added"
+            }`,
+        });
+
+        if (formData?.companyArchiveId === "")
+            setFormData({
+                ...formData,
+                companyArchiveId: data?.data?._id,
+            });
+
+            getCompaniesArchives();
+        }
+    } catch (err: any) {
+        setShowToast(true);
+        setError({ type: "danger", message: err?.message });
+        console.log("Error while saving contact -- E: ", err?.message);
+    }
+    };
   
   const cleanData = (data, filterKeys) => {
     return data.map(obj => {
@@ -208,14 +339,14 @@ const Companies = () => {
     try {
       resetToFirstPage();
       // Convert data to worksheet format
-      const worksheet = XLSX.utils.json_to_sheet(cleanData(companyData, ["_id", "__v"]));
+      const worksheet = XLSX.utils.json_to_sheet(cleanData(companyArchiveData, ["_id", "__v"]));
 
       // Create a new workbook and append the worksheet
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Products");
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Companies Archive");
 
       // Write the file and trigger download
-      XLSX.writeFile(workbook, 'etisalat_companies_data.xlsx');
+      XLSX.writeFile(workbook, 'etisalat_companies_archive_data.xlsx');
 
     } catch(err) {
       console.log("Error == ", err);
@@ -228,7 +359,7 @@ const Companies = () => {
     setSearchTerm(_searchTerm);
 
     if (_searchTerm.trim() !== "") {  
-      const searchResults = companyData.filter((obj) =>
+      const searchResults = companyArchiveData.filter((obj) =>
         Object.values(obj).some(
           (val) =>
             typeof val === "string" &&
@@ -237,13 +368,13 @@ const Companies = () => {
       );
       setFilteredSearchData(searchResults);
     } else {
-      setFilteredSearchData(companyData);
+      setFilteredSearchData(companyArchiveData);
     }
   }
 
   const columns = [
     {
-      title: "Name",
+      title: "Company Name",
       dataIndex: "company_name",
       render: (text: any, record: any) => (
         <h2 className="d-flex align-items-center">
@@ -264,9 +395,51 @@ const Companies = () => {
       onFilter: (value, record) => record.company_name.includes(value),
     },
     {
-      title: "Phone",
-      dataIndex: "primary_phone",
-      sorter: (a: any, b: any) => a.primary_phone.length - b.primary_phone.length,
+      title: "Description",
+      dataIndex: "description",
+      sorter: (a: any, b: any) => a.description.length - b.description.length,
+    },
+    {
+      title: "Uploaded Date",
+      dataIndex: "uploaded_date",
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          <Link to={route.companyDetails}
+            className="d-flex flex-column fw-medium"
+          >
+            {moment(record?.uploaded_date)?.format('YYYY-MM-DD')}
+          </Link>
+        </h2>
+      ),
+      sorter: (a: any, b: any) => a.uploaded_date.length - b.uploaded_date.length,
+    },
+    {
+      title: "Updated Date",
+      dataIndex: "updated_date",
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          <Link to={route.companyDetails}
+            className="d-flex flex-column fw-medium"
+          >
+            {record?.updated_date ? moment(record?.updated_date)?.format('YYYY-MM-DD') : ""}
+          </Link>
+        </h2>
+      ),
+      sorter: (a: any, b: any) => a.updated_date.length - b.updated_date.length,
+    },
+    {
+      title: "Attachments",
+      dataIndex: "file_paths",
+      render: (text: any, record: any) => (
+        <h2 className="d-flex align-items-center">
+          <Link to={route.companyDetails}
+            className="d-flex flex-column fw-medium"
+          >
+            {record?.file_paths?.length}
+          </Link>
+        </h2>
+      ),
+      sorter: (a: any, b: any) => a.file_paths.length - b.file_paths.length,
     },
     {
       title: "Created By",
@@ -302,11 +475,6 @@ const Companies = () => {
       ),
     },
     {
-      title: "Email",
-      dataIndex: "email",
-      sorter: (a: any, b: any) => a.email.length - b.email.length,
-    },
-    {
       title: "Action",
       render: (text: string, record: any) => (
         <div className="dropdown table-action">
@@ -319,6 +487,13 @@ const Companies = () => {
             <i className="fa fa-ellipsis-v" />
           </Link>
           <div className="dropdown-menu dropdown-menu-right">
+            <Link
+              className="dropdown-item"
+              to="#"
+              onClick={() => handleDownloadZip(record)}
+            >
+              <i className="ti ti-download text-success" /> Download Zip
+            </Link>
             {values?.permissions?.includes('update') && (<Link
               className="dropdown-item"
               to="#"
@@ -333,11 +508,11 @@ const Companies = () => {
               to="#"
               data-bs-toggle="modal"
               data-bs-target="#delete_contact"
-              onClick={() => setCompanyId(record?._id)}
+              onClick={() => setCompanyArchiveId(record?._id)}
             >
               <i className="ti ti-trash text-danger" /> Delete
             </Link>)}
-            <Link className="dropdown-item" to={route.companyDetails} state={{ ...record, totalData: companyData?.length }}><i className="ti ti-eye text-blue-light"></i> Preview</Link>
+            <Link className="dropdown-item" to={route.companyDetails} state={{ ...record, totalData: companyArchiveData?.length }}><i className="ti ti-eye text-blue-light"></i> Preview</Link>
           </div>
         </div>
       ),
@@ -376,7 +551,7 @@ const Companies = () => {
                 <div className="row align-items-center">
                   <div className="col-8">
                     <h4 className="page-title">
-                      Companies<span className="count-title">{searchTerm != "" ? searchData?.length : companyData?.length}</span>
+                      Companies Archives<span className="count-title">{searchTerm != "" ? searchData?.length : companyArchiveData?.length}</span>
                     </h4>
                   </div>
                   <div className="col-4 text-end">
@@ -444,7 +619,7 @@ const Companies = () => {
                           data-bs-target="#offcanvas_add"
                         >
                           <i className="ti ti-square-rounded-plus me-2" />
-                          Add Company
+                          Add Company Archive
                         </Link>)}
                       </div>
                     </div>
@@ -479,14 +654,14 @@ const Companies = () => {
                   {/* Contact List */}
                   <div className="table-responsive custom-table">
                     <Table 
-                      dataSource={searchTerm != "" ? searchData : companyData} 
+                      dataSource={searchTerm != "" ? searchData : companyArchiveData} 
                       columns={columns} 
                       handleBulkAction={handleBulkOperation} 
                       rowKey="_id"
                       pagination={{
                         current: pagination.current,
                         pageSize: pagination.pageSize,
-                        total: searchTerm != "" ? searchData?.length : companyData?.length,
+                        total: searchTerm != "" ? searchData?.length : companyArchiveData?.length,
                         showSizeChanger: true,
                         showQuickJumper: true,
                       }}
@@ -517,7 +692,7 @@ const Companies = () => {
                 <div className="avatar avatar-xl bg-danger-light rounded-circle mb-3">
                   <i className="ti ti-trash-x fs-36 text-danger" />
                 </div>
-                <h4 className="mb-2">Remove Companies?</h4>
+                <h4 className="mb-2">Remove Companies Archive?</h4>
                 <p className="mb-0">
                   Company {formData?.company_name} from your Account.
                 </p>
@@ -529,7 +704,7 @@ const Companies = () => {
                   >
                     Cancel
                   </Link>
-                  <Link to="#" className="btn btn-danger" onClick={handleDeleteCompany} data-bs-dismiss="modal">
+                  <Link to="#" className="btn btn-danger" onClick={handleDeleteCompanyArchive} data-bs-dismiss="modal">
                     Yes, Delete it
                   </Link>
                 </div>
@@ -546,7 +721,7 @@ const Companies = () => {
         id="offcanvas_add"
       >
         <div className="offcanvas-header border-bottom">
-          <h5 className="fw-semibold">Add Company</h5>
+          <h5 className="fw-semibold">Add Company Archive</h5>
           <button
             type="button"
             className="btn-close custom-btn-close border p-1 me-0 d-flex align-items-center justify-content-center rounded-circle"
@@ -582,43 +757,82 @@ const Companies = () => {
                 >
                   <div className="accordion-body border-top">
                     <div className="row">
+                    <div className="mb-3">
+                        <label className="col-form-label">
+                            Upload Files <span className="text-danger">*</span>
+                        </label>
+                        <div
+                            {...getRootProps()}
+                                className={`border rounded p-4 text-center ${
+                                isDragActive ? "bg-light" : ""
+                                }`}
+                                style={{ cursor: "pointer" }}
+                            >
+                                <input {...getInputProps()} />
+                                {isDragActive ? (
+                                <p>Drop the files here ...</p>
+                                ) : (
+                                <p>
+                                    Drag & drop files here, or click to select
+                                    <br />
+                                    <small>(Allowed: JPG, PNG, PDF, DOCX | Max: 5 files | Max size: 5MB each)</small>
+                                </p>
+                                )}
+                            </div>
+
+                            {/* Preview selected files */}
+                            {formData?.file_paths?.length > 0 && (
+                                <ul className="mt-2">
+                                {formData.file_paths.map((file: any, idx: number) => (
+                                    <li key={idx}>
+                                    {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                                    </li>
+                                ))}
+                                </ul>
+                            )}
+                        </div>
+                      <div className="mb-3">
+                        <label className="col-form-label">Company*</label>
+                        <Select
+                            name="companyId"
+                            onChange={(value) => handleChange(value, "select", "companyId")}
+                            value={{ label: companyData?.find((x: any) => x?._id == formData?.companyId)?.company_name, value: formData?.companyId }}
+                            className="select2" 
+                            classNamePrefix="react-select"
+                            options={[...new Set(companyData?.map((x) => ({ ...x, label: x?.company_name, value: x?._id })))]}
+                            placeholder="Select an option"
+                        />
+                      </div>
                       <div className="col-md-12">
                         <div className="mb-3">
                           <label className="col-form-label">Company Name</label>
                           <input name="company_name" value={formData?.company_name} onChange={handleChange} type="text" className="form-control" />
                         </div>
                       </div>
-                      <div className="col-md-12">
-                        <div className="mb-3">
-                          <div className="d-flex justify-content-between align-items-center">
-                            <label className="col-form-label">
-                              Email <span className="text-danger">*</span>
-                            </label>
-                          </div>
-                          <input type="text" name="email" value={formData?.email} onChange={handleChange} className="form-control" />
-                        </div>
+                      <div className="mb-3">
+                        <label className="col-form-label">
+                            Uploaded Date <span className="text-danger">*</span>
+                        </label>
+                        <DatePicker
+                            className="form-control datetimepicker deals-details"
+                            value={formData?.uploaded_date ? dayjs(formData.uploaded_date) : null}
+                            onChange={(date) => handleChange(date, 'date', 'uploaded_date')}
+                            format="DD-MM-YYYY"
+                        />
                       </div>
-                      <div className="col-md-6">
-                        <div className="mb-3">
-                          <label className="col-form-label">
-                            Primary Phone <span className="text-danger">*</span>
-                          </label>
-                          <input type="text" name="primary_phone" value={formData?.primary_phone} onChange={handleChange} className="form-control" />
-                        </div>
-                      </div>
-                      <div className="col-md-6">
-                        <div className="mb-3">
-                          <label className="col-form-label">Secondary Phone</label>
-                          <input type="text" name="secondary_phone" value={formData?.secondary_phone} onChange={handleChange} className="form-control" />
-                        </div>
-                      </div>
-                      <div className="col-md-6">
-                        <div className="mb-3">
-                          <label className="col-form-label">
-                            Website <span className="text-danger">*</span>
-                          </label>
-                          <input type="text" name="website" value={formData?.website} onChange={handleChange} className="form-control" />
-                        </div>
+                      <div className="mb-3">
+                        <label className="col-form-label">
+                            Updated Date <span className="text-danger">*</span>
+                        </label>
+                        <DatePicker
+                            className="form-control datetimepicker deals-details"
+                            value={formData?.updated_date ? dayjs(formData.updated_date) : null}
+                            onChange={(date) => handleChange(date, 'date', 'updated_date')}
+                            format="DD-MM-YYYY"
+                            disabledDate={(current) =>
+                                current && current < dayjs(formData?.uploaded_date).endOf('day')
+                            }
+                        />
                       </div>
                       <div className="col-md-12">
                         <div className="mb-0">
@@ -638,87 +852,6 @@ const Companies = () => {
                 </div>
               </div>
               {/* /Basic Info */}
-
-              {/* Address Info */}
-              <div className="accordion-item border-top rounded mb-3">
-                <div className="accordion-header">
-                  <Link
-                    to="#"
-                    className="accordion-button accordion-custom-button rounded bg-white fw-medium text-dark"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#address"
-                  >
-                    <span className="avatar avatar-md rounded text-dark border me-2">
-                      <i className="ti ti-map-pin-cog fs-20" />
-                    </span>
-                    Address Info
-                  </Link>
-                </div>
-                <div
-                  className="accordion-collapse collapse"
-                  id="address"
-                  data-bs-parent="#main_accordion"
-                >
-                  <div className="accordion-body border-top">
-                    <div className="row">
-                      <div className="col-md-12">
-                        <div className="mb-3">
-                          <label className="col-form-label">
-                            Street Address{" "}
-                          </label>
-                          <input type="text" name="street" value={formData?.street} onChange={handleChange} className="form-control" />
-                        </div>
-                      </div>
-
-                      <div className="col-md-6">
-                        <div className="mb-3 mb-md-0">
-                          <label className="col-form-label">Country</label>
-                          <input type="text" name="country" value={formData?.country} onChange={handleChange} className="form-control" />
-                          {/* <Select
-                            className="select2"
-                            classNamePrefix="react-select"
-                            options={countries}
-                            placeholder="Choose"
-                            /> */}
-                        </div>
-                      </div>
-                      <div className="col-md-6">
-                        <div className="mb-3">
-                          <label className="col-form-label">
-                            State / Province{" "}
-                          </label>
-                          <input type="text" name="state" value={formData?.state} onChange={handleChange} className="form-control" />
-                          {/* <Select
-                            className="select2"
-                            classNamePrefix="react-select"
-                            options={stateChoose}
-                            placeholder="Choose"
-                            /> */}
-                        </div>
-                      </div>
-                      <div className="col-md-6">
-                        <div className="mb-3">
-                          <label className="col-form-label">City </label>
-                          <input type="text" name="city" value={formData?.city} onChange={handleChange} className="form-control" />
-                          {/* <Select
-                            className="select2"
-                            classNamePrefix="react-select"
-                            options={cityChoose}
-                            placeholder="Choose"
-                          /> */}
-                        </div>
-                      </div>
-                      <div className="col-md-6">
-                        <div className="mb-0">
-                          <label className="col-form-label">Zipcode </label>
-                          <input type="text" name="code" value={formData?.code} onChange={handleChange} className="form-control" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              {/* /Address Info */}
             </div>
             <div className="d-flex align-items-center justify-content-end">
               <button
@@ -735,7 +868,7 @@ const Companies = () => {
                 className="btn btn-primary"
                 onClick={() => {
                   setOpenModal2(true)
-                  handleAddOrUpdateCompanies()
+                  handleAddOrUpdateCompaniesArchive()
                 }}
               >
                 Create
@@ -753,7 +886,7 @@ const Companies = () => {
         id="offcanvas_edit"
       >
         <div className="offcanvas-header border-bottom">
-          <h5 className="fw-semibold">Edit Company</h5>
+          <h5 className="fw-semibold">Edit Company Archives</h5>
           <button
             type="button"
             className="btn-close custom-btn-close border p-1 me-0 d-flex align-items-center justify-content-center rounded-circle"
@@ -789,43 +922,48 @@ const Companies = () => {
                 >
                   <div className="accordion-body border-top">
                     <div className="row">
+                      <div className="mb-3">
+                        <label className="col-form-label">Company*</label>
+                        <Select
+                            name="companyId"
+                            onChange={(value) => handleChange(value, "select", "companyId")}
+                            value={{ label: companyData?.find((x: any) => x?._id == formData?.companyId)?.company_name, value: formData?.companyId }}
+                            className="select2" 
+                            classNamePrefix="react-select"
+                            options={[...new Set(companyData?.map((x) => ({ ...x, label: x?.company_name, value: x?._id })))]}
+                            placeholder="Select an option"
+                        />
+                      </div>
                       <div className="col-md-12">
                         <div className="mb-3">
                           <label className="col-form-label">Company Name</label>
-                          <input type="text" name="company_name" value={formData?.company_name} onChange={handleChange} className="form-control" />
+                          <input name="company_name" value={formData?.company_name} onChange={handleChange} type="text" className="form-control" />
                         </div>
                       </div>
-                      <div className="col-md-12">
-                        <div className="mb-3">
-                          <div className="d-flex justify-content-between align-items-center">
-                            <label className="col-form-label">
-                              Email <span className="text-danger">*</span>
-                            </label>
-                          </div>
-                          <input type="text" name="email" value={formData?.email} onChange={handleChange} className="form-control" />
-                        </div>
+                      <div className="mb-3">
+                        <label className="col-form-label">
+                            Uploaded Date <span className="text-danger">*</span>
+                        </label>
+                        <DatePicker
+                            className="form-control datetimepicker deals-details"
+                            value={formData?.uploaded_date ? dayjs(formData.uploaded_date) : null}
+                            onChange={(date) => handleChange(date, 'date', 'uploaded_date')}
+                            format="DD-MM-YYYY"
+                        />
                       </div>
-                      <div className="col-md-6">
-                        <div className="mb-3">
-                          <label className="col-form-label">
-                            Primary phone <span className="text-danger">*</span>
-                          </label>
-                          <input type="text" name="primary_phone" value={formData?.primary_phone} onChange={handleChange} className="form-control" />
-                        </div>
-                      </div>
-                      <div className="col-md-6">
-                        <div className="mb-3">
-                          <label className="col-form-label">Secondary phone</label>
-                          <input type="text" name="secondary_phone" value={formData?.secondary_phone} onChange={handleChange} className="form-control" />
-                        </div>
-                      </div>
-                      <div className="col-md-6">
-                        <div className="mb-3">
-                          <label className="col-form-label">
-                            Website <span className="text-danger">*</span>
-                          </label>
-                          <input type="text" name="website" value={formData?.website} onChange={handleChange} className="form-control" />
-                        </div>
+                      <div className="mb-3">
+                        <label className="col-form-label">
+                            Updated Date <span className="text-danger">*</span>
+                        </label>
+                        <DatePicker
+                            className="form-control datetimepicker deals-details"
+                            value={formData?.updated_date ? dayjs(formData.updated_date) : null}
+                            onChange={(date) => handleChange(date, 'date', 'updated_date')}
+                            format="DD-MM-YYYY"
+                            disabledDate={(current) =>
+                                current && current < dayjs(formData?.uploaded_date).endOf('day')
+                            }
+                        />
                       </div>
                       <div className="col-md-12">
                         <div className="mb-0">
@@ -845,73 +983,6 @@ const Companies = () => {
                 </div>
               </div>
               {/* /Basic Info */}
-              {/* Address Info */}
-              <div className="accordion-item border-top rounded mb-3">
-                <div className="accordion-header">
-                  <Link
-                    to="#"
-                    className="accordion-button accordion-custom-button rounded bg-white fw-medium text-dark"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#address"
-                  >
-                    <span className="avatar avatar-md rounded text-dark border me-2">
-                      <i className="ti ti-map-pin-cog fs-20" />
-                    </span>
-                    Address Info
-                  </Link>
-                </div>
-                <div
-                  className="accordion-collapse collapse"
-                  id="address"
-                  data-bs-parent="#main_accordion"
-                >
-                  <div className="accordion-body border-top">
-                    <div className="row">
-                      <div className="col-md-12">
-                        <div className="mb-3">
-                          <label className="col-form-label">
-                            Street Address{" "}
-                          </label>
-                          <input type="text" name="street" value={formData?.street} onChange={handleChange} className="form-control" />
-                        </div>
-                      </div>
-                      <div className="col-md-6">
-                        <div className="mb-3">
-                          <label className="col-form-label">City </label>
-                          <input type="text" className="form-control" />
-                        </div>
-                      </div>
-                      <div className="col-md-6">
-                        <div className="mb-3">
-                          <label className="col-form-label">
-                            State / Province{" "}
-                          </label>
-                          <input type="text" name="state" value={formData?.state} onChange={handleChange} className="form-control" />
-                        </div>
-                      </div>
-                      <div className="col-md-6">
-                        <div className="mb-3 mb-md-0">
-                          <label className="col-form-label">Country</label>
-                          <input type="text" name="country" value={formData?.country} onChange={handleChange} className="form-control" />
-                          {/* <Select
-                            className="select2"
-                            classNamePrefix="react-select"
-                            options={countries}
-                            placeholder="Choose"
-                          /> */}
-                        </div>
-                      </div>
-                      <div className="col-md-6">
-                        <div className="mb-0">
-                          <label className="col-form-label">Zipcode </label>
-                          <input type="text" name="code" value={formData?.code} onChange={handleChange} className="form-control" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              {/* /Address Info */}
             </div>
             <div className="d-flex align-items-center justify-content-end">
               <button
@@ -928,7 +999,7 @@ const Companies = () => {
                 className="btn btn-primary"
                 onClick={() => {
                   setOpenModal2(true)
-                  handleAddOrUpdateCompanies()
+                  handleAddOrUpdateCompaniesArchive()
                 }}
               >
                 Update
@@ -1046,4 +1117,4 @@ const Companies = () => {
   );
 };
 
-export default Companies;
+export default CompaniesArchive;

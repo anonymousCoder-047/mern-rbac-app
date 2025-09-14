@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import Select from "react-select";
 import { Link } from "react-router-dom";
 import Table from "../../core/common/dataTable/index";
-import { Modal } from "react-bootstrap";
+import { Modal, Toast, ToastContainer } from "react-bootstrap";
 import { TableData } from "../../core/data/interface";
 import { useDispatch, useSelector } from "react-redux";
 import { all_routes } from "../router/all_routes";
@@ -50,6 +50,11 @@ const Products = () => {
     product_sub_category: "",
     productId: "",
   });
+  const [error, setError] = useState({
+    type: "primary",
+    message: ""
+  });
+  const [showToast, setShowToast] = useState(false);
 //   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
 //   const handleDateChange = (date: Date | null) => {
 //     setSelectedDate(date);
@@ -125,10 +130,14 @@ const Products = () => {
       const response = await PrivateServer.getData(Products?.view)
   
       if(response?.data) {
+        setShowToast(true);
+        setError({ type: "success", message: `(${response?.data?.length}) Products found` })
         setProductsData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
         setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))])
       }
     } catch(error) {
+      setShowToast(true);
+      setError({ type: "danger", message: `No Products found` })
       console.log("Error while getting products -- E:", error?.message);
     }
   }
@@ -252,7 +261,11 @@ const Products = () => {
       const { Products } = endpoints;
       const response = await PrivateServer?.deleteData(Products?.delete, productId);
       if(response) getProducts();
+      setShowToast(true);
+      setError({ type: "danger", message: "deleted successfully" })
     } catch(err) {
+      setShowToast(true);
+      setError({ type: "danger", message: err?.message })
       console.log("Error while deleting product -- E: ", err?.message);
     }
   }
@@ -273,11 +286,15 @@ const Products = () => {
       const { data } = formData?.productId !== "" ? await PrivateServer?.patchData(Products.patch, formData?.productId, formData) : await PrivateServer.postData(Products.create, formData);
 
       if(data) {
+        setShowToast(true);
+        setError({ type: "danger", message: `Product ${formData?.productId ? "updated" : "added"}` })
         if(formData?.productId == "") setFormData({ ...formData, productId: data?.data?._id })
         getProducts();
         handleClose();
       }
     } catch(err) {
+      setShowToast(true);
+      setError({ type: "danger", message: err?.message })
       console.log("Error while saving products -- E: ", err?.message);
     }
   }
@@ -364,7 +381,7 @@ const Products = () => {
         <h2 className="d-flex align-items-center">
           <Link to={route.companies} className="d-flex flex-column">
           {record?.groupId?.group_manager?.username}
-            <span className="text-default">{record?.groupId?.group_manager?.team_leader?.email}</span>
+            <span className="text-default">{record?.groupId?.group_manager?.email}</span>
           </Link>
         </h2>
       ),
@@ -507,6 +524,17 @@ const Products = () => {
                     </div>
                   </div>
                 </div>
+                {
+                  showToast ? 
+                  <ToastContainer position="top-end">
+                    <Toast show={showToast} onClose={() => setShowToast((prev) => !prev)} bg={error?.type?.toLowerCase()} delay={3000} autohide>
+                      <Toast.Header>
+                        <strong className="me-auto">Request {error?.type}</strong>
+                      </Toast.Header>
+                      <Toast.Body>{error?.message}</Toast.Body>
+                    </Toast>
+                  </ToastContainer> : ""
+                }
               </div>
               {/* /Page Header */}
               <div className="card ">

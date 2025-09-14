@@ -8,7 +8,7 @@ import Select from "react-select";
 import { Link } from "react-router-dom";
 import DateRangePicker from "react-bootstrap-daterangepicker";
 import Table from "../../../core/common/dataTable/index";
-import { Modal } from "react-bootstrap";
+import { Toast, Modal, ToastContainer } from "react-bootstrap";
 import { TableData } from "../../../core/data/interface";
 import { useDispatch, useSelector } from "react-redux";
 import { all_routes } from "../../router/all_routes";
@@ -28,6 +28,7 @@ const ContactList = () => {
   const route = all_routes;
   const { values } = useAuth();
   const [users, setUsers] = useState([]);
+  const [usersData, setUsersData] = useState([]);
   const [sources, setSources] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [openModal2, setOpenModal2] = useState(false);
@@ -58,6 +59,15 @@ const ContactList = () => {
     city: "",
     code: "",
   });
+  const [error, setError] = useState({
+    type: "primary",
+    message: ""
+  });
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+  });
+  const [showToast, setShowToast] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const handleDateChange = (date: Date | null) => {
     setSelectedDate(date);
@@ -70,10 +80,14 @@ const ContactList = () => {
       const response = await PrivateServer.getData(Contact?.view)
   
       if(response?.data) {
+        setShowToast(true);
+        setError({ type: "success", message: `(${response?.data?.length}) Contacts found` })
         setContactData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
         setFilteredContactData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
       }
     } catch(error) {
+      setShowToast(true);
+      setError({ type: "danger", message: `No Companies found` })
       console.log("Error while getting contacts -- E:", error?.message);
     }
   }
@@ -114,6 +128,7 @@ const ContactList = () => {
       if(response?.data) {
         const _data: any = [...new Set(response?.data?.map((x: { email: any; _id: any; }) => ({ label: x?.email, value: x?._id })))]
         setUsers(_data);
+        setUsersData(response?.data);
       }
     } catch(error) {
       console.log("Error while getting companies -- E:", error?.message);
@@ -126,9 +141,25 @@ const ContactList = () => {
     getContacts();
     getSources();
     getCompanies();
+
+    const savedPage = Number(localStorage.getItem("contactsTablePage")) || 1;
+    setPagination((prev) => ({ ...prev, current: savedPage }));
   }, []);
 
+  // 🔹 Save page to localStorage on change
+  const handleTableChange = (newPagination, filters, sorter) => {
+    setPagination(newPagination);
+    localStorage.setItem("contactsTablePage", newPagination.current.toString());
+  };
+
+  // 🔹 Reset to page 1 when refreshing/searching/filtering
+  const resetToFirstPage = () => {
+    setPagination((prev) => ({ ...prev, current: 1 }));
+    localStorage.setItem("contactsTablePage", "1");
+  };
+
   const handleClose = () => {
+    resetToFirstPage();
     setContactId("");
     setFormData({
       first_name: "",
@@ -169,7 +200,11 @@ const ContactList = () => {
       const { Contact } = endpoints;
       const response = await PrivateServer?.deleteData(Contact?.delete, contactId);
       if(response) getContacts();
+      setShowToast(true);
+      setError({ type: "success", message: `Contact deleted` })
     } catch(err) {
+      setShowToast(true);
+      setError({ type: "danger", message: `Failed to delete contact` })
       console.log("Error while deleting contact -- E: ", err?.message);
     }
   }
@@ -184,11 +219,15 @@ const ContactList = () => {
       const { data } = formData?.contactId !== "" ? await PrivateServer?.patchData(Contact.patch, formData?.contactId, formData) : await PrivateServer.postData(Contact.create, formData);
 
       if(data) {
+        setShowToast(true);
+        setError({ type: "success", message: `Contact ${formData?.contactId ? "updated" : "added"}` })
         if(formData?.contactId == "") setFormData({ ...formData, contactId: data?.data?._id })
         getContacts();
         handleClose();
       }
     } catch(err) {
+      setShowToast(true);
+      setError({ type: "danger", message: err?.message })
       console.log("Error while saving contact -- E: ", err?.message);
     }
   }
@@ -205,6 +244,7 @@ const ContactList = () => {
 
   const handleExport = () => {
     try {
+      resetToFirstPage();
       // Convert data to worksheet format
       const worksheet = XLSX.utils.json_to_sheet(cleanData(contactData, ["_id", "__v"]));
 
@@ -221,18 +261,22 @@ const ContactList = () => {
   }
   
   const handleSearch = (e: { target: { value: any; }; }) => {
-    const { value: _searchTerm } = e?.target;
+    resetToFirstPage();
+    const _searchTerm = e?.target?.value?.toLowerCase() || "";
     setSearchTerm(_searchTerm);
-    const _contactsData = [...contactData];
 
-    if(searchTerm != "") {
-      const searchResults = _.filter(_contactsData, (obj) =>
-        _.some(obj, (value) =>
-          _.isString(value) && _.includes(value.toLowerCase(), searchTerm?.toLowerCase())
+    if (_searchTerm.trim() !== "") {  
+      const searchResults = contactData.filter((obj) =>
+        Object.values(obj).some(
+          (val) =>
+            typeof val === "string" &&
+            val.toLowerCase().includes(_searchTerm)
         )
       );
-      setFilteredContactData(searchResults)
-    } else setFilteredContactData(contactData);
+      setFilteredContactData(searchResults);
+    } else {
+      setFilteredContactData(contactData);
+    }
   }
 
   const columns = [
@@ -255,11 +299,18 @@ const ContactList = () => {
       </h2>
       ),
       sorter: (a: { [key: string]: string }, b: { [key: string]: string }) => a?.first_name?.toLowerCase().localeCompare(b?.first_name?.toLowerCase()),
+      filters: contactData
+      ? [...new Set(contactData.map((item) => item.first_name))].map((val) => ({
+          text: val,
+          value: val,
+        }))
+      : [],
+      onFilter: (value, record) => record.first_name.includes(value),
     },
     {
       title: "Created By",
       dataIndex: "profileId",
-      sorter: (a: any, b: any) => a.secondary_phone.length - b.secondary_phone.length,
+      sorter: (a: any, b: any) => a.profileId.length - b.profileId.length,
       render: (text: any, record: any) => (
         <h2 className="d-flex align-items-center">
           <Link to={route.companies} className="d-flex flex-column">
@@ -268,6 +319,13 @@ const ContactList = () => {
           </Link>
         </h2>
       ),
+      filters: usersData
+      ? [...new Set(usersData?.map((item) => item?.username))].map((val) => ({
+          text: val,
+          value: val,
+        }))
+      : [],
+      onFilter: (value, record) => record?.profileId?.username?.includes(value),
     },
     {
       title: "Team Leader",
@@ -283,7 +341,7 @@ const ContactList = () => {
         </Link> */}
         <Link to={route.contactDetails} className="d-flex flex-column">
         {record?.groupId?.group_manager?.username}
-        <span className="text-default">{record?.team_leader ? record?.team_leader : record?.groupId?.group_manager?.email}</span>
+        <span className="text-default">{record?.groupId?.group_manager?.email}</span>
         </Link>
       </h2>
       ),
@@ -389,6 +447,17 @@ const ContactList = () => {
                     </div>
                   </div>
                 </div>
+                {
+                  showToast ? 
+                  <ToastContainer position="top-end">
+                    <Toast show={showToast} onClose={() => setShowToast((prev) => !prev)} bg={error?.type?.toLowerCase()} delay={3000} autohide>
+                      <Toast.Header>
+                        <strong className="me-auto">Request {error?.type}</strong>
+                      </Toast.Header>
+                      <Toast.Body>{error?.message}</Toast.Body>
+                    </Toast>
+                  </ToastContainer> : ""
+                }
               </div>
               {/* /Page Header */}
               <div className="card ">
@@ -471,7 +540,20 @@ const ContactList = () => {
                   {/* /Filter */}
                   {/* Contact List */}
                   <div className="table-responsive custom-table">
-                    <Table dataSource={searchTerm != "" ? filteredContactData : contactData} columns={columns} handleBulkAction={handleBulkOperation} />
+                    <Table 
+                      dataSource={searchTerm != "" ? filteredContactData : contactData} 
+                      columns={columns} 
+                      handleBulkAction={handleBulkOperation} 
+                      rowKey="_id"
+                      pagination={{
+                        current: pagination.current,
+                        pageSize: pagination.pageSize,
+                        total: searchTerm != "" ? filteredContactData?.length : contactData?.length,
+                        showSizeChanger: true,
+                        showQuickJumper: true,
+                      }}
+                      onChange={handleTableChange} 
+                    />
                   </div>
                   <div className="row align-items-center">
                     <div className="col-md-6">

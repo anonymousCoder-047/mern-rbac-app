@@ -28,29 +28,33 @@ const Login = () => {
   }, []);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if(validate()) {
-      const { Auth } = endpoints;
-      const { status, data } = await postData(Auth.login, formData);
+    try {
+      e.preventDefault();
+      e.stopPropagation();
   
-      if(data && data?.token) {
-        localStorage.setItem("token", data?.token);
-        setValues({ 
-          ...values, 
-          permissions: data?.permissions, 
-          profileId: data?.profileId, 
-          currentUserId: data?._id, 
-          roleId: data?.roleId,
-          groupId: data?.groupId,
-        });
-        navigate(route.leadsDashboard);
+      if(validate()) {
+        const { Auth } = endpoints;
+        const { status, data } = await postData(Auth.login, formData);
+    
+        if(data && data?.token) {
+          localStorage.setItem("token", data?.token);
+          setValues({ 
+            ...values, 
+            permissions: data?.permissions, 
+            profileId: data?.profileId, 
+            currentUserId: data?._id, 
+            roleId: data?.roleId,
+            groupId: data?.groupId,
+          });
+          navigate(route.leadsDashboard);
+        } else {
+          setError("Incorrect username/password E: " + status);
+        }
       } else {
-        console.log("something went wrong!!!", status);
+        setError("Please fill all the required fields.");
       }
-    } else {
-      setError("Please fill all the required fields.");
+    } catch(ex) {
+      setError("Incorrect username/password E: " + ex?.message);
     }
   }
 

@@ -34,6 +34,14 @@ export const endpoints = {
         delete: '/opportunity-category/delete',
         delete_bulk: '/opportunity-category/bulk-delete',
     },
+    OpportunitySubCategory: {
+        view: '/opportunity-sub-category/view',
+        create: '/opportunity-sub-category/create',
+        update: '/opportunity-sub-category/update',
+        patch: '/opportunity-sub-category/update',
+        delete: '/opportunity-sub-category/delete',
+        delete_bulk: '/opportunity-sub-category/bulk-delete',
+    },
     SRType: {
         view: '/sr-type/view',
         create: '/sr-type/create',
@@ -67,6 +75,16 @@ export const endpoints = {
     },
     Bill: {
         find: '/bill/search',
+    },
+    SiteLocator: {
+        searchGoogle: '/site-locator/search-google',
+        location: '/site-locator/search-corodinates',
+        searchBy: '/site-locator/search-by',
+    },
+    CustomerData: {
+        generateOTP: '/customer-party-id/gen-otp',
+        getToken: '/customer-party-id/get-token',
+        find: '/customer-party-id/search',
     },
     Sources: {
         view: '/source/view',
@@ -148,6 +166,15 @@ export const endpoints = {
         patch: '/company/update',
         delete: '/company/delete',
         delete_bulk: '/company/bulk-delete',
+    },
+    CompaniesArchive: {
+        view: '/company-archive/view',
+        create: '/company-archive/create',
+        update: '/company-archive/update',
+        patch: '/company-archive/update',
+        download_archieve: '/company-archive/download-archive',
+        delete: '/company-archive/delete',
+        delete_bulk: '/company-archive/bulk-delete',
     },
     Permissions: {
         view: '/permissions/view',

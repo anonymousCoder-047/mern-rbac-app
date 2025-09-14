@@ -4,7 +4,7 @@ import { Table } from "antd";
 import { DatatableProps } from "../../data/interface"; // Ensure correct path
 import _ from 'lodash';
 
-const Datatable: React.FC<DatatableProps> = ({ columns, dataSource, handleBulkAction }) => {
+const Datatable: React.FC<DatatableProps> = ({ columns, dataSource, handleBulkAction, ...rest }) => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<any[]>([]);
 
   const onSelectChange = (newSelectedRowKeys: any[]) => {
@@ -32,6 +32,7 @@ const Datatable: React.FC<DatatableProps> = ({ columns, dataSource, handleBulkAc
       columns={columns}
       dataSource={dataSource}
        // Assuming `id` is the unique identifier of each record
+       {...rest}
     />
   );
 };

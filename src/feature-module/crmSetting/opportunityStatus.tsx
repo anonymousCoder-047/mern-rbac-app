@@ -7,7 +7,7 @@ import PrivateServer from "../../helper/PrivateServer";
 import { endpoints } from "../../helper/endpoints";
 import _ from "lodash";
 import useAuth from "../../hooks/useAuth";
-import { Modal } from "react-bootstrap";
+import { Modal, Toast, ToastContainer } from "react-bootstrap";
 
 const route = all_routes;
 
@@ -26,6 +26,11 @@ const OpportunityStatus = () => {
     opportunity_percentage: "",
     opportunityId: "",
   });
+  const [error, setError] = useState({
+    type: "primary",
+    message: ""
+  });
+  const [showToast, setShowToast] = useState(false);
 
   const getOpportunityStatus = async () => {
     try {
@@ -33,10 +38,14 @@ const OpportunityStatus = () => {
       const response = await PrivateServer.getData(OpportunityStatus?.view)
   
       if(response?.data) {
+        setShowToast(true);
+        setError({ type: "success", message: `(${response?.data?.length}) Opportunity status found` })
         setOpportunityStatusData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))]);
         setFilteredSearchData([...new Set(response?.data?.map((x: any) => ({ ...x, key: x?.id?.toString() })))])
       }
     } catch(error) {
+      setShowToast(true);
+      setError({ type: "danger", message: `No Oppotunity status found` })
       console.log("Error while getting opportunities -- E:", error?.message);
     }
   }
@@ -68,7 +77,11 @@ const OpportunityStatus = () => {
       const { OpportunityStatus } = endpoints;
       const response = await PrivateServer?.deleteData(OpportunityStatus?.delete, opportunityStatusId);
       if(response) getOpportunityStatus();
+      setShowToast(true);
+      setError({ type: "danger", message: "deleted successfully" })
     } catch(err) {
+      setShowToast(true);
+      setError({ type: "danger", message: err?.message })
       console.log("Error while deleting opportunity -- E: ", err?.message);
     }
   }
@@ -83,11 +96,15 @@ const OpportunityStatus = () => {
       const { data } = formData?.opportunityId !== "" ? await PrivateServer?.patchData(OpportunityStatus.patch, formData?.opportunityId, formData) : await PrivateServer.postData(OpportunityStatus.create, formData);
 
       if(data) {
+        setShowToast(true);
+        setError({ type: "danger", message: `Opportunity Status ${formData?.opportunityId ? "updated": "added"}` })
         if(formData?.opportunityId == "") setFormData({ ...formData, opportunityId: data?.data?._id })
         getOpportunityStatus();
         handleClose();
       }
     } catch(err) {
+      setShowToast(true);
+      setError({ type: "danger", message: err?.message })
       console.log("Error while saving opportunity -- E: ", err?.message);
     }
   }
@@ -130,7 +147,7 @@ const OpportunityStatus = () => {
         <h2 className="d-flex align-items-center">
           <Link to={route.companies} className="d-flex flex-column">
           {record?.groupId?.group_manager?.username}
-            <span className="text-default">{record?.groupId?.group_manager?.team_leader?.email}</span>
+            <span className="text-default">{record?.groupId?.group_manager?.email}</span>
           </Link>
         </h2>
       ),
@@ -236,6 +253,17 @@ const OpportunityStatus = () => {
                   </div>
                 </div>
               </div>
+                {
+                  showToast ? 
+                  <ToastContainer position="top-end">
+                    <Toast show={showToast} onClose={() => setShowToast((prev) => !prev)} bg={error?.type?.toLowerCase()} delay={3000} autohide>
+                      <Toast.Header>
+                        <strong className="me-auto">Request {error?.type}</strong>
+                      </Toast.Header>
+                      <Toast.Body>{error?.message}</Toast.Body>
+                    </Toast>
+                  </ToastContainer> : ""
+                }
             </div>
             {/* /Page Header */}
             <div className="card">
