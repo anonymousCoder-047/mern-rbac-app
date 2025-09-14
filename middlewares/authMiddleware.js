@@ -106,10 +106,36 @@ const isAdmin = async (req, res) => {
   }
 }
 
+const isTeamLeader = async (req, res) => {
+  try {
+    const { authorization } = req.headers;
+    const _token = authorization?.split(' ')[1]; 
+    const accessToken = jwt.verify(_token, access_token_secret);
+    
+    if(accessToken) {
+      const { profileId } = accessToken;
+      const _profile = await get_profile_by_id(profileId)
+      const _role = await get_role_by_id(_profile?.roleId?._id);
+
+      if(_role?.name?.toLowerCase() === 'team leader') {
+        return true; // User has the required role
+      } else {
+        return false;
+      }
+    } else {
+      return apiResponse.ErrorResponse(res, "Invalid Token");
+    }
+  } catch (err) {
+    console.log("Error in validateRole: ", err);
+    return apiResponse.ErrorResponse(res, "Error validating role: " + err.message);
+  }
+}
+
 module.exports = {
     userLogin,
     validateToken,
     checkLoggedIn,
     extractToken,
     isAdmin,
+    isTeamLeader,
 };

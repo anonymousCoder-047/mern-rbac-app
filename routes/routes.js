@@ -21,13 +21,17 @@ const subTypeRouter = require('../controllers/subTypeController').subTypeControl
 const pipelineRouter = require('../controllers/pipelineController').pipelineController;
 const dealsRouter = require('../controllers/dealsController').dealsController;
 const companyRouter = require('../controllers/companyController').companyController;
+const companyArchiveRouter = require('../controllers/companyArchiveController').companyArchiveController;
 const sourceRouter = require('../controllers/sourceController').sourceController;
 const contactsRouter = require('../controllers/contactsController').contactsController;
 const taxRouter = require('../controllers/taxController').taxController;
-const billRouter = require('../controllers/billSummaryController').billController;
 const opportunityStatusRouter = require('../controllers/opportunityStatusController').opportunityStatusController;
 const SRTypeRouter = require('../controllers/srTypeController').SRTypeController;
 const OpportunityCategoryRouter = require('../controllers/opportunityCategoryController').OpportunityCategoryController;
+const OpportunitySubCategoryRouter = require('../controllers/opportunitySubCategoryController').OpportunitySubCategoryController;
+const billRouter = require('../controllers/billSummaryController').billController;
+const siteLocatorRouter = require('../controllers/siteLocatorController').siteLocatorController;
+const customerPartyIdRouter = require('../controllers/customerPartyIDController').customerPartyIDController;
 
 // loading middleware
 const {
@@ -53,12 +57,16 @@ app.use(apiPrefix + '/sub-type', validateToken, checkLoggedIn, subTypeRouter);
 app.use(apiPrefix + '/pipeline', validateToken, checkLoggedIn, pipelineRouter);
 app.use(apiPrefix + '/deals', validateToken, checkLoggedIn, dealsRouter);
 app.use(apiPrefix + '/company', validateToken, checkLoggedIn, companyRouter);
+app.use(apiPrefix + '/company-archive', validateToken, checkLoggedIn, companyArchiveRouter);
 app.use(apiPrefix + '/source', validateToken, checkLoggedIn, sourceRouter);
 app.use(apiPrefix + '/contact', validateToken, checkLoggedIn, contactsRouter);
 app.use(apiPrefix + '/tax', validateToken, checkLoggedIn, taxRouter);
 app.use(apiPrefix + '/opportunity-status', validateToken, checkLoggedIn, opportunityStatusRouter);
 app.use(apiPrefix + '/sr-type', validateToken, checkLoggedIn, SRTypeRouter);
 app.use(apiPrefix + '/opportunity-category', validateToken, checkLoggedIn, OpportunityCategoryRouter);
+app.use(apiPrefix + '/opportunity-sub-category', validateToken, checkLoggedIn, OpportunitySubCategoryRouter);
 app.use(apiPrefix + '/bill', billRouter);
+app.use(apiPrefix + '/site-locator', siteLocatorRouter);
+app.use(apiPrefix + '/customer-party-id', customerPartyIdRouter);
 
 module.exports = app;

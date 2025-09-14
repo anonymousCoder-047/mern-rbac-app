@@ -14,7 +14,7 @@ const { create, delete_company, get_company, get_company_by_id, update_company, 
 const apiResponse = require('../helpers/apiResponse');
 const expressRouter = require('express');
 const { get_profile_by_id } = require('../services/profileServices');
-const { extractToken, isAdmin } = require('../middlewares/authMiddleware');
+const { extractToken, isAdmin, isTeamLeader } = require('../middlewares/authMiddleware');
 const app = expressRouter.Router();
 
 // load configuration variables
@@ -24,8 +24,10 @@ app.get('/view', canRead('read'), async (req, res) => {
         const { profileId } = extractToken(req?.headers?.authorization?.split('Bearer ')[1]);
         const profile_data = await get_profile_by_id(profileId);
         const _is_admin = await isAdmin(req, res);
-        // const company_data = _is_admin == true ? await get_company({}) : await get_company({ groupId: profile_data?.groupId?._id });
-        const company_data = await get_company({});
+        const _is_team_leader = await isTeamLeader(req, res);
+        
+        const company_data = _is_admin == true ? await get_company({}) : _is_team_leader == true ? await get_company({ groupId: profile_data?.groupId?._id }) : await get_company({ profileId: profile_data?._id });
+        // const company_data = await get_company({});
     
         if(!_.isEmpty(company_data)) return apiResponse.successResponseWithData(res, "Company information", company_data);
         else return apiResponse.ErrorResponse(res, "Sorry, no Company data exists");
@@ -68,7 +70,7 @@ app.post('/update', canUpdate('update'), async (req, res) => {
         if(!_.isEmpty(company_data)) {
             const _existing_company = await get_company_by_id(company_data?.id);
             if(!_.isEmpty(_existing_company)) {
-                const _updated_company = await updat(company_data?.id, _.omit(company_data, ['id']));
+                const _updated_company = await update_company(company_data?.id, _.omit(company_data, ['id']));
         
                 if(!_.isEmpty(_updated_company)) return apiResponse.successResponseWithData(res, "Company Updated Successfully.", _updated_company);
                 else apiResponse.ErrorResponse(res, "Unable to update company.");

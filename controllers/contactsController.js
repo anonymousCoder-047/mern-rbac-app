@@ -19,7 +19,7 @@ const expressRouter = require('express');
 const { send_mail } = require('../helpers/mail');
 const { domain, mail_username } = require('../config/config');
 const { get_profile_by_id } = require('../services/profileServices');
-const { extractToken, isAdmin } = require('../middlewares/authMiddleware');
+const { extractToken, isAdmin, isTeamLeader } = require('../middlewares/authMiddleware');
 const app = expressRouter.Router();
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -30,7 +30,8 @@ app.get('/view', canRead('read'), async (req, res) => {
         const { profileId } = extractToken(req?.headers?.authorization?.split('Bearer ')[1]);
         const profile_data = await get_profile_by_id(profileId);
         const _is_admin = await isAdmin(req, res);
-        const contacts_data = _is_admin == true ? await get_contacts({}) : await get_contacts({ groupId: profile_data?.groupId?._id });
+        const _is_team_leader = await isTeamLeader(req, res);
+        const contacts_data = _is_admin == true ? await get_contacts({}) : _is_team_leader == true ? await get_contacts({ groupId: profile_data?.groupId?._id }) : await get_contacts({ profileId: profile_data?._id });
         // const contacts_data = await get_contacts({});
     
         if(!_.isEmpty(contacts_data)) return apiResponse.successResponseWithData(res, "Contacts information", contacts_data);

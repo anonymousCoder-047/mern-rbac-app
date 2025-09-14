@@ -20,7 +20,7 @@ const { create, createMany, delete_deals, get_deals, get_deals_by_id, update_dea
 
 const apiResponse = require('../helpers/apiResponse');
 const expressRouter = require('express');
-const { extractToken, isAdmin } = require('../middlewares/authMiddleware');
+const { extractToken, isAdmin, isTeamLeader } = require('../middlewares/authMiddleware');
 const { get_profile_by_id } = require('../services/profileServices');
 const app = expressRouter.Router();
 
@@ -32,7 +32,8 @@ app.get('/view', canRead('read'), async (req, res) => {
         const { profileId } = extractToken(req?.headers?.authorization?.split('Bearer ')[1]);
         const profile_data = await get_profile_by_id(profileId);
         const _is_admin = await isAdmin(req, res);
-        const deals_data = _is_admin == true ? await get_deals({}) : await get_deals({ groupId: profile_data?.groupId?._id });
+        const _is_team_leader = await isTeamLeader(req, res);
+        const deals_data = _is_admin == true ? await get_deals({}) : _is_team_leader == true ? await get_deals({ groupId: profile_data?.groupId?._id }) : await get_deals({ profileId: profile_data?._id });
     
         if(!_.isEmpty(deals_data)) return apiResponse.successResponseWithData(res, "deals information", deals_data);
         else return apiResponse.ErrorResponse(res, "Sorry, no deals data exists");

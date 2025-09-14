@@ -24,6 +24,16 @@ const pipelineSchema = mongoose.Schema({
         default: "",
         required: false
     },
+    pipeline_name: {
+        type: String,
+        default: "",
+        required: false
+    },
+    opportunity_sub_type_name: {
+        type: String,
+        default: "",
+        required: false
+    },
     product_category: {
         type: String,
         default: "",

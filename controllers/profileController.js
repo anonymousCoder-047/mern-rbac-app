@@ -14,32 +14,71 @@ const {
 // loading database service
 const { getNextSequence } = require('../helpers/incrementCount');
 const { create, get_profile, get_profile_by_id, update_profile, delete_profile, delete_Many } = require('../services/profileServices');
-const { create: createUser, get_user_by_id } = require("../services/userServices");
+const { create: createUser, get_user_by_id, update_user, get_users } = require("../services/userServices");
 const { create: createPermissions, get_permissions } = require("../services/permissionsServices");
 
 const apiResponse = require('../helpers/apiResponse');
 const expressRouter = require('express');
 const { canCreate, canRead, canUpdate, canDelete } = require('../middlewares/permissionMiddleware');
-const { extractToken, isAdmin } = require('../middlewares/authMiddleware');
+const { extractToken, isAdmin, isTeamLeader } = require('../middlewares/authMiddleware');
 const app = expressRouter.Router();
 
 // load configuration variables
 
+app.get('/view/:id', canRead('read'), async (req, res) => {
+    try {
+        const _id = req.params.id;
+        const _is_admin = await isAdmin(req, res);
+        const _is_team_leader = await isTeamLeader(req, res);
+        
+        if(_is_admin == true) {
+            const profile_data = await get_profile_by_id(_id);
+        
+            if(!_.isEmpty(profile_data)) return apiResponse.successResponseWithData(res, "Profile information", profile_data);
+            else return apiResponse.notFoundResponse(res, "Sorry, no profile data exists");
+        } else if(_is_team_leader == true) {
+            const { profileId } = extractToken(req?.headers?.authorization?.split('Bearer ')[1]);
+            const profile_data = await get_profile_by_id(profileId);
+            const _profile_data = await get_profile({ groupId: profile_data?.groupId?._id });
+
+            if(!_.isEmpty(_profile_data)) return apiResponse.successResponseWithData(res, "Profile information", _profile_data);
+            else return apiResponse.notFoundResponse(res, "Sorry, no profile data exists");
+        } else {
+            const { profileId } = extractToken(req?.headers?.authorization?.split('Bearer ')[1]);
+            const profile_data = await get_profile_by_id(profileId);
+
+            if(!_.isEmpty(profile_data)) return apiResponse.successResponseWithData(res, "Profile information", [profile_data]);
+            else return apiResponse.notFoundResponse(res, "Sorry, no profile data exists");
+        }
+    } catch(err) {
+        console.log("Internal server error: ", err);
+
+        return apiResponse.ErrorResponse(res, "Internal server error");
+    }
+});
+
 app.get('/view', canRead('read'), async (req, res) => {
     try {
         const _is_admin = await isAdmin(req, res);
+        const _is_team_leader = await isTeamLeader(req, res);
         
         if(_is_admin == true) {
             const profile_data = await get_profile({});
         
             if(!_.isEmpty(profile_data)) return apiResponse.successResponseWithData(res, "Profile information", profile_data);
             else return apiResponse.notFoundResponse(res, "Sorry, no profile data exists");
-        } else {
+        } else if(_is_team_leader == true) {
             const { profileId } = extractToken(req?.headers?.authorization?.split('Bearer ')[1]);
             const profile_data = await get_profile_by_id(profileId);
             const _profile_data = await get_profile({ groupId: profile_data?.groupId?._id });
 
             if(!_.isEmpty(_profile_data)) return apiResponse.successResponseWithData(res, "Profile information", _profile_data);
+            else return apiResponse.notFoundResponse(res, "Sorry, no profile data exists");
+        } else {
+            const { profileId } = extractToken(req?.headers?.authorization?.split('Bearer ')[1]);
+            const profile_data = await get_profile_by_id(profileId);
+
+            if(!_.isEmpty(profile_data)) return apiResponse.successResponseWithData(res, "Profile information", [{ ...profile_data?._doc, username: profile_data?.groupId?.group_manager?.username, email: profile_data?.groupId?.group_manager?.email, _id: profile_data?.groupId?.group_manager?._id }]);
             else return apiResponse.notFoundResponse(res, "Sorry, no profile data exists");
         }
     } catch(err) {
@@ -112,7 +151,11 @@ app.post('/update', validateUpdateProfile, canUpdate('update'), async (req, res)
             const _existing_profile = await get_profile_by_id(profile_data?.id);
             if(!_.isEmpty(_existing_profile)) {
                 const _updated_profile = await update_profile(profile_data?.id, _.omit(profile_data, ['id']));
-        
+                if(_existing_profile?.password) {
+                    const [usr_id] = await get_users({ profileId: _existing_profile?.profileId });
+                    const _hashed_passwrd = await bcrypt.hash(_existing_profile.password, 10);
+                    await update_user(usr_id?._id, { password: _hashed_passwrd });
+                }
                 if(!_.isEmpty(_updated_profile)) return apiResponse.successResponseWithData(res, "profile Updated Successfully.", _updated_profile);
                 else apiResponse.badRequestResponse(res, "Unable to update profile.");
             } else apiResponse.forbiddenResponse(res, "profile does not exists.");
@@ -130,10 +173,14 @@ app.patch('/update/:id', canUpdate('update'), async (req, res) => {
         const profile_data = req.body;
     
         if(!_.isEmpty(profile_data) && profile_id != "") {
-            const _existing_profile = await get_profile_by_id(profile_id);
+            const _existing_usr = await get_user_by_id(profile_id);
+            const _existing_profile = await get_profile_by_id(_existing_usr?.profileId);
             if(!_.isEmpty(_existing_profile)) {
-                const _updated_profile = await update_profile(profile_id, _.omit(profile_data, ['id']));
-        
+                if(profile_data?.password) {
+                    const _hashed_passwrd = await bcrypt.hash(profile_data.password, 10);
+                    await update_user(_existing_usr?._id, { password: _hashed_passwrd });
+                }
+                const _updated_profile = await update_profile(_existing_profile?._id, _.omit(profile_data, ['id']));
                 if(!_.isEmpty(_updated_profile)) return apiResponse.successResponseWithData(res, "Profile Updated Successfully.", _updated_profile);
                 else apiResponse.badRequestResponse(res, "Unable to update profile.");
             } else apiResponse.forbiddenResponse(res, "Profile does not exists.");

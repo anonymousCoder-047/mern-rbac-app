@@ -44,7 +44,11 @@ const {
     API_KEY: firebase_api_key,
     APP_ID: firebase_app_id,
     AUTH_DOMAIN: firebase_auth_domain,
-    MEASUREMENT_ID: firebase_measurement_id
+    MEASUREMENT_ID: firebase_measurement_id,
+    GEOCODING_API_KEY: geocoding_api_key,
+    UAEPROXY: uae_proxy,
+    EXTERNAL_API_LINK: external_api_link,
+    MAX_FILE_SIZE: max_file_size,
 } = process.env
 
 
@@ -91,5 +95,9 @@ module.exports = {
     'firebase_api_key': firebase_api_key,
     'firebase_app_id': firebase_app_id,
     'firebase_auth_domain': firebase_auth_domain,
-    'firebase_measurement_id': firebase_measurement_id
+    'firebase_measurement_id': firebase_measurement_id,
+    'geocoding_api_key': geocoding_api_key,
+    'uae_proxy': uae_proxy,
+    'external_api_link': external_api_link,
+    'max_file_size': max_file_size,
 }

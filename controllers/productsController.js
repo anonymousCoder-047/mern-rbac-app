@@ -19,7 +19,7 @@ const { createMany: createSubTypes } = require("../services/subTypeServices");
 
 const apiResponse = require('../helpers/apiResponse');
 const expressRouter = require('express');
-const { extractToken, isAdmin } = require('../middlewares/authMiddleware');
+const { extractToken, isAdmin, isTeamLeader } = require('../middlewares/authMiddleware');
 const { get_profile_by_id } = require('../services/profileServices');
 const app = expressRouter.Router();
 
@@ -32,7 +32,8 @@ app.get('/view', canRead('read'), async (req, res) => {
         const { profileId } = extractToken(req?.headers?.authorization?.split('Bearer ')[1]);
         const profile_data = await get_profile_by_id(profileId);
         const _is_admin = await isAdmin(req, res);
-        const products_data = _is_admin == true ? await get_product({}) : await get_product({ groupId: profile_data?.groupId?._id });
+        const _is_team_leader = await isTeamLeader(req, res);
+        const products_data = _is_admin == true ? await get_product({}) : _is_team_leader == true ? await get_product({ groupId: profile_data?.groupId?._id }) : await get_product({ profileId: profile_data?._id });
     
         if(!_.isEmpty(products_data)) return apiResponse.successResponseWithData(res, "Products information", products_data);
         else return apiResponse.ErrorResponse(res, "Sorry, no Products data exists");

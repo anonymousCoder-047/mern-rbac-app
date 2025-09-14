@@ -13,7 +13,7 @@ const { create, delete_pipeline, get_pipeline, get_pipeline_by_id, update_pipeli
 
 const apiResponse = require('../helpers/apiResponse');
 const expressRouter = require('express');
-const { extractToken, isAdmin } = require('../middlewares/authMiddleware');
+const { extractToken, isAdmin, isTeamLeader } = require('../middlewares/authMiddleware');
 const { get_profile_by_id } = require('../services/profileServices');
 const app = expressRouter.Router();
 
@@ -24,7 +24,8 @@ app.get('/view', canRead('read'), async (req, res) => {
         const { profileId } = extractToken(req?.headers?.authorization?.split('Bearer ')[1]);
         const profile_data = await get_profile_by_id(profileId);
         const _is_admin = await isAdmin(req, res);
-        const pipeline_data = _is_admin == true ? await get_pipeline({}) : await get_pipeline({ groupId: profile_data?.groupId?._id });
+        const _is_team_leader = await isTeamLeader(req, res);
+        const pipeline_data = _is_admin == true ? await get_pipeline({}) : _is_team_leader == true ? await get_pipeline({ groupId: profile_data?.groupId?._id }) : await get_pipeline({ profileId: profileId });
         // const pipeline_data = await get_pipeline({});
     
         if(!_.isEmpty(pipeline_data)) return apiResponse.successResponseWithData(res, "Pipeline information", pipeline_data);
