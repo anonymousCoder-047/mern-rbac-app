@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { all_routes } from "../../router/all_routes";
 import CollapseHeader from "../../../core/common/collapse-header";
 import PrivateServer from "../../../helper/PrivateServer";
@@ -6,6 +6,109 @@ import { endpoints } from "../../../helper/endpoints";
 import _ from "lodash";
 import Select from "react-select";
 import { Toast, ToastContainer, Tab, Tabs, Modal, Button } from "react-bootstrap";
+import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
+
+const containerStyle = {
+  width: '100%',
+  height: '600px',
+};
+
+const center = {
+  lat: 25.276987, // Default center (e.g. Dubai)
+  lng: 55.296249,
+};
+
+const MapView = ({ data, onClickHander }) => {
+  const [clickedCoords, setClickedCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ x: number; y: number } | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+
+  const handleUseCoords = (coords: { lat: number; lng: number }) => {
+    console.log("Using coords:", coords);
+    onClickHander(coords.lat, coords.lng);
+    // Update other state, trigger modal, etc.
+  };
+
+  useEffect(() => {
+    const container = mapContainerRef.current;
+    if (!container) return;
+
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault(); // Suppress browser menu
+    };
+
+    container.addEventListener("contextmenu", handleContextMenu);
+    const handleClickOutside = () => {
+      setClickedCoords(null);
+      setDropdownPos(null);
+    };
+    window.addEventListener("click", handleClickOutside);
+    return () => {
+      window.removeEventListener("click", handleClickOutside);
+      container.removeEventListener("contextmenu", handleContextMenu)
+    }
+  }, []);
+
+  return (
+    <div ref={mapContainerRef} style={{ position: "relative" }}>
+      <LoadScript googleMapsApiKey={apiKey}>
+        <GoogleMap
+          mapContainerStyle={containerStyle}
+          center={center}
+          zoom={14}
+          onLoad={(map) => {
+            mapRef.current = map;
+
+            map.addListener("rightclick", (event: google.maps.MapMouseEvent) => {
+              if (event.latLng && event.domEvent) {
+                const lat = event.latLng.lat();
+                const lng = event.latLng.lng();
+                setClickedCoords({ lat, lng });
+
+                const mouseEvent = event.domEvent as MouseEvent;
+                setDropdownPos({
+                  x: mouseEvent.clientX,
+                  y: mouseEvent.clientY,
+                });
+
+                console.log("Right-clicked at:", lat, lng);
+              }
+            });
+          }}
+        >
+          {data.map((item, index) => (
+            <Marker
+              key={index}
+              position={{ lat: item.lat, lng: item.lng }}
+              title={`${item.FlatNo} (${item.OntSerialNo})`}
+            />
+          ))}
+        </GoogleMap>
+
+        {clickedCoords && dropdownPos && (
+          <div
+            style={{
+              position: "fixed",
+              left: dropdownPos.x,
+              top: dropdownPos.y,
+              background: "#fff",
+              border: "1px solid #ccc",
+              padding: "8px",
+              zIndex: 1000,
+              boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+            }}
+          >
+            <div><strong>Coordinates:</strong></div>
+            <div>{clickedCoords.lat.toFixed(6)}, {clickedCoords.lng.toFixed(6)}</div>
+            <button onClick={() => handleUseCoords(clickedCoords)}>Use These Coordinates</button>
+          </div>
+        )}
+      </LoadScript>
+    </div>
+  );
+};
 
 const route = all_routes;
 const emiratesCodeMap = {
@@ -247,22 +350,31 @@ const SiteLocator = () => {
     []
   );
 
-//   const handleExport = () => {
-//     try {
-//     // Convert data to worksheet format
-//     const worksheet = XLSX.utils.json_to_sheet(billData);
+  //   const handleExport = () => {
+  //     try {
+  //     // Convert data to worksheet format
+  //     const worksheet = XLSX.utils.json_to_sheet(billData);
 
-//     // Create a new workbook and append the worksheet
-//     const workbook = XLSX.utils.book_new();
-//     XLSX.utils.book_append_sheet(workbook, worksheet, "Invoice Summary");
+  //     // Create a new workbook and append the worksheet
+  //     const workbook = XLSX.utils.book_new();
+  //     XLSX.utils.book_append_sheet(workbook, worksheet, "Invoice Summary");
 
-//     // Write the file and trigger download
-//     XLSX.writeFile(workbook, `etisalat_invoice_summary_${moment(new Date()).format('YYYY-MM-DD HH:mm:i')}.xlsx`);
+  //     // Write the file and trigger download
+  //     XLSX.writeFile(workbook, `etisalat_invoice_summary_${moment(new Date()).format('YYYY-MM-DD HH:mm:i')}.xlsx`);
 
-//     } catch(err) {
-//       console.log("Error == ", err);
-//     }
-// }
+  //     } catch(err) {
+  //       console.log("Error == ", err);
+  //     }
+  // }
+  const sampleData = [];
+
+  const handleCoordinatesChange = (lat: number, lng: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      xCoordinate: lat.toString(),
+      yCoordinate: lng.toString()
+    }));
+  }
 
   return (
     <>
@@ -427,145 +539,29 @@ const SiteLocator = () => {
               <div className="card-body">
                 {/* Contact List */}
                 <div className="table-responsive custom-table">
-                    <div className="row mb-3 p-4">
-                        {/* Coordinate Inputs */}
-                        <div className="mb-3">
-                            <label className="col-form-label">X Cord:</label>
-                            <input type="text" name="xCoordinate" value={formData?.xCoordinate} onChange={handleChange} className="form-control" />
-                        </div>
-                        <div className="mb-3">
-                            <label className="col-form-label">Y Cord:</label>
-                            <input type="text" name="yCoordinate" value={formData?.yCoordinate} onChange={handleChange} className="form-control" />
-                        </div>
+                  <div className="row mb-3 p-4">
+                      {/* Coordinate Inputs */}
+                      <div className="mb-3">
+                          <label className="col-form-label">X Cord:</label>
+                          <input type="text" name="xCoordinate" value={formData?.xCoordinate} onChange={handleChange} className="form-control" />
+                      </div>
+                      <div className="mb-3">
+                          <label className="col-form-label">Y Cord:</label>
+                          <input type="text" name="yCoordinate" value={formData?.yCoordinate} onChange={handleChange} className="form-control" />
+                      </div>
 
-                        {/* Action Buttons */}
-                        <div className="d-grid gap-2 d-flex">
-                            <button type="button" className="btn btn-dark text-success" onClick={() => fetchLocationSites("")}>
-                              Locate
-                            </button>
-                            <button type="button" className="btn btn-dark text-success" onClick={handleReset}>
-                              Reset
-                            </button>
-                        </div>
-                    </div>
-                    <form className="p-4">
-                        {/* Row 1: Network Type & Region */}
-                        <div className="row mb-3">
-                            <div className="col">
-                            <label className="col-form-label">Network Type*</label>
-                            <input type="text" name="networkType" value={formData?.networkType} onChange={handleChange} className="form-control" />
-                            </div>
-                            <div className="col">
-                            <label className="col-form-label">Region*</label>
-                            <select name="region" value={formData?.region} onChange={handleChange} className="form-control">
-                                <option value="">Select Region</option>
-                                {regionData?.length > 0 && regionData?.map((opt, i) => (
-                                  <option key={i} value={opt?.value}>{opt?.Key}</option>
-                                ))}
-                            </select>
-                            </div>
-                        </div>
-
-                        {/* Row 2: Longitude & Latitude */}
-                        <div className="row mb-3">
-                            <div className="col">
-                            <label className="col-form-label">Longitude*</label>
-                            <input type="text" name="longitude" value={formData?.longitude} onChange={handleChange} className="form-control" />
-                            </div>
-                            <div className="col">
-                            <label className="col-form-label">Latitude*</label>
-                            <input type="text" name="latitude" value={formData?.latitude} onChange={handleChange} className="form-control" />
-                            </div>
-                        </div>
-
-                        {/* Row 3: Exchange & City */}
-                        <div className="row mb-3">
-                            <div className="col">
-                              <label className="col-form-label">Exchange*</label>
-                              <input type="text" name="exchange" value={formData?.exchange} onChange={handleChange} className="form-control" />
-                            </div>
-                            <div className="col">
-                              <label className="col-form-label">City*</label>
-                              <select name="city" value={formData?.city} onChange={handleChange} className="form-control">
-                                  <option value="">Select City</option>
-                                  <option value="Dubai">Dubai</option>
-                                  <option value="Abu Dhabi">Abu Dhabi</option>
-                                  <option value="Sharjah">Sharjah</option>
-                                  <option value="MURBANAKSA SECOND">MURBANAKSA SECOND</option>
-                              </select>
-                            </div>
-                        </div>
-
-                        <div className="col">
-                          <label className="col-form-label">Flat No*</label>
-                          <Select
-                            name="flatNo"
-                            options={
-                              flatData?.map((flat, i) => ({
-                                label: (
-                                  <div className="d-flex justify-content-between align-items-center">
-                                    <span>{flat.FlatNo}</span>
-                                    <i
-                                      className="ti ti-info-circle text-primary"
-                                      style={{ cursor: 'pointer' }}
-                                      onClick={(e) => {
-                                        e.stopPropagation(); // prevent dropdown selection
-                                        setSelectedFlatInfo(flat);
-                                        setShowModal(true);
-                                      }}
-                                    />
-                                  </div>
-                                ),
-                                value: flat.EidNo,
-                              }))
-                            }
-                            onChange={(e) => setFormData({ ...formData, flatNo: flatData?.find((x) => x?.EidNo == e?.value)?.FlatNo })}
-                            className="mb-3"
-                            placeholder="Select Flat No"
-                          />
-
-                        </div>
-                        {/* Row 4: Building No & Building Name */}
-                        <div className="row mb-3">
-                            <div className="col">
-                              <label className="col-form-label">Building No*</label>
-                              <input type="text" name="buildingNo" value={formData?.buildingNo} onChange={handleChange} className="form-control" />
-                            </div>
-                            <div className="col">
-                              <label className="col-form-label">Building Name*</label>
-                              <input type="text" name="buildingName" value={formData?.buildingName} onChange={handleChange} className="form-control" />
-                            </div>
-                        </div>
-
-                        {/* Row 5: Street & Site Name */}
-                        <div className="row mb-3">
-                            <div className="col">
-                              <label className="col-form-label">Street*</label>
-                              <input type="text" name="street" value={formData?.street} onChange={handleChange} className="form-control" />
-                            </div>
-                            <div className="col">
-                              <label className="col-form-label">Site Name*</label>
-                              <input type="text" name="siteName" value={formData?.siteName} onChange={handleChange} className="form-control" />
-                            </div>
-                        </div>
-
-                        {/* Row 6: Emirates */}
-                        <div className="row mb-3">
-                            <div className="col">
-                              <label className="col-form-label">Emirates*</label>
-                              <select name="emirates" value={formData?.emirates} onChange={handleChange} className="form-control">
-                                  <option value="">Select Emirates</option>
-                                  <option value="Dubai">Dubai</option>
-                                  <option value="Abu Dhabi">Abu Dhabi</option>
-                                  <option value="Sharjah">Sharjah</option>
-                                  <option value="Ajman">Ajman</option>
-                                  <option value="Fujairah">Fujairah</option>
-                                  <option value="RAK">Ras Al Khaimah</option>
-                                  <option value="Umm Al Quwain">Umm Al Quwain</option>
-                              </select>
-                            </div>
-                        </div>
-                    </form>
+                      {/* Action Buttons */}
+                      <div className="d-grid gap-2 d-flex">
+                          <button type="button" className="btn btn-dark text-success" onClick={() => fetchLocationSites("")}>
+                            Locate
+                          </button>
+                          <button type="button" className="btn btn-dark text-success" onClick={handleReset}>
+                            Reset
+                          </button>
+                      </div>
+                  </div>
+                  {/* map code here */}
+                  <MapView data={sampleData} onClickHander={handleCoordinatesChange} />
                 </div>
                 <div className="row align-items-center">
                   <div className="col-md-6">
@@ -579,38 +575,6 @@ const SiteLocator = () => {
                 <div className="d-flex justify-content-center p-4">
                   <div className="w-100" style={{ maxWidth: '800px' }}>
                     <Tabs defaultActiveKey="ack" className="mb-3">
-                      {/* AckMessage Tab */}
-                      <Tab eventKey="ack" title="Ack Message">
-                        <div className="mb-3">
-                          <label className="form-label">Status</label>
-                          <input type="text" readOnly className="form-control" value={responseData?.AckMessage?.Status ?? ''} />
-                        </div>
-                        <div className="mb-3">
-                          <label className="form-label">Error Code</label>
-                          <input type="text" readOnly className="form-control" value={responseData?.AckMessage?.ErrorCode ?? ''} />
-                        </div>
-                        <div className="mb-3">
-                          <label className="form-label">Pool ID</label>
-                          <input type="text" readOnly className="form-control" value={responseData?.PoolID?.PoolID ?? ''} />
-                        </div>
-                        <div className="mb-3">
-                          <label className="form-label">Error Type</label>
-                          <input type="text" readOnly className="form-control" value={responseData?.AckMessage?.ErrorType ?? ''} />
-                        </div>
-                        <div className="mb-3">
-                          <label className="form-label">Error Description</label>
-                          <input type="text" readOnly className="form-control" value={responseData?.AckMessage?.ErrorDescription ?? ''} />
-                        </div>
-                      </Tab>
-
-                      {/* Transaction ID Tab */}
-                      <Tab eventKey="transaction" title="Transaction ID">
-                        <div className="mb-3">
-                          <label className="form-label">Transaction ID</label>
-                          <input type="text" readOnly className="form-control" value={responseData?.ResponseData?.TransactionID ?? ''} />
-                        </div>
-                      </Tab>
-
                       {/* Network Details Tab */}
                       <Tab eventKey="network" title="Network Details">
                         {Object.entries(responseData?.ResponseData?.NetworkDetails ?? {}).map(([key, value]) => (
@@ -622,14 +586,14 @@ const SiteLocator = () => {
                       </Tab>
 
                       {/* Additional Info Tab */}
-                      <Tab eventKey="additional" title="Additional Info">
+                      {/* <Tab eventKey="additional" title="Additional Info">
                         {(responseData?.ResponseData?.AdditionalInfo ?? []).map(({ Name, Value }, index) => (
                           <div className="mb-3" key={index}>
                             <label className="form-label">{Name}</label>
                             <input type="text" readOnly className="form-control" value={Value ?? ''} />
                           </div>
                         ))}
-                      </Tab>
+                      </Tab> */}
                     </Tabs>
                   </div>
                 </div>

@@ -38,6 +38,7 @@
     "@fullcalendar/react": "^6.1.15",
     "@fullcalendar/timegrid": "^6.1.15",
     "@hello-pangea/dnd": "^18.0.1",
+    "@react-google-maps/api": "^2.20.7",
     "@react-latest-ui/react-sticky-notes": "^0.2.6",
     "@reduxjs/toolkit": "^2.5.1",
     "@testing-library/jest-dom": "^5.17.0",

@@ -237,6 +237,8 @@ const BillSummary = () => {
           const uniqueData = results.map((x: any) => ({ ...x, key: x?.invoiceId?.toString() }));
           setBillData(uniqueData);
           setFilteredSearchData(uniqueData);
+          localStorage.setItem('billData', JSON.stringify(uniqueData));
+          localStorage.setItem('billSearchData', JSON.stringify(uniqueData));
         }
 
         if (progress >= 100) {
